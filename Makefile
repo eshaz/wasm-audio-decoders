@@ -41,11 +41,9 @@ wasmlib: configures $(WASM_LIB)
 wasmlib-clean: dist-clean
 	rm -rf $(WASM_LIB)
 
-configures: $(CONFIGURE_LIBOGG) $(CONFIGURE_LIBOPUS) $(CONFIGURE_LIBOPUSFILE)
+configures: $(CONFIGURE_LIBOPUS)
 configures-clean: wasmlib-clean
-	rm -rf $(CONFIGURE_LIBOPUSFILE)
 	rm -rf $(CONFIGURE_LIBOPUS)
-	rm -rf $(CONFIGURE_LIBOGG)
 
 native-decode-test: $(OPUS_DECODE_TEST_FILE)
 
@@ -64,18 +62,15 @@ define WASM_EMCC_OPTS
 -s INCOMING_MODULE_JS_API="[]" \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
-  , '_opus_chunkdecoder_create' \
-  , '_opus_chunkdecoder_free' \
-  , '_opus_chunkdecoder_enqueue' \
-  , '_opus_chunkdecoder_decode_float_stereo_deinterleaved' \
+  , '_opus_frame_decoder_destroy' \
+  , '_opus_frame_decode_float_deinterleaved' \
+  , '_opus_frame_decoder_create' \
 ]" \
 -s STRICT=1 \
 --pre-js 'src/emscripten-pre.js' \
 --post-js 'src/emscripten-post.js' \
--I src/opusfile/include \
--I "src/ogg/include" \
 -I "src/opus/include" \
-src/opus_chunkdecoder.c \ 
+src/opus_frame_decoder.c \ 
 endef
 
 
@@ -128,38 +123,23 @@ $(WASM_LIB): configures
 	  -s JS_MATH \
 	  -s NO_DYNAMIC_EXECUTION=1 \
 	  -s NO_FILESYSTEM=1 \
-	  -s EXPORTED_FUNCTIONS="[ \
-	     '_op_read_float_stereo' \
-	  ]" \
 	  -s STRICT=1 \
-	  -I "src/opusfile/" \
-	  -I "src/opusfile/include" \
-	  -I "src/opusfile/src" \
-	  -I "src/ogg/include" \
 	  -I "src/opus/include" \
 	  -I "src/opus/celt" \
 	  -I "src/opus/silk" \
 	  -I "src/opus/silk/float" \
 	  src/opus/src/opus.c \
-	  src/opus/src/opus_multistream.c \
-	  src/opus/src/opus_multistream_decoder.c \
 	  src/opus/src/opus_decoder.c \
 	  src/opus/silk/*.c \
-	  src/opus/celt/*.c \
-	  src/ogg/src/*.c \
-	  src/opusfile/src/*.c
+	  src/opus/celt/*.c
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(WASM_LIB)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(CONFIGURE_LIBOPUSFILE):
-	cd src/opusfile; ./autogen.sh
 $(CONFIGURE_LIBOPUS):
 	cd src/opus; ./autogen.sh
-$(CONFIGURE_LIBOGG):
-	cd src/ogg; ./autogen.sh
 
 $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
 	cd src/ogg; emconfigure ./configure
