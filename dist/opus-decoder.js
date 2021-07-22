@@ -544,7 +544,7 @@ class OpusFrameDecoder {
   const samplesDecoded = _opus_frame_decode_float_deinterleaved(this._decoder, this._dataPtr, opusFrame.length, this._leftPtr, this._rightPtr);
   return new OpusDecodedAudio([ this._leftArr.slice(0, samplesDecoded), this._rightArr.slice(0, samplesDecoded) ], samplesDecoded);
  }
- decodeFrames(opusFrames) {
+ decodeAll(opusFrames) {
   let left = [], right = [], samples = 0;
   opusFrames.forEach(frame => {
    const {channelData: channelData, samplesDecoded: samplesDecoded} = this.decode(frame);

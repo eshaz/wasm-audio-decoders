@@ -12,7 +12,6 @@ minify: wasm
 	npm run minify
 
 dist: wasm wasm-esm minify
-	@ cp src/test-opus-decoder* dist
 dist-clean:
 	rm -rf dist/*
 

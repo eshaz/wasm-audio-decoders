@@ -76,7 +76,7 @@ class OpusFrameDecoder {
     );
   }
 
-  decodeFrames(opusFrames) {
+  decodeAll(opusFrames) {
     let left = [],
       right = [],
       samples = 0;

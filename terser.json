@@ -13,10 +13,8 @@
       "keep_quoted": true,
       "reserved": [
         "instance",
-        "onDecode",
         "decode",
-        "decodeFrames",
-        "onDecodeAll",
+        "decodeAll",
         "free",
         "ready",
         "channelData",
