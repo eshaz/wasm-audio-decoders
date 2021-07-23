@@ -1,3 +1,11 @@
-[submodule "src/opus"]
-	path = src/opus
+[submodule "src/modules/opusfile"]
+	path = src/modules/opusfile
+	url = https://github.com/xiph/opusfile
+
+[submodule "src/modules/opus"]
+	path = src/modules/opus
 	url = https://github.com/xiph/opus
+
+[submodule "src/modules/ogg"]
+	path = src/modules/ogg
+	url = https://github.com/xiph/ogg
