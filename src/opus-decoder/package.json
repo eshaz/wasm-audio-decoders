@@ -1,0 +1,43 @@
+{
+  "name": "opus-frame-decoder",
+  "version": "0.0.1",
+  "description": "Web Assembly streaming Opus decoder",
+  "main": "dist/opus-decoder.min.js",
+  "files": [
+    "dist/opus-frame-decoder.min.js",
+    "dist/opus-frame-decoder.min.js.map"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eshaz/opus-decoder.git"
+  },
+  "keywords": [
+    "Opus",
+    "audio",
+    "decoder",
+    "stream",
+    "streams",
+    "libopus",
+    "libopusfile",
+    "Ogg Opus",
+    "WebAssembly",
+    "Wasm"
+  ],
+  "author": "Ethan Halsall",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/eshaz/opus-decoder/issues"
+  },
+  "scripts": {
+    "compress": "node compress.js",
+    "minify": "terser --config-file terser.json dist/opus-decoder.js -o dist/opus-decoder.min.js",
+    "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*'"
+  },
+  "homepage": "https://github.com/eshaz/opus-decoder#readme",
+  "devDependencies": {
+    "fflate": "^0.7.1",
+    "prettier": "^2.3.2",
+    "simple-yenc": "0.0.2",
+    "terser": "^5.7.1"
+  }
+}
