@@ -14,7 +14,7 @@ OpusFrameDecoder *opus_frame_decoder_create() {
 int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned char *data, opus_int32 data_len, float *left, float *right) {
     int samples_decoded = opus_decode_float(decoder->st, data, data_len, decoder->pcm, 5760, 0);
 
-    for (int i=0; i<samples_decoded; i++) {
+    for (int i=samples_decoded-1; i>=0; i--) {
       left[i] =  decoder->pcm[i*2];
       right[i] = decoder->pcm[i*2+1];
     }

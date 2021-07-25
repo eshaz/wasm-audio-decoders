@@ -134,7 +134,7 @@ void opus_chunkdecoder_free(OpusChunkDecoder *decoder) {
 }
 
 void opus_chunkdecoder_deinterleave(float *interleaved, int total_samples, float *left, float *right) {
-  for (int i=0; i<total_samples; i++) {
+  for (int i=total_samples-1; i>=0; i--) {
     left[i] =  interleaved[i*2];
     right[i] = interleaved[i*2+1];
   }

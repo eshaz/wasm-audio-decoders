@@ -22,7 +22,7 @@ int mpeg_decode_float_deinterleaved(MPEGFrameDecoder *decoder, unsigned char *in
 
     int samples_decoded = bytes_decoded / sizeof(float) / 2;
 
-    for (size_t i=0; i<samples_decoded; i++) {
+    for (int i=samples_decoded-1; i>=0; i--) {
         unsigned char *left_ptr = (unsigned char *) &left[i];
         left_ptr[0] = decoder->pcm[i*8];
         left_ptr[1] = decoder->pcm[i*8+1];
