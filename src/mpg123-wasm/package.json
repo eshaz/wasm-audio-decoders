@@ -1,0 +1,32 @@
+{
+  "name": "mpg123-wasm",
+  "version": "0.0.1",
+  "description": "Web Assembly streaming Ogg Opus decoder",
+  "main": "dist/mpg123-wasm.min.js",
+  "files": [
+    "dist/mpg123-wasm.min.js",
+    "dist/mpg123-wasm.min.js.map"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eshaz/opus-decoder.git"
+  },
+  "keywords": [
+    "Opus",
+    "audio",
+    "decoder",
+    "stream",
+    "streams",
+    "libopus",
+    "libopusfile",
+    "Ogg Opus",
+    "WebAssembly",
+    "Wasm"
+  ],
+  "author": "Ethan Halsall",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/eshaz/opus-decoder/issues"
+  },
+  "homepage": "https://github.com/eshaz/opus-decoder#readme"
+}

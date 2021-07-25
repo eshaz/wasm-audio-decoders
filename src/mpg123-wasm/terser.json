@@ -1,0 +1,29 @@
+{
+  "sourceMap": {
+    "url": "opus-decoder.min.js.map"
+  },
+  "compress": {
+    "unsafe": true,
+    "ecma": 2021,
+    "passes": 2
+  },
+  "mangle": {
+    "properties": {
+      "debug": false,
+      "keep_quoted": true,
+      "reserved": [
+        "instance",
+        "onDecode",
+        "onDecodeAll",
+        "free",
+        "ready",
+        "channelData",
+        "samplesDecoded"
+      ]
+    }
+  },
+  "ecma": 2021,
+  "enclose": true,
+  "safari10": true,
+  "toplevel": true
+}
