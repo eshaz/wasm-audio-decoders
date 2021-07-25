@@ -5,7 +5,6 @@ MPEGFrameDecoder *mpeg_decoder_create() {
     decoder.mh = mpg123_new(NULL, NULL);
     mpg123_param(decoder.mh, MPG123_FLAGS, 
       MPG123_FORCE_STEREO |
-      MPG123_NO_READAHEAD |
       MPG123_FORCE_ENDIAN, 0);
     mpg123_open_feed(decoder.mh);
 
@@ -13,24 +12,6 @@ MPEGFrameDecoder *mpeg_decoder_create() {
     *ptr = decoder;
     return ptr;
 }
-
-// unpack method for retrieving data in little endian
-// increments index i by the number of bytes unpacked
-// usage:
-//   int i = 0;
-//   float x = unpackFloat(&buffer[i], &i);
-//   float y = unpackFloat(&buffer[i], &i);
-//   float z = unpackFloat(&buffer[i], &i);
-float unpackFloat(const void *buf) {
-    const unsigned char *b = (const unsigned char *)buf;
-    uint32_t temp = 0;
-    temp = ((b[3] << 24) |
-            (b[2] << 16) |
-            (b[1] <<  8) |
-             b[0]);
-    return *((float *) &temp);
-}
-
 
 // left and right should be able to store frame_size*channels*sizeof(float) 
 // frame_size should be the maximum packet duration (120ms; 5760 for 48kHz)
@@ -42,16 +23,17 @@ int mpeg_decode_float_deinterleaved(MPEGFrameDecoder *decoder, unsigned char *in
     int samples_decoded = bytes_decoded / sizeof(float) / 2;
 
     for (size_t i=0; i<samples_decoded; i++) {
+        unsigned char *left_ptr = (unsigned char *) &left[i];
+        left_ptr[0] = decoder->pcm[i*8];
+        left_ptr[1] = decoder->pcm[i*8+1];
+        left_ptr[2] = decoder->pcm[i*8+2];
+        left_ptr[3] = decoder->pcm[i*8+3];
 
-        //memcpy(&left[i], &decoder->pcm[i*8], sizeof(float));
-        //memcpy(&right[i], &decoder->pcm[i*8+1], sizeof(float));
-
-        left[i] =  unpackFloat(&decoder->pcm[i*8]);
-        right[i] = unpackFloat(&decoder->pcm[i*8+4]);
-
-
-        //left[i] =  decoder->pcm[i*2];
-        //right[i] = decoder->pcm[i*2+1];
+        unsigned char *right_ptr = (unsigned char *) &right[i];
+        right_ptr[0] = decoder->pcm[i*8+4];
+        right_ptr[1] = decoder->pcm[i*8+5];
+        right_ptr[2] = decoder->pcm[i*8+6];
+        right_ptr[3] = decoder->pcm[i*8+7];
     }
 
     return samples_decoded;

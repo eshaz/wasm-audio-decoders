@@ -270,12 +270,12 @@ mpg123-wasmlib:
 	@ emcc \
 	  -o "$(MPG123_WASM_LIB)" \
 	  -r \
-	  -Os \
+	  -Oz \
 	  -flto \
 	  -s NO_DYNAMIC_EXECUTION=1 \
 	  -s NO_FILESYSTEM=1 \
 	  -s STRICT=1 \
-	  -DOPT_GENERIC -DREAL_IS_FLOAT -DNOXFERMEM \
+	  -DOPT_GENERIC -DREAL_IS_FLOAT \
 	  -I "modules/mpg123/src" \
 	  -I "modules/mpg123/src/libmpg123" \
 	  -I "modules/mpg123/src/compat" \
@@ -290,11 +290,8 @@ mpg123-wasmlib:
   	  modules/mpg123/src/libmpg123/readers.c \
   	  modules/mpg123/src/libmpg123/tabinit.c \
   	  modules/mpg123/src/libmpg123/libmpg123.c \
-  	  modules/mpg123/src/libmpg123/layer1.c \
-  	  modules/mpg123/src/libmpg123/layer2.c \
   	  modules/mpg123/src/libmpg123/layer3.c \
-  	  modules/mpg123/src/libmpg123/synth_real.c \
-  	  modules/mpg123/src/libmpg123/index.c
+  	  modules/mpg123/src/libmpg123/synth_real.c 
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(MPG123_WASM_LIB)"

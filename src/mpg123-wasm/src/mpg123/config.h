@@ -357,9 +357,11 @@
 
 /* Define to disable layer I. */
 /* #undef NO_LAYER1 */
+#define NO_LAYER1 1
 
 /* Define to disable layer II. */
 /* #undef NO_LAYER2 */
+#define NO_LAYER2 1
 
 /* Define to disable layer III. */
 /* #undef NO_LAYER3 */
