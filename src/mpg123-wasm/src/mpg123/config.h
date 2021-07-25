@@ -6,7 +6,7 @@
 /* #undef ABI_ALIGN_FUN */
 
 /* Define to use proper rounding. */
-/* #undef ACCURATE_ROUNDING */
+#define ACCURATE_ROUNDING 1
 
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */

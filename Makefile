@@ -22,17 +22,15 @@ default: dist
 
 clean: dist-clean opus-wasmlib-clean configures-clean
 
-dist: opus-frame-decoder opus-frame-decoder-minify 
-dist: opus-decoder opus-decoder-minify
-dist: mpg123-wasm mpg123-wasm-minify
+dist: opus-frame-decoder opus-decoder mpg123-wasm
 dist-clean:
 	rm -rf src/opus-frame-decoder/dist/*
 	rm -rf src/opus-decoder/dist/*
 	rm -rf src/mpg123-wasm/dist/*
 
-opus-decoder: opus-wasmlib $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_ESM)
-opus-frame-decoder: opus-wasmlib $(OPUS_FRAME_DECODER_MODULE) $(OPUS_FRAME_DECODER_MODULE_ESM)
-mpg123-wasm: mpg123-wasmlib ${MPG123_MODULE}
+opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_ESM)
+opus-frame-decoder: opus-wasmlib opus-frame-decoder-minify $(OPUS_FRAME_DECODER_MODULE) $(OPUS_FRAME_DECODER_MODULE_ESM)
+mpg123-wasm: mpg123-wasmlib mpg123-wasm-minify ${MPG123_MODULE}
 
 opus-decoder-minify: $(OPUS_DECODER_MODULE)
 	node src/common/compress.js ${OPUS_DECODER_MODULE}
@@ -65,7 +63,6 @@ define EMCC_OPTS
 -s SINGLE_FILE=1 \
 -s SUPPORT_LONGJMP=0 \
 -s MALLOC="emmalloc" \
--s JS_MATH \
 -s NO_FILESYSTEM=1 \
 -s ENVIRONMENT=web,worker \
 -s STRICT=1 \
@@ -73,6 +70,7 @@ define EMCC_OPTS
 endef
 
 define OPUS_FRAME_DECODER_EMCC_OPTS
+-s JS_MATH \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
   , '_opus_frame_decoder_destroy' \
@@ -86,6 +84,7 @@ src/opus-frame-decoder/src/opus_frame_decoder.c
 endef
 
 define OPUS_DECODER_EMCC_OPTS
+-s JS_MATH \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
   , '_opus_chunkdecoder_create' \
@@ -237,7 +236,7 @@ $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
 #	  --disable-moreinfo \
 #	  --disable-messages \
 #	  --disable-new-huffman \
-#	  --disable-int-quality \
+#	  --enable-int-quality \
 #	  --disable-16bit \
 #	  --disable-8bit \
 #	  --disable-32bit \
@@ -273,7 +272,6 @@ mpg123-wasmlib:
 	  -r \
 	  -Os \
 	  -flto \
-	  -s JS_MATH \
 	  -s NO_DYNAMIC_EXECUTION=1 \
 	  -s NO_FILESYSTEM=1 \
 	  -s STRICT=1 \
@@ -324,10 +322,10 @@ endef
 ${MPG123_MODULE}: mpg123-wasmlib
 	@ mkdir -p src/mpg123-wasm/dist
 	@ echo "Building Emscripten WebAssembly module $(MPG123_MODULE)..."
-		emcc ${MPG123_WASM_LIB} \
+	@ emcc $(MPG123_WASM_LIB) \
 		-o "$(MPG123_MODULE)" \
-		${EMCC_OPTS} \
-		${MPG123_EMCC_OPTS} 
+		$(EMCC_OPTS) \
+		$(MPG123_EMCC_OPTS) 
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built JS Module: $(MPG123_MODULE)"
