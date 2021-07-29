@@ -1,26 +1,6 @@
-OPUS_WASM_LIB=tmp/opus.bc
-OPUS_DECODER_MODULE=src/opus-decoder/dist/opus-decoder.js
-OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
-OPUS_DECODER_MODULE_ESM=src/opus-decoder/dist/opus-decoder.mjs
-
-OPUS_FRAME_DECODER_MODULE=src/opus-frame-decoder/dist/opus-frame-decoder.js
-OPUS_FRAME_DECODER_MODULE_MIN=src/opus-frame-decoder/dist/opus-frame-decoder.min.js
-OPUS_FRAME_DECODER_MODULE_ESM=src/opus-frame-decoder/dist/opus-frame-decoder.mjs
-
-MPG123_WASM_LIB=tmp/mpg123.bc
-MPG123_MODULE=src/mpg123-wasm/dist/mpg123-wasm.js
-MPG123_MODULE_MIN=src/mpg123-wasm/dist/mpg123-wasm.min.js
-
-
-# Modules
-CONFIGURE_LIBOPUS=modules/opus/configure
-CONFIGURE_LIBOGG=modules/ogg/configure
-CONFIGURE_LIBOPUSFILE=modules/opusfile/configure
-OGG_CONFIG_TYPES=modules/ogg/include/ogg/config_types.h
-
 default: dist
 
-clean: dist-clean opus-wasmlib-clean configures-clean
+clean: dist-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
 dist: opus-frame-decoder opus-decoder mpg123-wasm
 dist-clean:
@@ -28,32 +8,52 @@ dist-clean:
 	rm -rf src/opus-decoder/dist/*
 	rm -rf src/mpg123-wasm/dist/*
 
+# opus
+OPUS_WASM_LIB=tmp/opus.bc
+OPUS_DECODER_MODULE=src/opus-decoder/dist/opus-decoder.js
+OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
+OPUS_DECODER_MODULE_ESM=src/opus-decoder/dist/opus-decoder.mjs
+OPUS_FRAME_DECODER_MODULE=src/opus-frame-decoder/dist/opus-frame-decoder.js
+OPUS_FRAME_DECODER_MODULE_MIN=src/opus-frame-decoder/dist/opus-frame-decoder.min.js
+OPUS_FRAME_DECODER_MODULE_ESM=src/opus-frame-decoder/dist/opus-frame-decoder.mjs
+
 opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_ESM)
-opus-frame-decoder: opus-wasmlib opus-frame-decoder-minify $(OPUS_FRAME_DECODER_MODULE) $(OPUS_FRAME_DECODER_MODULE_ESM)
-mpg123-wasm: mpg123-wasmlib mpg123-wasm-minify ${MPG123_MODULE}
-
 opus-decoder-minify: $(OPUS_DECODER_MODULE)
-	node src/common/compress.js ${OPUS_DECODER_MODULE}
+	node build/compress.js ${OPUS_DECODER_MODULE}
 	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${OPUS_DECODER_MODULE} -o ${OPUS_DECODER_MODULE_MIN}
-
+opus-frame-decoder: opus-wasmlib opus-frame-decoder-minify $(OPUS_FRAME_DECODER_MODULE) $(OPUS_FRAME_DECODER_MODULE_ESM)
 opus-frame-decoder-minify: $(OPUS_FRAME_DECODER_MODULE)
-	node src/common/compress.js ${OPUS_FRAME_DECODER_MODULE}
+	node build/compress.js ${OPUS_FRAME_DECODER_MODULE}
 	node_modules/.bin/terser --config-file src/opus-frame-decoder/terser.json ${OPUS_FRAME_DECODER_MODULE} -o ${OPUS_FRAME_DECODER_MODULE_MIN}
-
-mpg123-wasm-minify: $(MPG123_MODULE)
-	node src/common/compress.js ${MPG123_MODULE}
-	node_modules/.bin/terser --config-file src/opus-frame-decoder/terser.json ${MPG123_MODULE} -o ${MPG123_MODULE_MIN}
-
 opus-wasmlib: configures $(OPUS_WASM_LIB)
 opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
 
+# mpg123
+MPG123_WASM_LIB=tmp/mpg123.bc
+MPG123_MODULE=src/mpg123-wasm/dist/mpg123-wasm.js
+MPG123_MODULE_MIN=src/mpg123-wasm/dist/mpg123-wasm.min.js
+
+mpg123-wasm: mpg123-wasmlib mpg123-wasm-minify ${MPG123_MODULE}
+mpg123-wasm-minify: $(MPG123_MODULE)
+	node build/compress.js ${MPG123_MODULE}
+	node_modules/.bin/terser --config-file src/opus-frame-decoder/terser.json ${MPG123_MODULE} -o ${MPG123_MODULE_MIN}
+mpg123-wasmlib: $(MPG123_WASM_LIB)
+mpg123-wasmlib-clean: dist-clean
+	rm -rf $(MPG123_WASM_LIB)
+
+# configures
+CONFIGURE_LIBOPUS=modules/opus/configure
+CONFIGURE_LIBOGG=modules/ogg/configure
+CONFIGURE_LIBOPUSFILE=modules/opusfile/configure
+OGG_CONFIG_TYPES=modules/ogg/include/ogg/config_types.h
 configures: $(CONFIGURE_LIBOGG) $(CONFIGURE_LIBOPUS) $(CONFIGURE_LIBOPUSFILE) $(OGG_CONFIG_TYPES)
 configures-clean: opus-wasmlib-clean
 	rm -rf $(CONFIGURE_LIBOPUSFILE)
 	rm -rf $(CONFIGURE_LIBOPUS)
 	rm -rf $(CONFIGURE_LIBOGG)
 
+# common EMCC options
 define EMCC_OPTS
 -O3 \
 --minify 0 \
@@ -69,6 +69,9 @@ define EMCC_OPTS
 -s INCOMING_MODULE_JS_API="[]"
 endef
 
+# ------------------
+# opus-frame-decoder
+# ------------------
 define OPUS_FRAME_DECODER_EMCC_OPTS
 -s JS_MATH \
 -s EXPORTED_FUNCTIONS="[ \
@@ -82,24 +85,6 @@ define OPUS_FRAME_DECODER_EMCC_OPTS
 -I "modules/opus/include" \
 src/opus-frame-decoder/src/opus_frame_decoder.c
 endef
-
-define OPUS_DECODER_EMCC_OPTS
--s JS_MATH \
--s EXPORTED_FUNCTIONS="[ \
-    '_free', '_malloc' \
-  , '_opus_chunkdecoder_create' \
-  , '_opus_chunkdecoder_free' \
-  , '_opus_chunkdecoder_enqueue' \
-  , '_opus_chunkdecoder_decode_float_stereo_deinterleaved' \
-]" \
---pre-js 'src/opus-decoder/src/emscripten-pre.js' \
---post-js 'src/opus-decoder/src/emscripten-post.js' \
--I modules/opusfile/include \
--I "modules/ogg/include" \
--I "modules/opus/include" \
-src/opus-decoder/src/opus_chunkdecoder.c
-endef
-
 
 $(OPUS_FRAME_DECODER_MODULE): $(OPUS_WASM_LIB)
 	@ mkdir -p src/opus-frame-decoder/dist
@@ -130,6 +115,26 @@ $(OPUS_FRAME_DECODER_MODULE_ESM): $(OPUS_FRAME_DECODER_MODULE)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
+# ------------
+# opus-decoder
+# ------------
+define OPUS_DECODER_EMCC_OPTS
+-s JS_MATH \
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  , '_opus_chunkdecoder_create' \
+  , '_opus_chunkdecoder_free' \
+  , '_opus_chunkdecoder_enqueue' \
+  , '_opus_chunkdecoder_decode_float_stereo_deinterleaved' \
+]" \
+--pre-js 'src/opus-decoder/src/emscripten-pre.js' \
+--post-js 'src/opus-decoder/src/emscripten-post.js' \
+-I modules/opusfile/include \
+-I "modules/ogg/include" \
+-I "modules/opus/include" \
+src/opus-decoder/src/opus_chunkdecoder.c
+endef
+
 $(OPUS_DECODER_MODULE): $(OPUS_WASM_LIB)
 	@ mkdir -p src/opus-decoder/dist
 	@ echo "Building Emscripten WebAssembly module $(OPUS_DECODER_MODULE)..."
@@ -159,7 +164,9 @@ $(OPUS_DECODER_MODULE_ESM): $(OPUS_DECODER_MODULE)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-
+# -------------------
+# Shared Opus library
+# -------------------
 $(OPUS_WASM_LIB): configures
 	@ mkdir -p tmp
 	@ echo "Building Ogg/Opus Emscripten Library $(OPUS_WASM_LIB)..."
@@ -211,9 +218,39 @@ $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
 	# Remove a.wasm* files created by emconfigure
 	cd modules/ogg; rm a.wasm*
 
-# -------------------------------------------
+# -----------
+# mpg123-wasm
+# -----------
+define MPG123_EMCC_OPTS
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  ,	'_mpeg_decoder_create' \
+  ,	'_mpeg_decoder_destroy' \
+  ,	'_mpeg_decode_float_deinterleaved' \
+  ,	'_mpeg_get_sample_rate' \
+]" \
+--pre-js 'src/mpg123-wasm/src/emscripten-pre.js' \
+--post-js 'src/mpg123-wasm/src/emscripten-post.js' \
+-I "modules/mpg123/src/libmpg123" \
+-I "src/mpg123-wasm/src/mpg123" \
+src/mpg123-wasm/src/mpeg_decoder.c 
+endef
+
+# modules/mpg123/src/libmpg123/.libs/libmpg123.so
+${MPG123_MODULE}: $(MPG123_WASM_LIB)
+	@ mkdir -p src/mpg123-wasm/dist
+	@ echo "Building Emscripten WebAssembly module $(MPG123_MODULE)..."
+	@ emcc $(MPG123_WASM_LIB) \
+		-o "$(MPG123_MODULE)" \
+		$(EMCC_OPTS) \
+		$(MPG123_EMCC_OPTS) 
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built JS Module: $(MPG123_MODULE)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
 # Uncomment to reconfigure and compile mpg123
-# -------------------------------------------
 #
 #configure-mpg123:
 #	cd modules/mpg123; autoreconf -iv \
@@ -264,7 +301,7 @@ $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
 #	@ echo "|"
 #	@ echo "+-------------------------------------------------------------------------------"
 
-mpg123-wasmlib:
+$(MPG123_WASM_LIB):
 	@ mkdir -p tmp
 	@ echo "Building mpg123 Emscripten Library $(MPG123_WASM_LIB)..."
 	@ emcc \
@@ -295,36 +332,5 @@ mpg123-wasmlib:
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(MPG123_WASM_LIB)"
-	@ echo "|"
-	@ echo "+-------------------------------------------------------------------------------"
-
-
-define MPG123_EMCC_OPTS
--s EXPORTED_FUNCTIONS="[ \
-    '_free', '_malloc' \
-  ,	'_mpeg_decoder_create' \
-  ,	'_mpeg_decoder_destroy' \
-  ,	'_mpeg_decode_float_deinterleaved' \
-  ,	'_mpeg_get_sample_rate' \
-]" \
---pre-js 'src/mpg123-wasm/src/emscripten-pre.js' \
---post-js 'src/mpg123-wasm/src/emscripten-post.js' \
--I "modules/mpg123/src/libmpg123" \
--I "src/mpg123-wasm/src/mpg123" \
-src/mpg123-wasm/src/mpeg_decoder.c 
-endef
-
-# modules/mpg123/src/libmpg123/.libs/libmpg123.so
-
-${MPG123_MODULE}: mpg123-wasmlib
-	@ mkdir -p src/mpg123-wasm/dist
-	@ echo "Building Emscripten WebAssembly module $(MPG123_MODULE)..."
-	@ emcc $(MPG123_WASM_LIB) \
-		-o "$(MPG123_MODULE)" \
-		$(EMCC_OPTS) \
-		$(MPG123_EMCC_OPTS) 
-	@ echo "+-------------------------------------------------------------------------------"
-	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(MPG123_MODULE)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
