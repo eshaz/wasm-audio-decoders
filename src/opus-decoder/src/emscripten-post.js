@@ -23,7 +23,7 @@ class OpusDecodedAudio {
   }
 }
 
-class OpusFrameDecoder {
+class OpusDecoder {
   constructor() {
     this.ready.then(() => this._createDecoder());
   }
@@ -96,11 +96,11 @@ class OpusFrameDecoder {
   }
 }
 
-Module["OpusFrameDecoder"] = OpusFrameDecoder;
+Module["OpusDecoder"] = OpusDecoder;
 
 // nodeJS only
 if ("undefined" !== typeof global && exports) {
-  module.exports.OpusFrameDecoder = OpusFrameDecoder;
+  module.exports.OpusDecoder = OpusDecoder;
   // uncomment this for performance testing
   // var {performance} = require('perf_hooks');
   // global.performance = performance;

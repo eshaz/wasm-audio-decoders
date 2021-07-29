@@ -1,11 +1,11 @@
 {
-  "name": "opus-frame-decoder",
+  "name": "opus-decoder",
   "version": "0.0.1",
   "description": "Web Assembly streaming Opus decoder",
-  "main": "dist/opus-frame-decoder.min.js",
+  "main": "dist/opus-decoder.min.js",
   "files": [
-    "dist/opus-frame-decoder.min.js",
-    "dist/opus-frame-decoder.min.js.map"
+    "dist/opus-decoder.min.js",
+    "dist/opus-decoder.min.js.map"
   ],
   "repository": {
     "type": "git",

@@ -2,9 +2,9 @@ default: dist
 
 clean: dist-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
-dist: opus-frame-decoder ogg-opus-decoder mpg123-wasm
+dist: opus-decoder ogg-opus-decoder mpg123-wasm
 dist-clean:
-	rm -rf src/opus-frame-decoder/dist/*
+	rm -rf src/opus-decoder/dist/*
 	rm -rf src/ogg-opus-decoder/dist/*
 	rm -rf src/mpg123-wasm/dist/*
 
@@ -13,18 +13,18 @@ OPUS_WASM_LIB=tmp/opus.bc
 OGG_OPUS_DECODER_MODULE=src/ogg-opus-decoder/dist/ogg-opus-decoder.js
 OGG_OPUS_DECODER_MODULE_MIN=src/ogg-opus-decoder/dist/ogg-opus-decoder.min.js
 OGG_OPUS_DECODER_MODULE_ESM=src/ogg-opus-decoder/dist/ogg-opus-decoder.mjs
-OPUS_FRAME_DECODER_MODULE=src/opus-frame-decoder/dist/opus-frame-decoder.js
-OPUS_FRAME_DECODER_MODULE_MIN=src/opus-frame-decoder/dist/opus-frame-decoder.min.js
-OPUS_FRAME_DECODER_MODULE_ESM=src/opus-frame-decoder/dist/opus-frame-decoder.mjs
+OPUS_DECODER_MODULE=src/opus-decoder/dist/opus-decoder.js
+OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
+OPUS_DECODER_MODULE_ESM=src/opus-decoder/dist/opus-decoder.mjs
 
 ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_MODULE) $(OGG_OPUS_DECODER_MODULE_ESM)
 ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_MODULE)
 	node build/compress.js ${OGG_OPUS_DECODER_MODULE}
 	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
-opus-frame-decoder: opus-wasmlib opus-frame-decoder-minify $(OPUS_FRAME_DECODER_MODULE) $(OPUS_FRAME_DECODER_MODULE_ESM)
-opus-frame-decoder-minify: $(OPUS_FRAME_DECODER_MODULE)
-	node build/compress.js ${OPUS_FRAME_DECODER_MODULE}
-	node_modules/.bin/terser --config-file src/opus-frame-decoder/terser.json ${OPUS_FRAME_DECODER_MODULE} -o ${OPUS_FRAME_DECODER_MODULE_MIN}
+opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_ESM)
+opus-decoder-minify: $(OPUS_DECODER_MODULE)
+	node build/compress.js ${OPUS_DECODER_MODULE}
+	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${OPUS_DECODER_MODULE} -o ${OPUS_DECODER_MODULE_MIN}
 opus-wasmlib: configures $(OPUS_WASM_LIB)
 opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
@@ -37,7 +37,7 @@ MPG123_MODULE_MIN=src/mpg123-wasm/dist/mpg123-wasm.min.js
 mpg123-wasm: mpg123-wasmlib mpg123-wasm-minify ${MPG123_MODULE}
 mpg123-wasm-minify: $(MPG123_MODULE)
 	node build/compress.js ${MPG123_MODULE}
-	node_modules/.bin/terser --config-file src/opus-frame-decoder/terser.json ${MPG123_MODULE} -o ${MPG123_MODULE_MIN}
+	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${MPG123_MODULE} -o ${MPG123_MODULE_MIN}
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
@@ -70,9 +70,9 @@ define EMCC_OPTS
 endef
 
 # ------------------
-# opus-frame-decoder
+# opus-decoder
 # ------------------
-define OPUS_FRAME_DECODER_EMCC_OPTS
+define OPUS_DECODER_EMCC_OPTS
 -s JS_MATH \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
@@ -80,38 +80,38 @@ define OPUS_FRAME_DECODER_EMCC_OPTS
   , '_opus_frame_decode_float_deinterleaved' \
   , '_opus_frame_decoder_create' \
 ]" \
---pre-js 'src/opus-frame-decoder/src/emscripten-pre.js' \
---post-js 'src/opus-frame-decoder/src/emscripten-post.js' \
+--pre-js 'src/opus-decoder/src/emscripten-pre.js' \
+--post-js 'src/opus-decoder/src/emscripten-post.js' \
 -I "modules/opus/include" \
-src/opus-frame-decoder/src/opus_frame_decoder.c
+src/opus-decoder/src/opus_frame_decoder.c
 endef
 
-$(OPUS_FRAME_DECODER_MODULE): $(OPUS_WASM_LIB)
-	@ mkdir -p src/opus-frame-decoder/dist
-	@ echo "Building Emscripten WebAssembly module $(OPUS_FRAME_DECODER_MODULE)..."
+$(OPUS_DECODER_MODULE): $(OPUS_WASM_LIB)
+	@ mkdir -p src/opus-decoder/dist
+	@ echo "Building Emscripten WebAssembly module $(OPUS_DECODER_MODULE)..."
 	@ emcc \
-		-o "$(OPUS_FRAME_DECODER_MODULE)" \
+		-o "$(OPUS_DECODER_MODULE)" \
 	  ${EMCC_OPTS} \
-	  $(OPUS_FRAME_DECODER_EMCC_OPTS) \
+	  $(OPUS_DECODER_EMCC_OPTS) \
 	  $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(OPUS_FRAME_DECODER_MODULE)"
+	@ echo "|  Successfully built JS Module: $(OPUS_DECODER_MODULE)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_FRAME_DECODER_MODULE_ESM): $(OPUS_FRAME_DECODER_MODULE)
-	@ echo "Building Emscripten WebAssembly ES Module $(OPUS_FRAME_DECODER_MODULE_ESM)..."
+$(OPUS_DECODER_MODULE_ESM): $(OPUS_DECODER_MODULE)
+	@ echo "Building Emscripten WebAssembly ES Module $(OPUS_DECODER_MODULE_ESM)..."
 	@ emcc \
-		-o "$(OPUS_FRAME_DECODER_MODULE_ESM)" \
+		-o "$(OPUS_DECODER_MODULE_ESM)" \
 		-s EXPORT_ES6=1 \
 		-s MODULARIZE=1 \
 	  ${EMCC_OPTS} \
-	  $(OPUS_FRAME_DECODER_EMCC_OPTS) \
+	  $(OPUS_DECODER_EMCC_OPTS) \
 	  $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built ES Module: $(OPUS_FRAME_DECODER_MODULE_ESM)"
+	@ echo "|  Successfully built ES Module: $(OPUS_DECODER_MODULE_ESM)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
