@@ -9,7 +9,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eshaz/opus-decoder.git"
+    "url": "git+https://github.com/eshaz/ogg-opus-decoder.git"
   },
   "keywords": [
     "Opus",
@@ -26,7 +26,7 @@
   "author": "Ethan Halsall",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/eshaz/opus-decoder/issues"
+    "url": "https://github.com/eshaz/ogg-opus-decoder/issues"
   },
-  "homepage": "https://github.com/eshaz/opus-decoder#readme"
+  "homepage": "https://github.com/eshaz/ogg-opus-decoder#readme"
 }

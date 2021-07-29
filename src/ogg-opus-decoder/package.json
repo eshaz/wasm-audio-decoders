@@ -1,15 +1,15 @@
 {
-  "name": "opus-decoder",
+  "name": "ogg-opus-decoder",
   "version": "0.0.1",
   "description": "Web Assembly streaming Ogg Opus decoder",
-  "main": "dist/opus-decoder.min.js",
+  "main": "dist/ogg-opus-decoder.min.js",
   "files": [
-    "dist/opus-decoder.min.js",
-    "dist/opus-decoder.min.js.map"
+    "dist/ogg-opus-decoder.min.js",
+    "dist/ogg-opus-decoder.min.js.map"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eshaz/opus-decoder.git"
+    "url": "git+https://github.com/eshaz/ogg-opus-decoder.git"
   },
   "keywords": [
     "Opus",
@@ -26,7 +26,7 @@
   "author": "Ethan Halsall",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/eshaz/opus-decoder/issues"
+    "url": "https://github.com/eshaz/ogg-opus-decoder/issues"
   },
-  "homepage": "https://github.com/eshaz/opus-decoder#readme"
+  "homepage": "https://github.com/eshaz/ogg-opus-decoder#readme"
 }

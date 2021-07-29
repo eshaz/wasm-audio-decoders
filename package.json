@@ -1,7 +1,5 @@
 {
   "scripts": {
-    "compress": "node common/compress.js",
-    "minify": "terser --config-file terser.json dist/opus-decoder.js -o dist/opus-decoder.min.js",
     "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*'"
   },
   "devDependencies": {

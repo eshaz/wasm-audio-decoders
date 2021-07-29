@@ -1,9 +1,9 @@
-# Opus Decoder
+# Ogg Opus Decoder
 
-`OpusDecoder` is an Emscripten JavaScript WebAssembly (Wasm) library for immediately decoding Ogg Opus audio streams (URLs or files) in chunks without waiting for the complete file to download, copy, or read. [`libopusfile`](https://opus-codec.org/docs/opusfile_api-0.7/index.html) is the underlying C library used for decoding. `OpusDecoder` provides a lightweight JavaScript API for decoding Opus audio streams at near-native speeds.
+`OggOpusDecoder` is an Emscripten JavaScript WebAssembly (Wasm) library for immediately decoding Ogg Opus audio streams (URLs or files) in chunks without waiting for the complete file to download, copy, or read. [`libopusfile`](https://opus-codec.org/docs/opusfile_api-0.7/index.html) is the underlying C library used for decoding. `OggOpusDecoder` provides a lightweight JavaScript API for decoding Opus audio streams at near-native speeds.
 
 ## Attribution
-* `OpusDecoder` (this project) is based on [AnthumChris/opus-stream-decoder](https://github.com/AnthumChris/opus-stream-decoder). This fork has been optimized for size and for simple bundling in web applications:
+* `OggOpusDecoder` (this project) is based on [AnthumChris/opus-stream-decoder](https://github.com/AnthumChris/opus-stream-decoder). This fork has been optimized for size and for simple bundling in web applications:
   * Everything is bundled in a single minified Javascript file for ease of use.
   * WASM binary is encoded inline using yEnc binary encoding and compressed using DEFLATE to significantly reduce bundle size.
   * WASM compiler options are tuned for best possible size and performance.
@@ -11,22 +11,22 @@
 
 # Usage
 
-Pre-compiled binaries and full examples are included in the `dist/` folder.  The `OpusDecoder` API was designed to be simple and the pseudocode below explains its complete usage:
+Pre-compiled binaries and full examples are included in the `dist/` folder.  The `OggOpusDecoder` API was designed to be simple and the pseudocode below explains its complete usage:
 
-If using a front-end build system, you can obtain `OpusDecoder` via `require` or `import` syntaxes:
+If using a front-end build system, you can obtain `OggOpusDecoder` via `require` or `import` syntaxes:
 
 ```js
-const { OpusDecoder } = require('opus-decoder');
-import { OpusDecoder } from 'opus-decoder';
+const { OggOpusDecoder } = require('ogg-opus-decoder');
+import { OggOpusDecoder } from 'ogg-opus-decoder';
 ```
 
-Otherwise, include the script before you instantiate `OpusDecoder`.
+Otherwise, include the script before you instantiate `OggOpusDecoder`.
 
 ```javascript
-<script src="opus-decoder.min.js"></script>
+<script src="ogg-opus-decoder.min.js"></script>
 <script>
   // instantiate with onDecode callback that fires when OggOpusFile data is decoded
-  const decoder = new OpusDecoder({onDecode, onDecodeAll});
+  const decoder = new OggOpusDecoder({onDecode, onDecodeAll});
 
   // Loop through your Opus data calling decode() multiple times. Pass a Uint8Array
   try {
@@ -67,10 +67,10 @@ Otherwise, include the script before you instantiate `OpusDecoder`.
 </script>
 ```
 
-After instantiating `OpusDecoder`, `decode()` should be called repeatedly until you're done reading the stream.  You __must__ start decoding from the beginning of the file.  Otherwise, a valid Ogg Opus file will not be discovered by `libopusfile` for decoding.  `decoder.ready` is a Promise that resolves once the underlying WebAssembly module is fetched from the network and instantiated, so ensure you always wait for it to resolve.  `free()` should be called when done decoding, when `decode()` throws an error, or if you wish to "reset" the decoder and begin decoding a new file with the same instance.  `free()` releases the allocated Wasm memory.
+After instantiating `OggOpusDecoder`, `decode()` should be called repeatedly until you're done reading the stream.  You __must__ start decoding from the beginning of the file.  Otherwise, a valid Ogg Opus file will not be discovered by `libopusfile` for decoding.  `decoder.ready` is a Promise that resolves once the underlying WebAssembly module is fetched from the network and instantiated, so ensure you always wait for it to resolve.  `free()` should be called when done decoding, when `decode()` throws an error, or if you wish to "reset" the decoder and begin decoding a new file with the same instance.  `free()` releases the allocated Wasm memory.
 
 #### Performance
-`OpusDecoder` is highly optimized and is sometimes faster than the native Opus decoding ability of the browser. To avoid any blocking operations on your main thread, you can run this in a Web Worker to keep CPU decoding computations on a separate browser thread.
+`OggOpusDecoder` is highly optimized and is sometimes faster than the native Opus decoding ability of the browser. To avoid any blocking operations on your main thread, you can run this in a Web Worker to keep CPU decoding computations on a separate browser thread.
 
 When decoding in batches where latency is not a concern, use the `onDecodeAll` callback which is called when all data that has been passed into `decode` has been decoded.
 
@@ -112,7 +112,7 @@ $ make clean && make -j8
 
 # Tests & Examples
 
-Two tests exist that will decode an Ogg Opus File with `OpusDecoder`.  Both tests output "decoded _N_ samples." on success.
+Two tests exist that will decode an Ogg Opus File with `OggOpusDecoder`.  Both tests output "decoded _N_ samples." on success.
 
 ### NodeJS Test
 
@@ -123,9 +123,9 @@ $ make test-wasm-module
 
 ### HTML Browser Test
 
-This test uses `fetch()` to decode a URL file stream in chunks.  Serve the `dist/` folder from a web server and open `test-opus-decoder.html` in the browser.  HTTP/HTTPS schemes are required for Wasm to load—opening it directly with `file://` probably won't work.
+This test uses `fetch()` to decode a URL file stream in chunks.  Serve the `dist/` folder from a web server and open `test-ogg-opus-decoder.html` in the browser.  HTTP/HTTPS schemes are required for Wasm to load—opening it directly with `file://` probably won't work.
 
-You can also run `SimpleHTTPServer` and navigate to http://localhost:8000/test-opus-decoder.html
+You can also run `SimpleHTTPServer` and navigate to http://localhost:8000/test-ogg-opus-decoder.html
 ```
 $ cd dist
 $ python -m SimpleHTTPServer 8000
@@ -137,9 +137,9 @@ $ python -m SimpleHTTPServer 8000
 
 See files `src/*.{js,html}` and use `$ make` and `$ make clean` to build into `dist/`
 
-### `OpusChunkDecoder` C interface
+### `OggOpusDecoder` C interface
 
-See C files `src/opus_chunkdecoder*` and use `$ make native-decode-test`, which allows you to compile and test almost instantly.  `native-decode-test` is a fast workflow that ensures things work properly independently of  Emscripten and Wasm before you integrate it.
+See C files `src/ogg_opus_decoder*` and use `$ make native-decode-test`, which allows you to compile and test almost instantly.  `native-decode-test` is a fast workflow that ensures things work properly independently of  Emscripten and Wasm before you integrate it.
 
 You'll need to install `libopusfile` binaries natively on your system (on Mac use `$ brew install opusfile`).  Then, declare environment variables with the locations of the installed `libopusfile` dependencies required by `native-decode-test` before running:
 ```

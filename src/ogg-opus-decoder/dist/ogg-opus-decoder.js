@@ -477,15 +477,15 @@ var imports = {
  "a": asmLibraryArg
 };
 
-var _opus_chunkdecoder_enqueue, _opus_chunkdecoder_decode_float_stereo_deinterleaved, _opus_chunkdecoder_create, _malloc, _opus_chunkdecoder_free, _free;
+var _ogg_opus_decoder_enqueue, _ogg_opus_decode_float_stereo_deinterleaved, _ogg_opus_decoder_create, _malloc, _ogg_opus_decoder_free, _free;
 
 WebAssembly.instantiate(Module["wasm"], imports).then(function(output) {
  var asm = output.instance.exports;
- _opus_chunkdecoder_enqueue = asm["g"];
- _opus_chunkdecoder_decode_float_stereo_deinterleaved = asm["h"];
- _opus_chunkdecoder_create = asm["i"];
+ _ogg_opus_decoder_enqueue = asm["g"];
+ _ogg_opus_decode_float_stereo_deinterleaved = asm["h"];
+ _ogg_opus_decoder_create = asm["i"];
  _malloc = asm["j"];
- _opus_chunkdecoder_free = asm["k"];
+ _ogg_opus_decoder_free = asm["k"];
  _free = asm["l"];
  wasmTable = asm["m"];
  wasmMemory = asm["e"];
@@ -516,7 +516,7 @@ class OpusDecodedAudio {
  }
 }
 
-class OpusDecoder {
+class OggOpusDecoder {
  constructor(options) {
   this.ready = decoderReady;
   this.onDecode = options.onDecode;
@@ -530,7 +530,7 @@ class OpusDecoder {
  decode(uint8array) {
   if (!(uint8array instanceof Uint8Array)) throw Error("Data to decode must be Uint8Array");
   if (!this._decoderPointer) {
-   this._decoderPointer = _opus_chunkdecoder_create();
+   this._decoderPointer = _ogg_opus_decoder_create();
   }
   let srcPointer, decodedInterleavedPtr, decodedInterleavedArry, decodedLeftPtr, decodedLeftArry, decodedRightPtr, decodedRightArry, allDecodedLeft = [], allDecodedRight = [], allDecodedSamples = 0;
   try {
@@ -545,9 +545,9 @@ class OpusDecoder {
     sendSize = Math.min(sendMax, srcLen - sendStart);
     HEAPU8.set(uint8array.subarray(sendStart, sendStart + sendSize), srcPointer);
     sendStart += sendSize;
-    if (!_opus_chunkdecoder_enqueue(this._decoderPointer, srcPointer, sendSize)) throw Error("Could not enqueue bytes for decoding.  You may also have invalid Ogg Opus file.");
+    if (!_ogg_opus_decoder_enqueue(this._decoderPointer, srcPointer, sendSize)) throw Error("Could not enqueue bytes for decoding.  You may also have invalid Ogg Opus file.");
     let samplesDecoded;
-    while ((samplesDecoded = _opus_chunkdecoder_decode_float_stereo_deinterleaved(this._decoderPointer, decodedInterleavedPtr, decodedPcmSize, decodedLeftPtr, decodedRightPtr)) > 0) {
+    while ((samplesDecoded = _ogg_opus_decode_float_stereo_deinterleaved(this._decoderPointer, decodedInterleavedPtr, decodedPcmSize, decodedLeftPtr, decodedRightPtr)) > 0) {
      const decodedLeft = decodedLeftArry.slice(0, samplesDecoded);
      const decodedRight = decodedRightArry.slice(0, samplesDecoded);
      if (this.onDecode) {
@@ -591,12 +591,12 @@ class OpusDecoder {
   }
  }
  free() {
-  if (this._decoderPointer) _opus_chunkdecoder_free(this._decoderPointer);
+  if (this._decoderPointer) _ogg_opus_decoder_free(this._decoderPointer);
  }
 }
 
-Module["OpusDecoder"] = OpusDecoder;
+Module["OggOpusDecoder"] = OggOpusDecoder;
 
 if ("undefined" !== typeof global && exports) {
- module.exports.OpusDecoder = OpusDecoder;
+ module.exports.OggOpusDecoder = OggOpusDecoder;
 }

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <opusfile.h>
 
-// This shouldn't be needed by calling application, it's here for OpusChunkDecoder
+// This shouldn't be needed by calling application, it's here for OggOpusDecoder
 typedef struct {
   /*
      data should be large enough to maximum Ogg page size for instantiating OggOpusFile
@@ -27,17 +27,17 @@ typedef struct {
   OpusFileCallbacks cb;
   OggOpusFile *of;
   ByteBuffer buffer;
-} OpusChunkDecoder;
+} OggOpusDecoder;
 
-// Always instantiate and free OpusChunkDecoder with these
-OpusChunkDecoder *opus_chunkdecoder_create();
-void opus_chunkdecoder_free(OpusChunkDecoder *);
+// Always instantiate and free OggOpusDecoder with these
+OggOpusDecoder *ogg_opus_decoder_create();
+void ogg_opus_decoder_free(OggOpusDecoder *);
 
 // Returns 0/1 indicating failure/success.
-int opus_chunkdecoder_enqueue(OpusChunkDecoder *, unsigned char *data, size_t data_size);
+int ogg_opus_decoder_enqueue(OggOpusDecoder *, unsigned char *data, size_t data_size);
 
 // returns total samples decoded for decoded data
-int opus_chunkdecoder_decode_float_stereo(OpusChunkDecoder *decoder, float *pcm_out, int pcm_out_size);
-int opus_chunkdecoder_decode_float_stereo_deinterleaved(OpusChunkDecoder *decoder, float *pcm_out, int pcm_out_size, float *left, float *right);
+int ogg_opus_decode_float_stereo(OggOpusDecoder *decoder, float *pcm_out, int pcm_out_size);
+int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *decoder, float *pcm_out, int pcm_out_size, float *left, float *right);
 
-void opus_chunkdecoder_deinterleave(float *interleaved, int interleaved_size, float *left, float *right);
+void ogg_opus_decoder_deinterleave(float *interleaved, int interleaved_size, float *left, float *right);

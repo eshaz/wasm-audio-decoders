@@ -26,7 +26,7 @@ class OpusDecodedAudio {
 // Pass options to create new decoder. Only currently supports options.onDecode
 // onDecode will receive OpusDecodedAudio object
 // onDecodeAll is called when all data that is passed in has been decoded.
-class OpusDecoder {
+class OggOpusDecoder {
   constructor(options) {
     this.ready = decoderReady;
     this.onDecode = options.onDecode;
@@ -61,7 +61,7 @@ class OpusDecoder {
       throw Error("Data to decode must be Uint8Array");
 
     if (!this._decoderPointer) {
-      this._decoderPointer = _opus_chunkdecoder_create();
+      this._decoderPointer = _ogg_opus_decoder_create();
     }
 
     let srcPointer,
@@ -108,7 +108,7 @@ class OpusDecoder {
 
         // enqueue bytes to decode. Fail on error
         if (
-          !_opus_chunkdecoder_enqueue(
+          !_ogg_opus_decoder_enqueue(
             this._decoderPointer,
             srcPointer,
             sendSize
@@ -123,7 +123,7 @@ class OpusDecoder {
         // var decodeStart = performance.now();
         while (
           (samplesDecoded =
-            _opus_chunkdecoder_decode_float_stereo_deinterleaved(
+            _ogg_opus_decode_float_stereo_deinterleaved(
               this._decoderPointer,
               decodedInterleavedPtr,
               decodedPcmSize,
@@ -202,15 +202,15 @@ class OpusDecoder {
   }
 
   free() {
-    if (this._decoderPointer) _opus_chunkdecoder_free(this._decoderPointer);
+    if (this._decoderPointer) _ogg_opus_decoder_free(this._decoderPointer);
   }
 }
 
-Module["OpusDecoder"] = OpusDecoder;
+Module["OggOpusDecoder"] = OggOpusDecoder;
 
 // nodeJS only
 if ("undefined" !== typeof global && exports) {
-  module.exports.OpusDecoder = OpusDecoder;
+  module.exports.OggOpusDecoder = OggOpusDecoder;
   // uncomment this for performance testing
   // var {performance} = require('perf_hooks');
   // global.performance = performance;

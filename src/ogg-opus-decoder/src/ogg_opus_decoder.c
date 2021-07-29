@@ -1,6 +1,6 @@
-#include "opus_chunkdecoder.h"
+#include "ogg_opus_decoder.h"
 
-static int cb_read(OpusChunkDecoder *decoder, unsigned char *_ptr, int _nbytes) {
+static int cb_read(OggOpusDecoder *decoder, unsigned char *_ptr, int _nbytes) {
   // don't read from buffer if OggOpusFile not instantiated yet
   if (!decoder->of) return 0;
 
@@ -39,7 +39,7 @@ static int cb_read(OpusChunkDecoder *decoder, unsigned char *_ptr, int _nbytes) 
  *
  * Returns 1 or 0 for success or error
  */
-int opus_chunkdecoder_enqueue(OpusChunkDecoder *decoder, unsigned char *data, size_t size) {
+int ogg_opus_decoder_enqueue(OggOpusDecoder *decoder, unsigned char *data, size_t size) {
   ssize_t bufferMax = sizeof(decoder->buffer._data),
       bufferUsed = decoder->buffer.num_unread;
 
@@ -94,15 +94,15 @@ int opus_chunkdecoder_enqueue(OpusChunkDecoder *decoder, unsigned char *data, si
 }
 
 // returns total samples decoded
-int opus_chunkdecoder_decode_float_stereo(OpusChunkDecoder *decoder, float *pcm_out, int pcm_out_size) {
+int ogg_opus_decode_float_stereo(OggOpusDecoder *decoder, float *pcm_out, int pcm_out_size) {
   if (!decoder->of) return 0;
   return op_read_float_stereo(decoder->of, pcm_out, pcm_out_size);
 }
 
 // returns total samples decoded.  convenience function for de-interlacing
-int opus_chunkdecoder_decode_float_stereo_deinterleaved(OpusChunkDecoder *decoder, float *pcm_out, int pcm_out_size, float *left, float *right) {
-  int samples_decoded = opus_chunkdecoder_decode_float_stereo(decoder, pcm_out, pcm_out_size);
-  opus_chunkdecoder_deinterleave(pcm_out, samples_decoded, left, right);
+int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *decoder, float *pcm_out, int pcm_out_size, float *left, float *right) {
+  int samples_decoded = ogg_opus_decode_float_stereo(decoder, pcm_out, pcm_out_size);
+  ogg_opus_decoder_deinterleave(pcm_out, samples_decoded, left, right);
   return samples_decoded;
 }
 
@@ -114,8 +114,8 @@ static ByteBuffer create_bytebuffer() {
   return cb;
 }
 
-OpusChunkDecoder *opus_chunkdecoder_create() {
-  OpusChunkDecoder decoder;
+OggOpusDecoder *ogg_opus_decoder_create() {
+  OggOpusDecoder decoder;
   decoder.cb.read = (int (*)(void *, unsigned char *, int))cb_read;
   decoder.cb.seek = NULL;
   decoder.cb.tell = NULL;
@@ -123,17 +123,17 @@ OpusChunkDecoder *opus_chunkdecoder_create() {
   decoder.of = NULL;
   decoder.buffer = create_bytebuffer();
 
-  OpusChunkDecoder *ptr = malloc(sizeof(decoder));
+  OggOpusDecoder *ptr = malloc(sizeof(decoder));
   *ptr = decoder;
   return ptr;
 }
 
-void opus_chunkdecoder_free(OpusChunkDecoder *decoder) {
+void ogg_opus_decoder_free(OggOpusDecoder *decoder) {
   op_free(decoder->of);
   free(decoder);
 }
 
-void opus_chunkdecoder_deinterleave(float *interleaved, int total_samples, float *left, float *right) {
+void ogg_opus_decoder_deinterleave(float *interleaved, int total_samples, float *left, float *right) {
   for (int i=total_samples-1; i>=0; i--) {
     left[i] =  interleaved[i*2];
     right[i] = interleaved[i*2+1];

@@ -1,6 +1,6 @@
 {
   "sourceMap": {
-    "url": "opus-decoder.min.js.map"
+    "url": "mpg123-wasm.min.js.map"
   },
   "compress": {
     "unsafe": true,

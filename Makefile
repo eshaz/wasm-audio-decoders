@@ -2,25 +2,25 @@ default: dist
 
 clean: dist-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
-dist: opus-frame-decoder opus-decoder mpg123-wasm
+dist: opus-frame-decoder ogg-opus-decoder mpg123-wasm
 dist-clean:
 	rm -rf src/opus-frame-decoder/dist/*
-	rm -rf src/opus-decoder/dist/*
+	rm -rf src/ogg-opus-decoder/dist/*
 	rm -rf src/mpg123-wasm/dist/*
 
 # opus
 OPUS_WASM_LIB=tmp/opus.bc
-OPUS_DECODER_MODULE=src/opus-decoder/dist/opus-decoder.js
-OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
-OPUS_DECODER_MODULE_ESM=src/opus-decoder/dist/opus-decoder.mjs
+OGG_OPUS_DECODER_MODULE=src/ogg-opus-decoder/dist/ogg-opus-decoder.js
+OGG_OPUS_DECODER_MODULE_MIN=src/ogg-opus-decoder/dist/ogg-opus-decoder.min.js
+OGG_OPUS_DECODER_MODULE_ESM=src/ogg-opus-decoder/dist/ogg-opus-decoder.mjs
 OPUS_FRAME_DECODER_MODULE=src/opus-frame-decoder/dist/opus-frame-decoder.js
 OPUS_FRAME_DECODER_MODULE_MIN=src/opus-frame-decoder/dist/opus-frame-decoder.min.js
 OPUS_FRAME_DECODER_MODULE_ESM=src/opus-frame-decoder/dist/opus-frame-decoder.mjs
 
-opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_ESM)
-opus-decoder-minify: $(OPUS_DECODER_MODULE)
-	node build/compress.js ${OPUS_DECODER_MODULE}
-	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${OPUS_DECODER_MODULE} -o ${OPUS_DECODER_MODULE_MIN}
+ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_MODULE) $(OGG_OPUS_DECODER_MODULE_ESM)
+ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_MODULE)
+	node build/compress.js ${OGG_OPUS_DECODER_MODULE}
+	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
 opus-frame-decoder: opus-wasmlib opus-frame-decoder-minify $(OPUS_FRAME_DECODER_MODULE) $(OPUS_FRAME_DECODER_MODULE_ESM)
 opus-frame-decoder-minify: $(OPUS_FRAME_DECODER_MODULE)
 	node build/compress.js ${OPUS_FRAME_DECODER_MODULE}
@@ -116,51 +116,51 @@ $(OPUS_FRAME_DECODER_MODULE_ESM): $(OPUS_FRAME_DECODER_MODULE)
 	@ echo "+-------------------------------------------------------------------------------"
 
 # ------------
-# opus-decoder
+# ogg-opus-decoder
 # ------------
-define OPUS_DECODER_EMCC_OPTS
+define OGG_OPUS_DECODER_EMCC_OPTS
 -s JS_MATH \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
-  , '_opus_chunkdecoder_create' \
-  , '_opus_chunkdecoder_free' \
-  , '_opus_chunkdecoder_enqueue' \
-  , '_opus_chunkdecoder_decode_float_stereo_deinterleaved' \
+  , '_ogg_opus_decoder_create' \
+  , '_ogg_opus_decoder_free' \
+  , '_ogg_opus_decoder_enqueue' \
+  , '_ogg_opus_decode_float_stereo_deinterleaved' \
 ]" \
---pre-js 'src/opus-decoder/src/emscripten-pre.js' \
---post-js 'src/opus-decoder/src/emscripten-post.js' \
+--pre-js 'src/ogg-opus-decoder/src/emscripten-pre.js' \
+--post-js 'src/ogg-opus-decoder/src/emscripten-post.js' \
 -I modules/opusfile/include \
 -I "modules/ogg/include" \
 -I "modules/opus/include" \
-src/opus-decoder/src/opus_chunkdecoder.c
+src/ogg-opus-decoder/src/ogg_opus_decoder.c
 endef
 
-$(OPUS_DECODER_MODULE): $(OPUS_WASM_LIB)
-	@ mkdir -p src/opus-decoder/dist
-	@ echo "Building Emscripten WebAssembly module $(OPUS_DECODER_MODULE)..."
+$(OGG_OPUS_DECODER_MODULE): $(OPUS_WASM_LIB)
+	@ mkdir -p src/ogg-opus-decoder/dist
+	@ echo "Building Emscripten WebAssembly module $(OGG_OPUS_DECODER_MODULE)..."
 	@ emcc \
-		-o "$(OPUS_DECODER_MODULE)" \
+		-o "$(OGG_OPUS_DECODER_MODULE)" \
 	  ${EMCC_OPTS} \
-	  $(OPUS_DECODER_EMCC_OPTS) \
+	  $(OGG_OPUS_DECODER_EMCC_OPTS) \
 	  $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(OPUS_DECODER_MODULE)"
+	@ echo "|  Successfully built JS Module: $(OGG_OPUS_DECODER_MODULE)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_DECODER_MODULE_ESM): $(OPUS_DECODER_MODULE)
-	@ echo "Building Emscripten WebAssembly ES Module $(OPUS_DECODER_MODULE_ESM)..."
+$(OGG_OPUS_DECODER_MODULE_ESM): $(OGG_OPUS_DECODER_MODULE)
+	@ echo "Building Emscripten WebAssembly ES Module $(OGG_OPUS_DECODER_MODULE_ESM)..."
 	@ emcc \
-		-o "$(OPUS_DECODER_MODULE_ESM)" \
+		-o "$(OGG_OPUS_DECODER_MODULE_ESM)" \
 		-s EXPORT_ES6=1 \
 		-s MODULARIZE=1 \
 	  ${EMCC_OPTS} \
-	  $(OPUS_DECODER_EMCC_OPTS) \
+	  $(OGG_OPUS_DECODER_EMCC_OPTS) \
 	  $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built ES Module: $(OPUS_DECODER_MODULE_ESM)"
+	@ echo "|  Successfully built ES Module: $(OGG_OPUS_DECODER_MODULE_ESM)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
