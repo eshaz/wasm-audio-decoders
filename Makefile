@@ -224,6 +224,7 @@ $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
 define MPG123_EMCC_OPTS
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
+  , '_mpg123_safe_buffer' \
   ,	'_mpeg_decoder_create' \
   ,	'_mpeg_decoder_destroy' \
   ,	'_mpeg_decode_float_deinterleaved' \

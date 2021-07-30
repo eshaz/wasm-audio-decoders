@@ -42,27 +42,55 @@ class MPEGDecoder {
   _createDecoder() {
     this._decoder = _mpeg_decoder_create();
 
-    // max size of stereo Opus packet 120ms @ 510kbs
-    this._dataPtr = _malloc((0.12 * 510000) / 8);
-    // max audio output of Opus packet 120ms @ 48000Hz
-    [this._leftPtr, this._leftArr] = this._createOutputArray(120 * 48);
-    [this._rightPtr, this._rightArr] = this._createOutputArray(120 * 48);
+    // max theoretical size of a MPEG frame (MPEG 2.5 Layer II, 8000 Hz @ 160 kbps, with a padding slot)
+    // https://www.mars.org/pipermail/mad-dev/2002-January/000425.html
+    this._framePtrSize = 2889;
+    this._framePtr = _malloc(this._framePtrSize);
+
+    const maxSafeBuffer = _mpg123_safe_buffer();
+    [this._leftPtr, this._leftArr] = this._createOutputArray(maxSafeBuffer);
+    [this._rightPtr, this._rightArr] = this._createOutputArray(maxSafeBuffer);
   }
 
   free() {
     _mpeg_decoder_destroy(this._decoder);
 
-    _free(this._dataPtr);
+    _free(this._framePtr);
     _free(this._leftPtr);
     _free(this._rightPtr);
   }
 
-  decode(mpegFrame) {
-    HEAPU8.set(mpegFrame, this._dataPtr);
+  decode(data) {
+    let left = [],
+      right = [],
+      samples = 0,
+      offset = 0;
+
+    while (offset < data.length) {
+      const { channelData, samplesDecoded } = this.decodeFrame(
+        data.subarray(offset, offset + this._framePtrSize)
+      );
+
+      left.push(channelData[0]);
+      right.push(channelData[1]);
+      samples += samplesDecoded;
+
+      offset += this._framePtrSize;
+    }
+
+    return new MPEGDecodedAudio(
+      [concatFloat32(left, samples), concatFloat32(right, samples)],
+      samples,
+      this._sampleRate
+    );
+  }
+
+  decodeFrame(mpegFrame) {
+    HEAPU8.set(mpegFrame, this._framePtr);
 
     const samplesDecoded = _mpeg_decode_float_deinterleaved(
       this._decoder,
-      this._dataPtr,
+      this._framePtr,
       mpegFrame.length,
       this._leftPtr,
       this._rightPtr
@@ -81,13 +109,13 @@ class MPEGDecoder {
     );
   }
 
-  decodeAll(mpegFrames) {
+  decodeFrames(mpegFrames) {
     let left = [],
       right = [],
       samples = 0;
 
     mpegFrames.forEach((frame) => {
-      const { channelData, samplesDecoded } = this.decode(frame);
+      const { channelData, samplesDecoded } = this.decodeFrame(frame);
 
       left.push(channelData[0]);
       right.push(channelData[1]);

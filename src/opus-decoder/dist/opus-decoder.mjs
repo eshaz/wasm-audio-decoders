@@ -160,15 +160,15 @@ class OpusDecoder {
   _free(this._leftPtr);
   _free(this._rightPtr);
  }
- decode(opusFrame) {
+ decodeFrame(opusFrame) {
   HEAPU8.set(opusFrame, this._dataPtr);
   const samplesDecoded = _opus_frame_decode_float_deinterleaved(this._decoder, this._dataPtr, opusFrame.length, this._leftPtr, this._rightPtr);
   return new OpusDecodedAudio([ this._leftArr.slice(0, samplesDecoded), this._rightArr.slice(0, samplesDecoded) ], samplesDecoded);
  }
- decodeAll(opusFrames) {
+ decodeFrames(opusFrames) {
   let left = [], right = [], samples = 0;
   opusFrames.forEach(frame => {
-   const {channelData: channelData, samplesDecoded: samplesDecoded} = this.decode(frame);
+   const {channelData: channelData, samplesDecoded: samplesDecoded} = this.decodeFrame(frame);
    left.push(channelData[0]);
    right.push(channelData[1]);
    samples += samplesDecoded;

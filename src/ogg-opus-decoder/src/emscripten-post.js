@@ -108,11 +108,7 @@ class OggOpusDecoder {
 
         // enqueue bytes to decode. Fail on error
         if (
-          !_ogg_opus_decoder_enqueue(
-            this._decoderPointer,
-            srcPointer,
-            sendSize
-          )
+          !_ogg_opus_decoder_enqueue(this._decoderPointer, srcPointer, sendSize)
         )
           throw Error(
             "Could not enqueue bytes for decoding.  You may also have invalid Ogg Opus file."
@@ -122,14 +118,13 @@ class OggOpusDecoder {
         let samplesDecoded;
         // var decodeStart = performance.now();
         while (
-          (samplesDecoded =
-            _ogg_opus_decode_float_stereo_deinterleaved(
-              this._decoderPointer,
-              decodedInterleavedPtr,
-              decodedPcmSize,
-              decodedLeftPtr,
-              decodedRightPtr
-            )) > 0
+          (samplesDecoded = _ogg_opus_decode_float_stereo_deinterleaved(
+            this._decoderPointer,
+            decodedInterleavedPtr,
+            decodedPcmSize,
+            decodedLeftPtr,
+            decodedRightPtr
+          )) > 0
         ) {
           // performance audits show 960 samples (20ms) of data being decoded per call
           // console.log('decoded',(samplesDecoded/48000*1000).toFixed(2)+'ms in', (performance.now()-decodeStart).toFixed(2)+'ms');

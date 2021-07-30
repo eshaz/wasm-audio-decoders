@@ -56,7 +56,7 @@ class OpusDecoder {
     _free(this._rightPtr);
   }
 
-  decode(opusFrame) {
+  decodeFrame(opusFrame) {
     HEAPU8.set(opusFrame, this._dataPtr);
 
     const samplesDecoded = _opus_frame_decode_float_deinterleaved(
@@ -76,13 +76,13 @@ class OpusDecoder {
     );
   }
 
-  decodeAll(opusFrames) {
+  decodeFrames(opusFrames) {
     let left = [],
       right = [],
       samples = 0;
 
     opusFrames.forEach((frame) => {
-      const { channelData, samplesDecoded } = this.decode(frame);
+      const { channelData, samplesDecoded } = this.decodeFrame(frame);
 
       left.push(channelData[0]);
       right.push(channelData[1]);
