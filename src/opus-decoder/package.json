@@ -1,6 +1,6 @@
 {
   "name": "opus-decoder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Web Assembly streaming Opus decoder",
   "main": "dist/opus-decoder.min.js",
   "files": [
@@ -9,7 +9,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eshaz/ogg-opus-decoder.git"
+    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git"
   },
   "keywords": [
     "Opus",
@@ -18,15 +18,13 @@
     "stream",
     "streams",
     "libopus",
-    "libopusfile",
-    "Ogg Opus",
     "WebAssembly",
     "Wasm"
   ],
   "author": "Ethan Halsall",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/eshaz/ogg-opus-decoder/issues"
+    "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
   },
-  "homepage": "https://github.com/eshaz/ogg-opus-decoder#readme"
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/src/opus-decoder#readme"
 }
