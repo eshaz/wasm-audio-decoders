@@ -1,7 +1,7 @@
 {
   "name": "mpg123-decoder",
   "version": "0.0.1",
-  "description": "Web Assembly streaming Ogg Opus decoder",
+  "description": "Web Assembly streaming MPEG Layer I/II/III decoder",
   "main": "dist/mpg123-decoder.min.js",
   "files": [
     "dist/mpg123-decoder.min.js",
@@ -9,16 +9,18 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eshaz/ogg-opus-decoder.git"
+    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git"
   },
   "keywords": [
-    "Opus",
+    "MPEG",
+    "mp1",
+    "mp2",
+    "mp3",
     "audio",
     "decoder",
     "stream",
     "streams",
-    "libopus",
-    "libopusfile",
+    "libmpg123",
     "Ogg Opus",
     "WebAssembly",
     "Wasm"
@@ -26,7 +28,7 @@
   "author": "Ethan Halsall",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/eshaz/ogg-opus-decoder/issues"
+    "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
   },
-  "homepage": "https://github.com/eshaz/ogg-opus-decoder#readme"
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/src/mpg123-decoder#readme"
 }
