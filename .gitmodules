@@ -1,11 +1,13 @@
-[submodule "src/opusfile"]
-	path = src/opusfile
+[submodule "modules/opusfile"]
+	path = modules/opusfile
 	url = https://github.com/xiph/opusfile
-
-[submodule "src/opus"]
-	path = src/opus
+[submodule "modules/opus"]
+	path = modules/opus
 	url = https://github.com/xiph/opus
-
-[submodule "src/ogg"]
-	path = src/ogg
+[submodule "modules/ogg"]
+	path = modules/ogg
 	url = https://github.com/xiph/ogg
+[submodule "modules/mpg123"]
+	path = modules/mpg123
+	url = https://github.com/madebr/mpg123
+	branch = master

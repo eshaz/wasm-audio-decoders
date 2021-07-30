@@ -1,0 +1,30 @@
+{
+  "name": "opus-decoder",
+  "version": "0.0.2",
+  "description": "Web Assembly streaming Opus decoder",
+  "main": "dist/opus-decoder.min.js",
+  "files": [
+    "dist/opus-decoder.min.js",
+    "dist/opus-decoder.min.js.map"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git"
+  },
+  "keywords": [
+    "Opus",
+    "audio",
+    "decoder",
+    "stream",
+    "streams",
+    "libopus",
+    "WebAssembly",
+    "Wasm"
+  ],
+  "author": "Ethan Halsall",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
+  },
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/src/opus-decoder#readme"
+}

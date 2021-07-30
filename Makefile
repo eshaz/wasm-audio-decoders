@@ -1,55 +1,60 @@
-WASM_MODULE=dist/opus-decoder.js
-WASM_MODULE_ESM=dist/opus-decoder.mjs
-WASM_LIB=tmp/lib.bc
-OGG_CONFIG_TYPES=src/ogg/include/ogg/config_types.h
-OPUS_DECODE_TEST_FILE_URL=https://fetch-stream-audio.anthum.com/audio/save/opus-decoder-test.opus
-OPUS_DECODE_TEST_FILE=tmp/decode-test-64kbps.opus
-NATIVE_DECODER_TEST=tmp/opus_chunkdecoder_test
-CONFIGURE_LIBOPUS=src/opus/configure
-CONFIGURE_LIBOGG=src/ogg/configure
-CONFIGURE_LIBOPUSFILE=src/opusfile/configure
-
-TEST_FILE_JS=dist/test-opus-decoder.js
-TEST_FILE_HTML=dist/test-opus-decoder.html
-TEST_FILE_HTML_ESM=dist/test-opus-decoder-esm.html
-
 default: dist
 
-# Runs nodejs test with some audio files
-test-wasm: dist $(OPUS_DECODE_TEST_FILE)
-	@ mkdir -p tmp
-	@ echo "Testing 64 kbps Opus file..."
-	@ node $(TEST_FILE_JS) $(OPUS_DECODE_TEST_FILE) tmp
+clean: dist-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
-.PHONY: native-decode-test
-
-clean: dist-clean wasmlib-clean configures-clean
-
-minify: wasm
-	npm run compress
-	npm run minify
-
-dist: wasm wasm-esm minify
-	@ cp src/test-opus-decoder* dist
+dist: opus-decoder ogg-opus-decoder mpg123-decoder
 dist-clean:
-	rm -rf dist/*
+	rm -rf src/opus-decoder/dist/*
+	rm -rf src/ogg-opus-decoder/dist/*
+	rm -rf src/mpg123-decoder/dist/*
 
-wasm-esm: wasmlib $(WASM_MODULE_ESM)
-wasm: wasmlib $(WASM_MODULE)
+# opus
+OPUS_WASM_LIB=tmp/opus.bc
+OGG_OPUS_DECODER_MODULE=src/ogg-opus-decoder/dist/ogg-opus-decoder.js
+OGG_OPUS_DECODER_MODULE_MIN=src/ogg-opus-decoder/dist/ogg-opus-decoder.min.js
+OGG_OPUS_DECODER_MODULE_ESM=src/ogg-opus-decoder/dist/ogg-opus-decoder.mjs
+OPUS_DECODER_MODULE=src/opus-decoder/dist/opus-decoder.js
+OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
+OPUS_DECODER_MODULE_ESM=src/opus-decoder/dist/opus-decoder.mjs
 
-wasmlib: configures $(WASM_LIB)
-wasmlib-clean: dist-clean
-	rm -rf $(WASM_LIB)
+ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_MODULE) $(OGG_OPUS_DECODER_MODULE_ESM)
+ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_MODULE)
+	node build/compress.js ${OGG_OPUS_DECODER_MODULE}
+	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
+opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_ESM)
+opus-decoder-minify: $(OPUS_DECODER_MODULE)
+	node build/compress.js ${OPUS_DECODER_MODULE}
+	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${OPUS_DECODER_MODULE} -o ${OPUS_DECODER_MODULE_MIN}
+opus-wasmlib: configures $(OPUS_WASM_LIB)
+opus-wasmlib-clean: dist-clean
+	rm -rf $(OPUS_WASM_LIB)
 
-configures: $(CONFIGURE_LIBOGG) $(CONFIGURE_LIBOPUS) $(CONFIGURE_LIBOPUSFILE)
-configures-clean: wasmlib-clean
+# mpg123
+MPG123_WASM_LIB=tmp/mpg123.bc
+MPG123_MODULE=src/mpg123-decoder/dist/mpg123-decoder.js
+MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
+
+mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_MODULE}
+mpg123-decoder-minify: $(MPG123_MODULE)
+	node build/compress.js ${MPG123_MODULE}
+	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${MPG123_MODULE} -o ${MPG123_MODULE_MIN}
+mpg123-wasmlib: $(MPG123_WASM_LIB)
+mpg123-wasmlib-clean: dist-clean
+	rm -rf $(MPG123_WASM_LIB)
+
+# configures
+CONFIGURE_LIBOPUS=modules/opus/configure
+CONFIGURE_LIBOGG=modules/ogg/configure
+CONFIGURE_LIBOPUSFILE=modules/opusfile/configure
+OGG_CONFIG_TYPES=modules/ogg/include/ogg/config_types.h
+configures: $(CONFIGURE_LIBOGG) $(CONFIGURE_LIBOPUS) $(CONFIGURE_LIBOPUSFILE) $(OGG_CONFIG_TYPES)
+configures-clean: opus-wasmlib-clean
 	rm -rf $(CONFIGURE_LIBOPUSFILE)
 	rm -rf $(CONFIGURE_LIBOPUS)
 	rm -rf $(CONFIGURE_LIBOGG)
 
-native-decode-test: $(OPUS_DECODE_TEST_FILE)
-
-define WASM_EMCC_OPTS
+# common EMCC options
+define EMCC_OPTS
 -O3 \
 --minify 0 \
 -flto \
@@ -58,67 +63,115 @@ define WASM_EMCC_OPTS
 -s SINGLE_FILE=1 \
 -s SUPPORT_LONGJMP=0 \
 -s MALLOC="emmalloc" \
--s JS_MATH \
 -s NO_FILESYSTEM=1 \
 -s ENVIRONMENT=web,worker \
--s INCOMING_MODULE_JS_API="[]" \
--s EXPORTED_FUNCTIONS="[ \
-    '_free', '_malloc' \
-  , '_opus_chunkdecoder_create' \
-  , '_opus_chunkdecoder_free' \
-  , '_opus_chunkdecoder_enqueue' \
-  , '_opus_chunkdecoder_decode_float_stereo_deinterleaved' \
-]" \
 -s STRICT=1 \
---pre-js 'src/emscripten-pre.js' \
---post-js 'src/emscripten-post.js' \
--I src/opusfile/include \
--I "src/ogg/include" \
--I "src/opus/include" \
-src/opus_chunkdecoder.c \ 
+-s INCOMING_MODULE_JS_API="[]"
 endef
 
+# ------------------
+# opus-decoder
+# ------------------
+define OPUS_DECODER_EMCC_OPTS
+-s JS_MATH \
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  , '_opus_frame_decoder_destroy' \
+  , '_opus_frame_decode_float_deinterleaved' \
+  , '_opus_frame_decoder_create' \
+]" \
+--pre-js 'src/opus-decoder/src/emscripten-pre.js' \
+--post-js 'src/opus-decoder/src/emscripten-post.js' \
+-I "modules/opus/include" \
+src/opus-decoder/src/opus_frame_decoder.c
+endef
 
-$(WASM_MODULE_ESM): $(WASM_MODULE)
-	@ echo "Building Emscripten WebAssembly ES Module $(WASM_MODULE_ESM)..."
+$(OPUS_DECODER_MODULE): $(OPUS_WASM_LIB)
+	@ mkdir -p src/opus-decoder/dist
+	@ echo "Building Emscripten WebAssembly module $(OPUS_DECODER_MODULE)..."
 	@ emcc \
-		-o "$(WASM_MODULE_ESM)" \
+		-o "$(OPUS_DECODER_MODULE)" \
+	  ${EMCC_OPTS} \
+	  $(OPUS_DECODER_EMCC_OPTS) \
+	  $(OPUS_WASM_LIB)
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built JS Module: $(OPUS_DECODER_MODULE)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+$(OPUS_DECODER_MODULE_ESM): $(OPUS_DECODER_MODULE)
+	@ echo "Building Emscripten WebAssembly ES Module $(OPUS_DECODER_MODULE_ESM)..."
+	@ emcc \
+		-o "$(OPUS_DECODER_MODULE_ESM)" \
 		-s EXPORT_ES6=1 \
 		-s MODULARIZE=1 \
-	  $(WASM_EMCC_OPTS) \
-	  $(WASM_LIB)
+	  ${EMCC_OPTS} \
+	  $(OPUS_DECODER_EMCC_OPTS) \
+	  $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built ES Module: $(WASM_MODULE_ESM)"
-	@ echo "|"
-	@ echo "|  open \"$(TEST_FILE_HTML_ESM)\" in browser to test"
+	@ echo "|  Successfully built ES Module: $(OPUS_DECODER_MODULE_ESM)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
+# ------------
+# ogg-opus-decoder
+# ------------
+define OGG_OPUS_DECODER_EMCC_OPTS
+-s JS_MATH \
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  , '_ogg_opus_decoder_create' \
+  , '_ogg_opus_decoder_free' \
+  , '_ogg_opus_decoder_enqueue' \
+  , '_ogg_opus_decode_float_stereo_deinterleaved' \
+]" \
+--pre-js 'src/ogg-opus-decoder/src/emscripten-pre.js' \
+--post-js 'src/ogg-opus-decoder/src/emscripten-post.js' \
+-I modules/opusfile/include \
+-I "modules/ogg/include" \
+-I "modules/opus/include" \
+src/ogg-opus-decoder/src/ogg_opus_decoder.c
+endef
 
-$(WASM_MODULE): $(WASM_LIB)
-	@ mkdir -p dist
-	@ echo "Building Emscripten WebAssembly module $(WASM_MODULE)..."
+$(OGG_OPUS_DECODER_MODULE): $(OPUS_WASM_LIB)
+	@ mkdir -p src/ogg-opus-decoder/dist
+	@ echo "Building Emscripten WebAssembly module $(OGG_OPUS_DECODER_MODULE)..."
 	@ emcc \
-		-o "$(WASM_MODULE)" \
-	  $(WASM_EMCC_OPTS) \
-	  $(WASM_LIB)
+		-o "$(OGG_OPUS_DECODER_MODULE)" \
+	  ${EMCC_OPTS} \
+	  $(OGG_OPUS_DECODER_EMCC_OPTS) \
+	  $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(WASM_MODULE)"
-	@ echo "|"
-	@ echo "|  run \"make test-wasm\" to test"
-	@ echo "|"
-	@ echo "|  or open \"$(TEST_FILE_HTML)\" in browser to test"
+	@ echo "|  Successfully built JS Module: $(OGG_OPUS_DECODER_MODULE)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
+$(OGG_OPUS_DECODER_MODULE_ESM): $(OGG_OPUS_DECODER_MODULE)
+	@ echo "Building Emscripten WebAssembly ES Module $(OGG_OPUS_DECODER_MODULE_ESM)..."
+	@ emcc \
+		-o "$(OGG_OPUS_DECODER_MODULE_ESM)" \
+		-s EXPORT_ES6=1 \
+		-s MODULARIZE=1 \
+	  ${EMCC_OPTS} \
+	  $(OGG_OPUS_DECODER_EMCC_OPTS) \
+	  $(OPUS_WASM_LIB)
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built ES Module: $(OGG_OPUS_DECODER_MODULE_ESM)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
 
-$(WASM_LIB): configures
+# -------------------
+# Shared Opus library
+# -------------------
+$(OPUS_WASM_LIB): configures
 	@ mkdir -p tmp
-	@ echo "Building Ogg/Opus Emscripten Library $(WASM_LIB)..."
+	@ echo "Building Ogg/Opus Emscripten Library $(OPUS_WASM_LIB)..."
 	@ emcc \
-	  -o "$(WASM_LIB)" \
+	  -o "$(OPUS_WASM_LIB)" \
 	  -r \
 	  -Os \
 	  -flto \
@@ -132,78 +185,154 @@ $(WASM_LIB): configures
 	     '_op_read_float_stereo' \
 	  ]" \
 	  -s STRICT=1 \
-	  -I "src/opusfile/" \
-	  -I "src/opusfile/include" \
-	  -I "src/opusfile/src" \
-	  -I "src/ogg/include" \
-	  -I "src/opus/include" \
-	  -I "src/opus/celt" \
-	  -I "src/opus/silk" \
-	  -I "src/opus/silk/float" \
-	  src/opus/src/opus.c \
-	  src/opus/src/opus_multistream.c \
-	  src/opus/src/opus_multistream_decoder.c \
-	  src/opus/src/opus_decoder.c \
-	  src/opus/silk/*.c \
-	  src/opus/celt/*.c \
-	  src/ogg/src/*.c \
-	  src/opusfile/src/*.c
+	  -I "modules/opusfile/" \
+	  -I "modules/opusfile/include" \
+	  -I "modules/opusfile/src" \
+	  -I "modules/ogg/include" \
+	  -I "modules/opus/include" \
+	  -I "modules/opus/celt" \
+	  -I "modules/opus/silk" \
+	  -I "modules/opus/silk/float" \
+	  modules/opus/src/opus.c \
+	  modules/opus/src/opus_multistream.c \
+	  modules/opus/src/opus_multistream_decoder.c \
+	  modules/opus/src/opus_decoder.c \
+	  modules/opus/silk/*.c \
+	  modules/opus/celt/*.c \
+	  modules/ogg/src/*.c \
+	  modules/opusfile/src/*.c
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built: $(WASM_LIB)"
+	@ echo "|  Successfully built: $(OPUS_WASM_LIB)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
 $(CONFIGURE_LIBOPUSFILE):
-	cd src/opusfile; ./autogen.sh
+	cd modules/opusfile; ./autogen.sh
 $(CONFIGURE_LIBOPUS):
-	cd src/opus; ./autogen.sh
+	cd modules/opus; ./autogen.sh
 $(CONFIGURE_LIBOGG):
-	cd src/ogg; ./autogen.sh
-
+	cd modules/ogg; ./autogen.sh
 $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
-	cd src/ogg; emconfigure ./configure
-	# Remove a.out* files created by emconfigure
-	cd src/ogg; rm a.out*
+	cd modules/ogg; emconfigure ./configure
+	# Remove a.wasm* files created by emconfigure
+	cd modules/ogg; rm a.wasm*
 
+# -----------
+# mpg123-decoder
+# -----------
+define MPG123_EMCC_OPTS
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  ,	'_mpeg_frame_decoder_create' \
+  ,	'_mpeg_frame_decoder_destroy' \
+  ,	'_mpeg_decode_float_deinterleaved' \
+  ,	'_mpeg_get_sample_rate' \
+]" \
+--pre-js 'src/mpg123-decoder/src/emscripten-pre.js' \
+--post-js 'src/mpg123-decoder/src/emscripten-post.js' \
+-I "modules/mpg123/src/libmpg123" \
+-I "src/mpg123-decoder/src/mpg123" \
+src/mpg123-decoder/src/mpeg_frame_decoder.c 
+endef
 
-$(OPUS_DECODE_TEST_FILE):
+# modules/mpg123/src/libmpg123/.libs/libmpg123.so
+${MPG123_MODULE}: $(MPG123_WASM_LIB)
+	@ mkdir -p src/mpg123-decoder/dist
+	@ echo "Building Emscripten WebAssembly module $(MPG123_MODULE)..."
+	@ emcc $(MPG123_WASM_LIB) \
+		-o "$(MPG123_MODULE)" \
+		$(EMCC_OPTS) \
+		$(MPG123_EMCC_OPTS) 
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built JS Module: $(MPG123_MODULE)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+# Uncomment to reconfigure and compile mpg123
+#
+#configure-mpg123:
+#	cd modules/mpg123; autoreconf -iv \
+#	cd modules/mpg123; CFLAGS="-Os -flto" emconfigure ./configure \
+#	  --with-cpu=generic_dither \
+#	  --with-seektable=0 \
+#	  --disable-lfs-alias \
+#	  --disable-debug \
+#	  --disable-xdebug \
+#	  --disable-gapless \
+#	  --disable-fifo \
+#	  --disable-ipv6 \
+#	  --disable-network \
+#	  --disable-id3v2 \
+#	  --disable-string \
+#	  --disable-icy \
+#	  --disable-ntom \
+#	  --disable-downsample \
+#	  --enable-feeder \
+#	  --disable-moreinfo \
+#	  --disable-messages \
+#	  --disable-new-huffman \
+#	  --enable-int-quality \
+#	  --disable-16bit \
+#	  --disable-8bit \
+#	  --disable-32bit \
+#	  --enable-real \
+#	  --disable-equalizer \
+#	  --disable-yasm \
+#	  --disable-cases \
+#	  --disable-buffer \
+#	  --disable-newoldwritesample \
+#	  --enable-layer1 \
+#	  --enable-layer2 \
+#	  --enable-layer3 \
+#	  --disable-largefile \
+#	  --disable-feature_report 
+#	cd modules/mpg123; rm a.wasm 
+#
+#build-mpg123: 
+#	@ mkdir -p tmp
+#	@ echo "Building mpg123 Emscripten Library mpg123..."
+#	@ cd modules/mpg123; emmake make src/libmpg123/libmpg123.la \
+#	  -r
+#	@ echo "+-------------------------------------------------------------------------------"
+#	@ echo "|"
+#	@ echo "|  Successfully built: mpg123"
+#	@ echo "|"
+#	@ echo "+-------------------------------------------------------------------------------"
+
+$(MPG123_WASM_LIB):
 	@ mkdir -p tmp
-	@ echo "Downloading decode test file $(OPUS_DECODE_TEST_FILE_URL)..."
-	@ wget -q --show-progress $(OPUS_DECODE_TEST_FILE_URL) -O $(OPUS_DECODE_TEST_FILE)
-
-
-native-decode-test: $(OPUS_DECODE_TEST_FILE)
-# ** For development only **
-#
-# This target is used to test the opus decoding functionality independent
-# of WebAssembly.  It's a fast workflow to test the decoding/deinterlacing of
-# an .opus file and ensure that things work natively before we try integrating
-# it into Wasm.  libopus and libopusfile must be installed natively on your
-# system. If you're on a Mac, you can install with "brew install opusfile"
-#
-# The test program outputs 3 files:
-#   - *.wav stereo wav file
-#   - *left.pcm raw PCM file of left channel
-#   - *right.pcm raw PCM file of right channel
-#
-# Raw left/right PCM files can be played from the command using SoX https://sox.sourceforge.io/
-# "brew install sox" if you're on a Mac.  then play decoded *.pcm file:
-#
-#   $ play --type raw --rate 48000 --endian little --encoding floating-point --bits 32 --channels 1 [PCM_FILENAME]
-#
-ifndef OPUS_DIR
-	$(error OPUS_DIR environment variable is required)
-endif
-ifndef OPUSFILE_DIR
-	$(error OPUSFILE_DIR environment variable is required)
-endif
-	@ mkdir -p tmp
-	@ clang \
-		-o "$(NATIVE_DECODER_TEST)" \
-		-I "$(OPUSFILE_DIR)/include/opus" \
-		-I "$(OPUS_DIR)/include/opus" \
-		"$(OPUSFILE_DIR)/lib/libopusfile.dylib" \
-		src/*.c
-
-	@ $(NATIVE_DECODER_TEST) tmp/decode-test-64kbps.opus
+	@ echo "Building mpg123 Emscripten Library $(MPG123_WASM_LIB)..."
+	@ emcc \
+	  -o "$(MPG123_WASM_LIB)" \
+	  -r \
+	  -Oz \
+	  -flto \
+	  -s NO_DYNAMIC_EXECUTION=1 \
+	  -s NO_FILESYSTEM=1 \
+	  -s STRICT=1 \
+	  -DOPT_GENERIC -DREAL_IS_FLOAT \
+	  -I "modules/mpg123/src" \
+	  -I "modules/mpg123/src/libmpg123" \
+	  -I "modules/mpg123/src/compat" \
+	  -I "src/mpg123-decoder/src/mpg123" \
+	  modules/mpg123/src/compat/compat.c \
+  	  modules/mpg123/src/libmpg123/parse.c \
+  	  modules/mpg123/src/libmpg123/frame.c \
+  	  modules/mpg123/src/libmpg123/format.c \
+  	  modules/mpg123/src/libmpg123/dct64.c \
+  	  modules/mpg123/src/libmpg123/id3.c \
+  	  modules/mpg123/src/libmpg123/optimize.c \
+  	  modules/mpg123/src/libmpg123/readers.c \
+  	  modules/mpg123/src/libmpg123/tabinit.c \
+  	  modules/mpg123/src/libmpg123/libmpg123.c \
+  	  modules/mpg123/src/libmpg123/layer1.c \
+  	  modules/mpg123/src/libmpg123/layer2.c \
+  	  modules/mpg123/src/libmpg123/layer3.c \
+  	  modules/mpg123/src/libmpg123/synth_real.c 
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built: $(MPG123_WASM_LIB)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
