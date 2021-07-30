@@ -327,6 +327,8 @@ $(MPG123_WASM_LIB):
   	  modules/mpg123/src/libmpg123/readers.c \
   	  modules/mpg123/src/libmpg123/tabinit.c \
   	  modules/mpg123/src/libmpg123/libmpg123.c \
+  	  modules/mpg123/src/libmpg123/layer1.c \
+  	  modules/mpg123/src/libmpg123/layer2.c \
   	  modules/mpg123/src/libmpg123/layer3.c \
   	  modules/mpg123/src/libmpg123/synth_real.c 
 	@ echo "+-------------------------------------------------------------------------------"
