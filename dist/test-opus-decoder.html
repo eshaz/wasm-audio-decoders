@@ -1,0 +1,52 @@
+<html>
+  <head>
+    <title>Opus Decoder Test</title>
+    <script src="opus-decoder.js"></script>
+    <script>
+      "use strict";
+
+      const opusFile =
+        "https://fetch-stream-audio.anthum.com/audio/opus/decode-test-64kbps.opus";
+      let totalSamplesDecoded = 0;
+
+      // Fetch a file and decode it.
+      fetch(opusFile)
+        .then(decodeOpusResponse)
+        .then((_) =>
+          console.log("decoded " + totalSamplesDecoded + " samples.")
+        )
+        .catch(console.error);
+
+      // decode Fetch response
+      function decodeOpusResponse(response) {
+        if (!response.ok)
+          throw Error(
+            "Invalid Response: " + response.status + " " + response.statusText
+          );
+        if (!response.body)
+          throw Error("ReadableStream not yet supported in this browser.");
+
+        const decoder = new OpusDecoder({ onDecode });
+        const reader = response.body.getReader();
+
+        // TODO fail on decode() error and exit read() loop
+        return reader.read().then(async function evalChunk({ done, value }) {
+          if (done) return;
+
+          await decoder.ready;
+          decoder.decode(value);
+
+          return reader.read().then(evalChunk);
+        });
+      }
+
+      // Callback that receives decoded PCM OpusDecodedAudio
+      function onDecode({ left, right, samplesDecoded, sampleRate }) {
+        totalSamplesDecoded += samplesDecoded;
+      }
+    </script>
+  </head>
+  <body>
+    View output in browser console.
+  </body>
+</html>
