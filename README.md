@@ -22,7 +22,7 @@ Decodes Ogg Opus data into PCM
   * Install using NPM
 
 
-### [`mpg123-wasm`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-wasm)
+### [`mpg123-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder)
 Decodes MPEG Layer I/II/III into PCM
   * 129.9 KiB bundle size
   * Based on `libmpg123`
@@ -43,4 +43,4 @@ Decodes MPEG Layer I/II/III into PCM
 5. The builds will be located in each library's `dist` folder:
    * opus-decoder: `src/opus-decoder/dist/` 
    * ogg-opus-decoder: `src/ogg-opus-decoder/dist/` 
-   * mpg123-wasm: `src/mpg123-wasm/dist/` 
+   * mpg123-decoder: `src/mpg123-decoder/dist/` 

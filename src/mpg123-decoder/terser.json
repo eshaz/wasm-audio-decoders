@@ -1,6 +1,6 @@
 {
   "sourceMap": {
-    "url": "mpg123-wasm.min.js.map"
+    "url": "mpg123-decoder.min.js.map"
   },
   "compress": {
     "unsafe": true,

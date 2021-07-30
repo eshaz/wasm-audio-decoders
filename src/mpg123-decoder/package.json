@@ -1,11 +1,11 @@
 {
-  "name": "mpg123-wasm",
+  "name": "mpg123-decoder",
   "version": "0.0.1",
   "description": "Web Assembly streaming Ogg Opus decoder",
-  "main": "dist/mpg123-wasm.min.js",
+  "main": "dist/mpg123-decoder.min.js",
   "files": [
-    "dist/mpg123-wasm.min.js",
-    "dist/mpg123-wasm.min.js.map"
+    "dist/mpg123-decoder.min.js",
+    "dist/mpg123-decoder.min.js.map"
   ],
   "repository": {
     "type": "git",

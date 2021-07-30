@@ -2,11 +2,11 @@ default: dist
 
 clean: dist-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
-dist: opus-decoder ogg-opus-decoder mpg123-wasm
+dist: opus-decoder ogg-opus-decoder mpg123-decoder
 dist-clean:
 	rm -rf src/opus-decoder/dist/*
 	rm -rf src/ogg-opus-decoder/dist/*
-	rm -rf src/mpg123-wasm/dist/*
+	rm -rf src/mpg123-decoder/dist/*
 
 # opus
 OPUS_WASM_LIB=tmp/opus.bc
@@ -31,11 +31,11 @@ opus-wasmlib-clean: dist-clean
 
 # mpg123
 MPG123_WASM_LIB=tmp/mpg123.bc
-MPG123_MODULE=src/mpg123-wasm/dist/mpg123-wasm.js
-MPG123_MODULE_MIN=src/mpg123-wasm/dist/mpg123-wasm.min.js
+MPG123_MODULE=src/mpg123-decoder/dist/mpg123-decoder.js
+MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
 
-mpg123-wasm: mpg123-wasmlib mpg123-wasm-minify ${MPG123_MODULE}
-mpg123-wasm-minify: $(MPG123_MODULE)
+mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_MODULE}
+mpg123-decoder-minify: $(MPG123_MODULE)
 	node build/compress.js ${MPG123_MODULE}
 	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${MPG123_MODULE} -o ${MPG123_MODULE_MIN}
 mpg123-wasmlib: $(MPG123_WASM_LIB)
@@ -219,7 +219,7 @@ $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
 	cd modules/ogg; rm a.wasm*
 
 # -----------
-# mpg123-wasm
+# mpg123-decoder
 # -----------
 define MPG123_EMCC_OPTS
 -s EXPORTED_FUNCTIONS="[ \
@@ -229,16 +229,16 @@ define MPG123_EMCC_OPTS
   ,	'_mpeg_decode_float_deinterleaved' \
   ,	'_mpeg_get_sample_rate' \
 ]" \
---pre-js 'src/mpg123-wasm/src/emscripten-pre.js' \
---post-js 'src/mpg123-wasm/src/emscripten-post.js' \
+--pre-js 'src/mpg123-decoder/src/emscripten-pre.js' \
+--post-js 'src/mpg123-decoder/src/emscripten-post.js' \
 -I "modules/mpg123/src/libmpg123" \
--I "src/mpg123-wasm/src/mpg123" \
-src/mpg123-wasm/src/mpeg_frame_decoder.c 
+-I "src/mpg123-decoder/src/mpg123" \
+src/mpg123-decoder/src/mpeg_frame_decoder.c 
 endef
 
 # modules/mpg123/src/libmpg123/.libs/libmpg123.so
 ${MPG123_MODULE}: $(MPG123_WASM_LIB)
-	@ mkdir -p src/mpg123-wasm/dist
+	@ mkdir -p src/mpg123-decoder/dist
 	@ echo "Building Emscripten WebAssembly module $(MPG123_MODULE)..."
 	@ emcc $(MPG123_WASM_LIB) \
 		-o "$(MPG123_MODULE)" \
@@ -316,7 +316,7 @@ $(MPG123_WASM_LIB):
 	  -I "modules/mpg123/src" \
 	  -I "modules/mpg123/src/libmpg123" \
 	  -I "modules/mpg123/src/compat" \
-	  -I "src/mpg123-wasm/src/mpg123" \
+	  -I "src/mpg123-decoder/src/mpg123" \
 	  modules/mpg123/src/compat/compat.c \
   	  modules/mpg123/src/libmpg123/parse.c \
   	  modules/mpg123/src/libmpg123/frame.c \
