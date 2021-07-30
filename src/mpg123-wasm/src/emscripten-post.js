@@ -40,20 +40,20 @@ class MPEGDecoder {
   }
 
   _createDecoder() {
-    this._decoder = _mpeg_decoder_create();
+    this._decoder = _mpeg_frame_decoder_create();
 
     // max theoretical size of a MPEG frame (MPEG 2.5 Layer II, 8000 Hz @ 160 kbps, with a padding slot)
     // https://www.mars.org/pipermail/mad-dev/2002-January/000425.html
     this._framePtrSize = 2889;
     this._framePtr = _malloc(this._framePtrSize);
 
-    const maxSafeBuffer = _mpg123_safe_buffer();
-    [this._leftPtr, this._leftArr] = this._createOutputArray(maxSafeBuffer);
-    [this._rightPtr, this._rightArr] = this._createOutputArray(maxSafeBuffer);
+    // max samples per MPEG frame
+    [this._leftPtr, this._leftArr] = this._createOutputArray(4*1152);
+    [this._rightPtr, this._rightArr] = this._createOutputArray(4*1152);
   }
 
   free() {
-    _mpeg_decoder_destroy(this._decoder);
+    _mpeg_frame_decoder_destroy(this._decoder);
 
     _free(this._framePtr);
     _free(this._leftPtr);

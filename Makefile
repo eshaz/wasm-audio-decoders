@@ -224,9 +224,8 @@ $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
 define MPG123_EMCC_OPTS
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
-  , '_mpg123_safe_buffer' \
-  ,	'_mpeg_decoder_create' \
-  ,	'_mpeg_decoder_destroy' \
+  ,	'_mpeg_frame_decoder_create' \
+  ,	'_mpeg_frame_decoder_destroy' \
   ,	'_mpeg_decode_float_deinterleaved' \
   ,	'_mpeg_get_sample_rate' \
 ]" \
@@ -234,7 +233,7 @@ define MPG123_EMCC_OPTS
 --post-js 'src/mpg123-wasm/src/emscripten-post.js' \
 -I "modules/mpg123/src/libmpg123" \
 -I "src/mpg123-wasm/src/mpg123" \
-src/mpg123-wasm/src/mpeg_decoder.c 
+src/mpg123-wasm/src/mpeg_frame_decoder.c 
 endef
 
 # modules/mpg123/src/libmpg123/.libs/libmpg123.so

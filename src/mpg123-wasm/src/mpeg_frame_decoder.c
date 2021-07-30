@@ -1,6 +1,6 @@
-#include "mpeg_decoder.h"
+#include "mpeg_frame_decoder.h"
 
-MPEGFrameDecoder *mpeg_decoder_create() {
+MPEGFrameDecoder *mpeg_frame_decoder_create() {
     MPEGFrameDecoder decoder;
     decoder.mh = mpg123_new(NULL, NULL);
     mpg123_param(decoder.mh, MPG123_FLAGS, 
@@ -13,12 +13,10 @@ MPEGFrameDecoder *mpeg_decoder_create() {
     return ptr;
 }
 
-// left and right should be able to store frame_size*channels*sizeof(float) 
-// frame_size should be the maximum packet duration (120ms; 5760 for 48kHz)
 int mpeg_decode_float_deinterleaved(MPEGFrameDecoder *decoder, unsigned char *in, size_t in_size, float *left, float *right) {
     size_t bytes_decoded = 0;
 
-    int mpg123_error_code = mpg123_decode(decoder->mh, in, in_size, decoder->pcm, 1152*20*2*sizeof(float), &bytes_decoded);
+    int mpg123_error_code = mpg123_decode(decoder->mh, in, in_size, decoder->pcm, 4*2*1152, &bytes_decoded);
 
     int samples_decoded = bytes_decoded / sizeof(float) / 2;
 
@@ -45,7 +43,7 @@ long mpeg_get_sample_rate(MPEGFrameDecoder *decoder) {
     return decoder->fr.rate;
 }
 
-void mpeg_decoder_destroy(MPEGFrameDecoder *decoder) {
+void mpeg_frame_decoder_destroy(MPEGFrameDecoder *decoder) {
     mpg123_delete(decoder->mh);
     free(decoder->mh);
     free(decoder);
