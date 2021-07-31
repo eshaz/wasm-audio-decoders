@@ -1,6 +1,6 @@
 # mpg123-decoder
 
-`mpg123-decoder` is a Web Assembly MPEG Layer (I/II/II) audio decoder.
+`mpg123-decoder` is a Web Assembly MPEG Layer (I/II/II) audio decoder based on [`mpg123`](https://www.mpg123.de/).
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 

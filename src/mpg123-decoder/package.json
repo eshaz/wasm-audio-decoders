@@ -1,6 +1,6 @@
 {
   "name": "mpg123-decoder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Web Assembly streaming MPEG Layer I/II/III decoder",
   "main": "dist/mpg123-decoder.min.js",
   "files": [
@@ -20,6 +20,7 @@
     "decoder",
     "stream",
     "streams",
+    "mpg123",
     "libmpg123",
     "Ogg Opus",
     "WebAssembly",

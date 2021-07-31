@@ -1,6 +1,7 @@
 #include "mpeg_frame_decoder.h"
 
 MPEGFrameDecoder *mpeg_frame_decoder_create() {
+    mpg123_init();
     MPEGFrameDecoder decoder;
     decoder.mh = mpg123_new(NULL, NULL);
     mpg123_param(decoder.mh, MPG123_FLAGS, 

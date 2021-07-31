@@ -48,8 +48,8 @@ class MPEGDecoder {
     this._framePtr = _malloc(this._framePtrSize);
 
     // max samples per MPEG frame
-    [this._leftPtr, this._leftArr] = this._createOutputArray(4*1152);
-    [this._rightPtr, this._rightArr] = this._createOutputArray(4*1152);
+    [this._leftPtr, this._leftArr] = this._createOutputArray(4 * 1152);
+    [this._rightPtr, this._rightArr] = this._createOutputArray(4 * 1152);
   }
 
   free() {
