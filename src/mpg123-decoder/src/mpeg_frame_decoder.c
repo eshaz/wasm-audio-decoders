@@ -46,6 +46,5 @@ long mpeg_get_sample_rate(MPEGFrameDecoder *decoder) {
 
 void mpeg_frame_decoder_destroy(MPEGFrameDecoder *decoder) {
     mpg123_delete(decoder->mh);
-    free(decoder->mh);
     free(decoder);
 };
