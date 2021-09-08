@@ -101,9 +101,6 @@
 /* Define to 1 if you have the `dlsym' function. */
 #define HAVE_DLSYM 1
 
-/* Define if getaddrinfo accepts the AI_ADDRCONFIG flag */
-/* #undef HAVE_GAI_ADDRCONFIG */
-
 /* Define to 1 if you have the `getaddrinfo' function. */
 #define HAVE_GETADDRINFO 1
 
@@ -395,7 +392,7 @@
 #define PACKAGE_NAME "mpg123"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "mpg123 1.27.0"
+#define PACKAGE_STRING "mpg123 1.29.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "mpg123"
@@ -404,10 +401,13 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.27.0"
+#define PACKAGE_VERSION "1.29.0"
 
 /* Define if portaudio v18 API is wanted. */
 /* #undef PORTAUDIO18 */
+
+/* Define for calculating tables at runtime. */
+#define RUNTIME_TABLES 1
 
 /* The size of `int32_t', as computed by sizeof. */
 #define SIZEOF_INT32_T 4
@@ -443,7 +443,7 @@
 /* #undef USE_YASM_FOR_AVX */
 
 /* Version number of package */
-#define VERSION "1.27.0"
+#define VERSION "1.29.0"
 
 /* Define to use Win32 named pipes */
 /* #undef WANT_WIN32_FIFO */

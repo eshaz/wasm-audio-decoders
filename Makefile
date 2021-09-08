@@ -30,6 +30,7 @@ opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
 
 # mpg123
+MPG123_SRC=modules/mpg123
 MPG123_WASM_LIB=tmp/mpg123.bc
 MPG123_MODULE=src/mpg123-decoder/dist/mpg123-decoder.js
 MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
@@ -231,12 +232,12 @@ define MPG123_EMCC_OPTS
 ]" \
 --pre-js 'src/mpg123-decoder/src/emscripten-pre.js' \
 --post-js 'src/mpg123-decoder/src/emscripten-post.js' \
--I "modules/mpg123/src/libmpg123" \
+-I "$(MPG123_SRC)/src/libmpg123" \
 -I "src/mpg123-decoder/src/mpg123" \
 src/mpg123-decoder/src/mpeg_frame_decoder.c 
 endef
 
-# modules/mpg123/src/libmpg123/.libs/libmpg123.so
+# $(MPG123_SRC)/src/libmpg123/.libs/libmpg123.so
 ${MPG123_MODULE}: $(MPG123_WASM_LIB)
 	@ mkdir -p src/mpg123-decoder/dist
 	@ echo "Building Emscripten WebAssembly module $(MPG123_MODULE)..."
@@ -252,48 +253,49 @@ ${MPG123_MODULE}: $(MPG123_WASM_LIB)
 
 # Uncomment to reconfigure and compile mpg123
 #
-#configure-mpg123:
-#	cd modules/mpg123; autoreconf -iv \
-#	cd modules/mpg123; CFLAGS="-Os -flto" emconfigure ./configure \
-#	  --with-cpu=generic_dither \
-#	  --with-seektable=0 \
-#	  --disable-lfs-alias \
-#	  --disable-debug \
-#	  --disable-xdebug \
-#	  --disable-gapless \
-#	  --disable-fifo \
-#	  --disable-ipv6 \
-#	  --disable-network \
-#	  --disable-id3v2 \
-#	  --disable-string \
-#	  --disable-icy \
-#	  --disable-ntom \
-#	  --disable-downsample \
-#	  --enable-feeder \
-#	  --disable-moreinfo \
-#	  --disable-messages \
-#	  --disable-new-huffman \
-#	  --enable-int-quality \
-#	  --disable-16bit \
-#	  --disable-8bit \
-#	  --disable-32bit \
-#	  --enable-real \
-#	  --disable-equalizer \
-#	  --disable-yasm \
-#	  --disable-cases \
-#	  --disable-buffer \
-#	  --disable-newoldwritesample \
-#	  --enable-layer1 \
-#	  --enable-layer2 \
-#	  --enable-layer3 \
-#	  --disable-largefile \
-#	  --disable-feature_report 
-#	cd modules/mpg123; rm a.wasm 
-#
-#build-mpg123: 
+configure-mpg123:
+	cd $(MPG123_SRC); autoreconf -iv
+	cd $(MPG123_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
+	  --with-cpu=generic_dither \
+	  --with-seektable=0 \
+	  --disable-lfs-alias \
+	  --disable-debug \
+	  --disable-xdebug \
+	  --disable-gapless \
+	  --disable-fifo \
+	  --disable-ipv6 \
+	  --disable-network \
+	  --disable-id3v2 \
+	  --disable-string \
+	  --disable-icy \
+	  --disable-ntom \
+	  --disable-downsample \
+	  --enable-feeder \
+	  --disable-moreinfo \
+	  --disable-messages \
+	  --disable-new-huffman \
+	  --enable-int-quality \
+	  --disable-16bit \
+	  --disable-8bit \
+	  --disable-32bit \
+	  --enable-real \
+	  --disable-equalizer \
+	  --disable-yasm \
+	  --disable-cases \
+	  --disable-buffer \
+	  --disable-newoldwritesample \
+	  --enable-layer1 \
+	  --enable-layer2 \
+	  --enable-layer3 \
+	  --disable-largefile \
+	  --disable-feature_report \
+	  --enable-runtime-tables
+	cd $(MPG123_SRC); rm a.wasm 
+
+#$(MPG123_WASM_LIB): 
 #	@ mkdir -p tmp
 #	@ echo "Building mpg123 Emscripten Library mpg123..."
-#	@ cd modules/mpg123; emmake make src/libmpg123/libmpg123.la \
+#	@ cd $(MPG123_SRC); emmake make src/libmpg123/libmpg123.la \
 #	  -r
 #	@ echo "+-------------------------------------------------------------------------------"
 #	@ echo "|"
@@ -313,24 +315,24 @@ $(MPG123_WASM_LIB):
 	  -s NO_FILESYSTEM=1 \
 	  -s STRICT=1 \
 	  -DOPT_GENERIC -DREAL_IS_FLOAT \
-	  -I "modules/mpg123/src" \
-	  -I "modules/mpg123/src/libmpg123" \
-	  -I "modules/mpg123/src/compat" \
+	  -I "$(MPG123_SRC)/src" \
+	  -I "$(MPG123_SRC)/src/libmpg123" \
+	  -I "$(MPG123_SRC)/src/compat" \
 	  -I "src/mpg123-decoder/src/mpg123" \
-	  modules/mpg123/src/compat/compat.c \
-  	  modules/mpg123/src/libmpg123/parse.c \
-  	  modules/mpg123/src/libmpg123/frame.c \
-  	  modules/mpg123/src/libmpg123/format.c \
-  	  modules/mpg123/src/libmpg123/dct64.c \
-  	  modules/mpg123/src/libmpg123/id3.c \
-  	  modules/mpg123/src/libmpg123/optimize.c \
-  	  modules/mpg123/src/libmpg123/readers.c \
-  	  modules/mpg123/src/libmpg123/tabinit.c \
-  	  modules/mpg123/src/libmpg123/libmpg123.c \
-  	  modules/mpg123/src/libmpg123/layer1.c \
-  	  modules/mpg123/src/libmpg123/layer2.c \
-  	  modules/mpg123/src/libmpg123/layer3.c \
-  	  modules/mpg123/src/libmpg123/synth_real.c 
+	  $(MPG123_SRC)/src/compat/compat.c \
+  	  $(MPG123_SRC)/src/libmpg123/parse.c \
+  	  $(MPG123_SRC)/src/libmpg123/frame.c \
+  	  $(MPG123_SRC)/src/libmpg123/format.c \
+  	  $(MPG123_SRC)/src/libmpg123/dct64.c \
+  	  $(MPG123_SRC)/src/libmpg123/id3.c \
+  	  $(MPG123_SRC)/src/libmpg123/optimize.c \
+  	  $(MPG123_SRC)/src/libmpg123/readers.c \
+  	  $(MPG123_SRC)/src/libmpg123/tabinit.c \
+  	  $(MPG123_SRC)/src/libmpg123/libmpg123.c \
+  	  $(MPG123_SRC)/src/libmpg123/layer1.c \
+  	  $(MPG123_SRC)/src/libmpg123/layer2.c \
+  	  $(MPG123_SRC)/src/libmpg123/layer3.c \
+  	  $(MPG123_SRC)/src/libmpg123/synth_real.c 
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(MPG123_WASM_LIB)"
