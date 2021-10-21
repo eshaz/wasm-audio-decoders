@@ -9,7 +9,7 @@
   * WASM compiler options are tuned for best possible size and performance.
 * `tiny-inflate` is included from [foliojs/tiny-inflate](https://github.com/foliojs/tiny-inflate) and is used to decompress the WASM binary.
 
-# Usage
+## Usage
 
 Pre-compiled binaries and full examples are included in the `dist/` folder.  The `OggOpusDecoder` API was designed to be simple and the pseudocode below explains its complete usage:
 
@@ -22,7 +22,7 @@ import { OggOpusDecoder } from 'ogg-opus-decoder';
 
 Otherwise, include the script before you instantiate `OggOpusDecoder`.
 
-```javascript
+```html
 <script src="ogg-opus-decoder.min.js"></script>
 <script>
   // instantiate with onDecode callback that fires when OggOpusFile data is decoded
@@ -68,6 +68,30 @@ Otherwise, include the script before you instantiate `OggOpusDecoder`.
 ```
 
 After instantiating `OggOpusDecoder`, `decode()` should be called repeatedly until you're done reading the stream.  You __must__ start decoding from the beginning of the file.  Otherwise, a valid Ogg Opus file will not be discovered by `libopusfile` for decoding.  `decoder.ready` is a Promise that resolves once the underlying WebAssembly module is fetched from the network and instantiated, so ensure you always wait for it to resolve.  `free()` should be called when done decoding, when `decode()` throws an error, or if you wish to "reset" the decoder and begin decoding a new file with the same instance.  `free()` releases the allocated Wasm memory.
+
+## Async Decoding with Workers
+
+This module can be loaded as a web worker, which will decode entire Opus audio files in a separate, non-blocking thread. The `audioId` parameter is optional; if you provide a audioId (any arbitrary string or number) can be passed to the decoder and returned with the decoded audio, allowing you to run multiple workers for multi-threaded decoding of multiple files.
+
+```javascript
+const worker = new Worker('/path/to/ogg-opus-decoder.min.js');
+
+worker.addEventListener('message', (msg) => {
+  const { channelData, samplesDecoded, sampleRate, audioId } = msg.data;
+  const audioBuffer = new AudioBuffer({
+    numberOfChannels: channelData.length,
+    length: samplesDecoded,
+    sampleRate,
+  });
+  // do something with the AudioBuffer
+});
+
+worker.postMessage({
+  command: 'decode',
+  compressedData: opusFileArrayBuffer,
+  audioId: "example_sound" 
+}, [mpegData]);
+```
 
 #### Performance
 `OggOpusDecoder` is highly optimized and is sometimes faster than the native Opus decoding ability of the browser. To avoid any blocking operations on your main thread, you can run this in a Web Worker to keep CPU decoding computations on a separate browser thread.
