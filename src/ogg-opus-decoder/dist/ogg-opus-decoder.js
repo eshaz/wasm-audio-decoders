@@ -604,7 +604,7 @@ if ("undefined" !== typeof global && exports) {
  module.exports.OggOpusDecoder = OggOpusDecoder;
 }
 
-if (typeof self !== "undefined" && self instanceof WorkerGlobalScope) {
+if (typeof importScripts === "function") {
  self.onmessage = function(msg) {
   if (msg.data.command == "decode") {
    var decoder = new OggOpusDecoder({
