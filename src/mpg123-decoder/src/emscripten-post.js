@@ -58,6 +58,8 @@ class MPEGDecoder {
     _free(this._framePtr);
     _free(this._leftPtr);
     _free(this._rightPtr);
+
+    this._sampleRate = 0;
   }
 
   decode(data) {
@@ -138,4 +140,32 @@ if ("undefined" !== typeof global && exports) {
   // uncomment this for performance testing
   // var {performance} = require('perf_hooks');
   // global.performance = performance;
+}
+
+/*******************
+ *    Web Worker   *
+ *******************/
+
+if (typeof importScripts === 'function') {
+  // We're in a Web Worker, so we'll define a handler for the "decode" command-message
+
+  self.onmessage = function (msg) {
+    if (msg.data.command == "decode") {
+      const decoder = new MPEGDecoder();
+      decoder.ready.then(() => {
+        const { channelData, samplesDecoded, sampleRate } =
+          decoder.decode(new Uint8Array(msg.data.encodedData));
+        self.postMessage(
+          { channelData, samplesDecoded, sampleRate, audioId: msg.data.audioId },
+          // The "transferList" parameter transfers ownership of channel data to main thread,
+          // which avoids copying memory. (Do this with the postMessage call to this
+          // worker as well, if possible.)
+          channelData.map((channel) => channel.buffer)
+        );
+        decoder.free();
+      });
+    } else {
+      this.console.error("Unknown command sent to worker: " + msg.data.command);
+    }
+  };
 }

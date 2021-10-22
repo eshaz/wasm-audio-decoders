@@ -39,6 +39,30 @@ Install via [NPM](https://www.npmjs.com/package/mpg123-decoder).
    decoder.free();
    ```
 
+## Async Decoding with Workers
+
+This module can be loaded as a web worker, which will do the decoding in a separate, non-blocking thread. The `audioId` parameter is optional; if you provide a audioId (any arbitrary string or number) can be passed to the decoder and returned with the decoded audio, allowing you to run multiple workers for multi-threaded decoding of multiple files.
+
+```javascript
+const worker = new Worker('/path/to/mpg123-decoder.min.js');
+
+worker.addEventListener('message', (msg) => {
+  const { channelData, samplesDecoded, sampleRate, audioId } = msg.data;
+  const audioBuffer = new AudioBuffer({
+    numberOfChannels: channelData.length,
+    length: samplesDecoded,
+    sampleRate,
+  });
+  // do something with the AudioBuffer
+});
+
+worker.postMessage({
+  command: 'decode',
+  compressedData: mpegDataArrayBuffer,
+  audioId: "example_sound" 
+}, [mpegData]);
+```
+
 ## API
 
 ### Getters
@@ -66,3 +90,26 @@ The `channelData` contains the raw decoded PCM for each channel (left, and right
   * `mpegFrame` Uint8Array containing a single MPEG frame.
 * `decoder.decodeFrames(mpegFrames)`
   * `mpegFrames` Array of Uint8Arrays containing MPEG frames.
+
+### Web Worker API
+
+When loaded as a Worker, there is a single command you can post to it using postMessage:
+
+* `worker.postMessage({ command, compressedData, audioId })`
+  * `command` Must equal `"decode"`.
+  * `compressedData` ArrayBuffer of MPEG audio data.
+  * `audioId` Optional string or number that will be returned with decompressed audio.
+  
+Once decoding is complete, the main thread will receive a `message` event whose sole argument has a `data` parameter with the decoding results:
+
+```javascript
+worker.addEventListener('message', (msg) => {
+  console.log(msg.data);
+  // {
+  //   channelData: [leftAudio, rightAudio],
+  //   samplesDecoded: 1234,
+  //   sampleRate: 44100,
+  //   audioId: "whatever was passed in worker.postMessage`
+  // }
+});
+```

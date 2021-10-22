@@ -3,7 +3,7 @@ const decoderReady = new Promise((resolve) => {
 });
 
 const concatFloat32 = (buffers, length) => {
-  const ret = new Float32Array(length);
+  const ret = new Float32Array(new ArrayBuffer(length * 4));
 
   let offset = 0;
   for (const buf of buffers) {
@@ -16,10 +16,11 @@ const concatFloat32 = (buffers, length) => {
 
 // Decoder will pass decoded PCM data to onDecode
 class OpusDecodedAudio {
-  constructor(channelData, samplesDecoded) {
+  constructor(channelData, samplesDecoded, audioId) {
     this.channelData = channelData;
     this.samplesDecoded = samplesDecoded;
     this.sampleRate = 48000;
+    this.audioId = audioId;
   }
 }
 
@@ -56,7 +57,7 @@ class OggOpusDecoder {
              of the next chain must be present when decoding. Errors will be returned by
              libopusfile if these initial Ogg packets are incomplete. 
   */
-  decode(uint8array) {
+  decode(uint8array, audioId) {
     if (!(uint8array instanceof Uint8Array))
       throw Error("Data to decode must be Uint8Array");
 
@@ -181,7 +182,8 @@ class OggOpusDecoder {
               concatFloat32(allDecodedLeft, allDecodedSamples),
               concatFloat32(allDecodedRight, allDecodedSamples),
             ],
-            allDecodedSamples
+            allDecodedSamples,
+            audioId
           )
         );
       }
@@ -209,4 +211,34 @@ if ("undefined" !== typeof global && exports) {
   // uncomment this for performance testing
   // var {performance} = require('perf_hooks');
   // global.performance = performance;
+}
+
+/*******************
+ *    Web Worker   *
+ *******************/
+
+if (typeof importScripts === 'function') {
+  // We're in a Web Worker, so we'll define a handler for the "decode" command-message
+
+  self.onmessage = function (msg) {
+    if (msg.data.command == "decode") {
+      var decoder = new OggOpusDecoder({
+        onDecodeAll({ channelData, samplesDecoded, sampleRate, audioId }) {
+          self.postMessage(
+            { channelData, samplesDecoded, sampleRate, audioId },
+            // The "transferList" parameter transfers ownership of channel data to main thread,
+            // which avoids copying memory. (Do this with the postMessage call to this
+            // worker as well, if possible.)
+            channelData.map((channel) => channel.buffer)
+          );
+        },
+      });
+      decoder.ready.then(() => {
+        decoder.decode(new Uint8Array(msg.data.encodedData), msg.data.audioId);
+        decoder.free();
+      });
+    } else {
+      this.console.error("Unknown command sent to worker: " + msg.data.command);
+    }
+  };
 }
