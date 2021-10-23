@@ -2,19 +2,6 @@ const decoderReady = new Promise((resolve) => {
   ready = resolve;
 });
 
-const concatFloat32 = (buffers, length) => {
-  const ret = new Float32Array(length);
-
-  let offset = 0;
-  for (const buf of buffers) {
-    ret.set(buf, offset);
-    offset += buf.length;
-  }
-
-  return ret;
-};
-
-// Decoder will pass decoded PCM data to onDecode
 class MPEGDecodedAudio {
   constructor(channelData, samplesDecoded, sampleRate) {
     this.channelData = channelData;
@@ -31,6 +18,18 @@ class MPEGDecoder {
 
   get ready() {
     return decoderReady;
+  }
+
+  static concatFloat32(buffers, length) {
+    const ret = new Float32Array(length);
+
+    let offset = 0;
+    for (const buf of buffers) {
+      ret.set(buf, offset);
+      offset += buf.length;
+    }
+
+    return ret;
   }
 
   _createOutputArray(length) {
@@ -81,7 +80,10 @@ class MPEGDecoder {
     }
 
     return new MPEGDecodedAudio(
-      [concatFloat32(left, samples), concatFloat32(right, samples)],
+      [
+        MPEGDecoder.concatFloat32(left, samples),
+        MPEGDecoder.concatFloat32(right, samples),
+      ],
       samples,
       this._sampleRate
     );
@@ -125,47 +127,133 @@ class MPEGDecoder {
     });
 
     return new MPEGDecodedAudio(
-      [concatFloat32(left, samples), concatFloat32(right, samples)],
+      [
+        MPEGDecoder.concatFloat32(left, samples),
+        MPEGDecoder.concatFloat32(right, samples),
+      ],
       samples,
       this._sampleRate
     );
   }
 }
 
-Module["MPEGDecoder"] = MPEGDecoder;
-
-// nodeJS only
-if ("undefined" !== typeof global && exports) {
-  module.exports.MPEGDecoder = MPEGDecoder;
-  // uncomment this for performance testing
-  // var {performance} = require('perf_hooks');
-  // global.performance = performance;
-}
-
 /*******************
  *    Web Worker   *
  *******************/
 
-if (typeof importScripts === 'function') {
-  // We're in a Web Worker, so we'll define a handler for the "decode" command-message
+if (typeof importScripts === "function") {
+  // We're in a Web Worker
+  let decoder = new MPEGDecoder();
+
+  const detachBuffers = (buffer) =>
+    Array.isArray(buffer)
+      ? buffer.map((buffer) => new Uint8Array(buffer))
+      : new Uint8Array(buffer);
 
   self.onmessage = function (msg) {
-    if (msg.data.command == "decode") {
-      const decoder = new MPEGDecoder();
-      decoder.ready.then(() => {
-        const { channelData, samplesDecoded, sampleRate } =
-          decoder.decode(new Uint8Array(msg.data.encodedData));
-        self.postMessage(
-          { channelData, samplesDecoded, sampleRate, audioId: msg.data.audioId },
-          // The "transferList" parameter transfers ownership of channel data to main thread,
-          // which avoids copying memory. (Do this with the postMessage call to this
-          // worker as well, if possible.)
-          channelData.map((channel) => channel.buffer)
-        );
-        decoder.free();
-      });
-    } else {
-      this.console.error("Unknown command sent to worker: " + msg.data.command);
-    }
+    decoder.ready.then(() => {
+      switch (msg.data.command) {
+        case "ready":
+          self.postMessage({
+            command: "ready",
+          });
+          break;
+        case "free":
+          decoder.free();
+          self.postMessage({
+            command: "free",
+          });
+          break;
+        case "reset":
+          decoder.free();
+          decoder = new MPEGDecoder();
+          self.postMessage({
+            command: "reset",
+          });
+          break;
+        case "decode":
+        case "decodeFrame":
+        case "decodeFrames":
+          const { channelData, samplesDecoded, sampleRate } = decoder[
+            msg.data.command
+          ](detachBuffers(msg.data.mpegData));
+
+          self.postMessage(
+            {
+              command: msg.data.command,
+              channelData,
+              samplesDecoded,
+              sampleRate,
+            },
+            // The "transferList" parameter transfers ownership of channel data to main thread,
+            // which avoids copying memory.
+            channelData.map((channel) => channel.buffer)
+          );
+          break;
+        default:
+          this.console.error(
+            "Unknown command sent to worker: " + msg.data.command
+          );
+      }
+    });
   };
+}
+
+class MPEGDecoderWebWorker extends Worker {
+  constructor() {
+    const decoder = "(" + getMPEGDecoder.toString() + ")()";
+    super(
+      URL.createObjectURL(
+        new Blob([decoder], { type: "application/javascript" })
+      )
+    );
+  }
+
+  async _sendToDecoder(command, mpegData) {
+    return new Promise((resolve) => {
+      this.postMessage({
+        command,
+        mpegData,
+      });
+
+      this.onmessage = (message) => {
+        if (message.data.command === command) resolve(message.data);
+      };
+    });
+  }
+
+  terminate() {
+    this.free().finally(() => {
+      super.terminate();
+    });
+  }
+
+  get ready() {
+    return this._sendToDecoder("ready");
+  }
+
+  async free() {
+    await this._sendToDecoder("free");
+  }
+
+  async reset() {
+    await this._sendToDecoder("reset");
+  }
+
+  async decode(data) {
+    return this._sendToDecoder("decode", data);
+  }
+
+  async decodeFrame(data) {
+    return this._sendToDecoder("decodeFrame", data);
+  }
+
+  async decodeFrames(data) {
+    return this._sendToDecoder("decodeFrames", data);
+  }
+}
+
+if ("undefined" !== typeof global && exports) {
+  module.exports.MPEGDecoder = MPEGDecoder;
+  module.exports.MPEGDecoderWebWorker = MPEGDecoderWebWorker;
 }
