@@ -2,6 +2,10 @@ const decoderReady = new Promise((resolve) => {
   ready = resolve;
 });
 
+/*******************************
+ *    MPEG Decoder Interface   *
+ ******************************/
+
 class MPEGDecodedAudio {
   constructor(channelData, samplesDecoded, sampleRate) {
     this.channelData = channelData;
@@ -10,10 +14,9 @@ class MPEGDecodedAudio {
   }
 }
 
-class MPEGDecoder {
+class MPEGDecoderWASM {
   constructor() {
-    this.ready.then(() => this._createDecoder());
-    this._sampleRate = 0;
+    this._init();
   }
 
   get ready() {
@@ -38,7 +41,10 @@ class MPEGDecoder {
     return [pointer, array];
   }
 
-  _createDecoder() {
+  async _init() {
+    await this.ready;
+
+    this._sampleRate = 0;
     this._decoder = _mpeg_frame_decoder_create();
 
     // max theoretical size of a MPEG frame (MPEG 2.5 Layer II, 8000 Hz @ 160 kbps, with a padding slot)
@@ -61,6 +67,11 @@ class MPEGDecoder {
     this._sampleRate = 0;
   }
 
+  async reset() {
+    this.free();
+    await this._init();
+  }
+
   decode(data) {
     let left = [],
       right = [],
@@ -81,8 +92,8 @@ class MPEGDecoder {
 
     return new MPEGDecodedAudio(
       [
-        MPEGDecoder.concatFloat32(left, samples),
-        MPEGDecoder.concatFloat32(right, samples),
+        MPEGDecoderWASM.concatFloat32(left, samples),
+        MPEGDecoderWASM.concatFloat32(right, samples),
       ],
       samples,
       this._sampleRate
@@ -128,8 +139,8 @@ class MPEGDecoder {
 
     return new MPEGDecodedAudio(
       [
-        MPEGDecoder.concatFloat32(left, samples),
-        MPEGDecoder.concatFloat32(right, samples),
+        MPEGDecoderWASM.concatFloat32(left, samples),
+        MPEGDecoderWASM.concatFloat32(right, samples),
       ],
       samples,
       this._sampleRate
@@ -143,14 +154,14 @@ class MPEGDecoder {
 
 if (typeof importScripts === "function") {
   // We're in a Web Worker
-  let decoder = new MPEGDecoder();
+  let decoder = new MPEGDecoderWASM();
 
   const detachBuffers = (buffer) =>
     Array.isArray(buffer)
       ? buffer.map((buffer) => new Uint8Array(buffer))
       : new Uint8Array(buffer);
 
-  self.onmessage = function (msg) {
+  self.onmessage = (msg) => {
     decoder.ready.then(() => {
       switch (msg.data.command) {
         case "ready":
@@ -166,7 +177,7 @@ if (typeof importScripts === "function") {
           break;
         case "reset":
           decoder.free();
-          decoder = new MPEGDecoder();
+          decoder = new MPEGDecoderWASM();
           self.postMessage({
             command: "reset",
           });
@@ -197,63 +208,4 @@ if (typeof importScripts === "function") {
       }
     });
   };
-}
-
-class MPEGDecoderWebWorker extends Worker {
-  constructor() {
-    const decoder = "(" + getMPEGDecoder.toString() + ")()";
-    super(
-      URL.createObjectURL(
-        new Blob([decoder], { type: "application/javascript" })
-      )
-    );
-  }
-
-  async _sendToDecoder(command, mpegData) {
-    return new Promise((resolve) => {
-      this.postMessage({
-        command,
-        mpegData,
-      });
-
-      this.onmessage = (message) => {
-        if (message.data.command === command) resolve(message.data);
-      };
-    });
-  }
-
-  terminate() {
-    this.free().finally(() => {
-      super.terminate();
-    });
-  }
-
-  get ready() {
-    return this._sendToDecoder("ready");
-  }
-
-  async free() {
-    await this._sendToDecoder("free");
-  }
-
-  async reset() {
-    await this._sendToDecoder("reset");
-  }
-
-  async decode(data) {
-    return this._sendToDecoder("decode", data);
-  }
-
-  async decodeFrame(data) {
-    return this._sendToDecoder("decodeFrame", data);
-  }
-
-  async decodeFrames(data) {
-    return this._sendToDecoder("decodeFrames", data);
-  }
-}
-
-if ("undefined" !== typeof global && exports) {
-  module.exports.MPEGDecoder = MPEGDecoder;
-  module.exports.MPEGDecoderWebWorker = MPEGDecoderWebWorker;
 }

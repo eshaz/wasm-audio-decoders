@@ -37,9 +37,20 @@ const endIdx =
 let end = `\`), new Uint8Array(${wasmBuffer.length}))`;
 end += opusDecoder.substring(endIdx);
 
+const banner =
+  "// This file is auto-generated using the build tools.\n" +
+  "// Any edits to this file will be overwritten\n\n";
+
 // Concatenate the strings as buffers to preserve extended ascii
-const finalString = Buffer.concat(
-  [tinyInflate, start, yencStringifiedWasm, end].map(Buffer.from)
+let finalString = Buffer.concat(
+  [
+    banner + "export default () => {\n",
+    tinyInflate,
+    start,
+    yencStringifiedWasm,
+    end,
+    "\nreturn MPEGDecoderWASM;\n};",
+  ].map(Buffer.from)
 );
 
 fs.writeFileSync(distPath, finalString, { encoding: "binary" });

@@ -1,5 +1,7 @@
-const getMPEGDecoder = () => {
+// This file is auto-generated using the build tools.
+// Any edits to this file will be overwritten
 
+export default () => {
 var TINF_OK = 0;
 var TINF_DATA_ERROR = -3;
 
@@ -667,10 +669,9 @@ class MPEGDecodedAudio {
  }
 }
 
-class MPEGDecoder {
+class MPEGDecoderWASM {
  constructor() {
-  this.ready.then(() => this._createDecoder());
-  this._sampleRate = 0;
+  this._init();
  }
  get ready() {
   return decoderReady;
@@ -689,7 +690,9 @@ class MPEGDecoder {
   const array = new Float32Array(HEAPF32.buffer, pointer, length);
   return [ pointer, array ];
  }
- _createDecoder() {
+ async _init() {
+  await this.ready;
+  this._sampleRate = 0;
   this._decoder = _mpeg_frame_decoder_create();
   this._framePtrSize = 2889;
   this._framePtr = _malloc(this._framePtrSize);
@@ -703,6 +706,10 @@ class MPEGDecoder {
   _free(this._rightPtr);
   this._sampleRate = 0;
  }
+ async reset() {
+  this.free();
+  await this._init();
+ }
  decode(data) {
   let left = [], right = [], samples = 0, offset = 0;
   while (offset < data.length) {
@@ -712,7 +719,7 @@ class MPEGDecoder {
    samples += samplesDecoded;
    offset += this._framePtrSize;
   }
-  return new MPEGDecodedAudio([ MPEGDecoder.concatFloat32(left, samples), MPEGDecoder.concatFloat32(right, samples) ], samples, this._sampleRate);
+  return new MPEGDecodedAudio([ MPEGDecoderWASM.concatFloat32(left, samples), MPEGDecoderWASM.concatFloat32(right, samples) ], samples, this._sampleRate);
  }
  decodeFrame(mpegFrame) {
   HEAPU8.set(mpegFrame, this._framePtr);
@@ -728,121 +735,55 @@ class MPEGDecoder {
    right.push(channelData[1]);
    samples += samplesDecoded;
   });
-  return new MPEGDecodedAudio([ MPEGDecoder.concatFloat32(left, samples), MPEGDecoder.concatFloat32(right, samples) ], samples, this._sampleRate);
+  return new MPEGDecodedAudio([ MPEGDecoderWASM.concatFloat32(left, samples), MPEGDecoderWASM.concatFloat32(right, samples) ], samples, this._sampleRate);
  }
 }
 
 if (typeof importScripts === "function") {
-  // We're in a Web Worker
-  let decoder = new MPEGDecoder();
-
-  const detachBuffers = (buffer) => 
-    Array.isArray(buffer) ? buffer.map((buffer) => new Uint8Array(buffer)) : new Uint8Array(buffer);
-  
-  self.onmessage = function (msg) {
-    decoder.ready.then(() => {
-      switch (msg.data.command) {
-        case "ready":
-          self.postMessage({
-            command: "ready",
-          });
-          break;
-        case "free":
-          decoder.free();
-          self.postMessage({
-            command: "free",
-          });
-          break;
-        case "reset":
-          decoder.free();
-          decoder = new MPEGDecoder();
-          self.postMessage({
-            command: "reset",
-          });
-          break;
-        case "decode":
-        case "decodeFrame":
-        case "decodeFrames":
-          const { channelData, samplesDecoded, sampleRate } = decoder[msg.data.command](detachBuffers(msg.data.mpegData))
-
-          self.postMessage(
-            {
-              command: msg.data.command,
-              channelData,
-              samplesDecoded,
-              sampleRate,
-            },
-            // The "transferList" parameter transfers ownership of channel data to main thread,
-            // which avoids copying memory.
-            channelData.map((channel) => channel.buffer)
-          );
-          break;
-        default:
-          this.console.error(
-            "Unknown command sent to worker: " + msg.data.command
-          );
-      }
+ let decoder = new MPEGDecoderWASM();
+ const detachBuffers = buffer => Array.isArray(buffer) ? buffer.map(buffer => new Uint8Array(buffer)) : new Uint8Array(buffer);
+ self.onmessage = (msg => {
+  decoder.ready.then(() => {
+   switch (msg.data.command) {
+   case "ready":
+    self.postMessage({
+     command: "ready"
     });
-  };
-}
+    break;
 
-return MPEGDecoder;
-}
-
-const MPEGDecoder = getMPEGDecoder();
-
-class MPEGDecoderWebWorker extends Worker {
-  constructor() {
-    const decoder = "(" + getMPEGDecoder.toString() + ")()";
-    super(URL.createObjectURL(new Blob([decoder], { type: "application/javascript" })));
-  }
-
-  async _sendToDecoder(command, mpegData) {
-    return new Promise((resolve) => {
-      this.postMessage({
-        command,
-        mpegData,
-      });
-
-      this.onmessage = (message) => {
-        if (message.data.command === command) resolve(message.data);
-      };
+   case "free":
+    decoder.free();
+    self.postMessage({
+     command: "free"
     });
-  }
+    break;
 
-  terminate() {
-    this.free().finally(() => {
-      super.terminate();
-    })
-  }
+   case "reset":
+    decoder.free();
+    decoder = new MPEGDecoderWASM();
+    self.postMessage({
+     command: "reset"
+    });
+    break;
 
-  get ready() {
-    return this._sendToDecoder("ready");
-  }
+   case "decode":
+   case "decodeFrame":
+   case "decodeFrames":
+    const {channelData: channelData, samplesDecoded: samplesDecoded, sampleRate: sampleRate} = decoder[msg.data.command](detachBuffers(msg.data.mpegData));
+    self.postMessage({
+     command: msg.data.command,
+     channelData: channelData,
+     samplesDecoded: samplesDecoded,
+     sampleRate: sampleRate
+    }, channelData.map(channel => channel.buffer));
+    break;
 
-  async free() {
-    await this._sendToDecoder("free");
-  }
-
-  async reset() {
-    await this._sendToDecoder("reset");
-  }
-
-  async decode(data) {
-    return this._sendToDecoder("decode", data);
-  }
-
-  async decodeFrame(data) {
-    return this._sendToDecoder("decodeFrame", data);
-  }
-
-  async decodeFrames(data) {
-    return this._sendToDecoder("decodeFrames", data);
-  }
+   default:
+    this.console.error("Unknown command sent to worker: " + msg.data.command);
+   }
+  });
+ });
 }
 
-
-if ("undefined" !== typeof global && exports) {
- module.exports.MPEGDecoder = MPEGDecoder;
- module.exports.MPEGDecoderWebWorker = MPEGDecoderWebWorker;
-}
+return MPEGDecoderWASM;
+};
