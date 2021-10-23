@@ -14,7 +14,7 @@ class MPEGDecodedAudio {
   }
 }
 
-class MPEGDecoderWASM {
+class WASMDecoder {
   constructor() {
     this._init();
   }
@@ -92,8 +92,8 @@ class MPEGDecoderWASM {
 
     return new MPEGDecodedAudio(
       [
-        MPEGDecoderWASM.concatFloat32(left, samples),
-        MPEGDecoderWASM.concatFloat32(right, samples),
+        WASMDecoder.concatFloat32(left, samples),
+        WASMDecoder.concatFloat32(right, samples),
       ],
       samples,
       this._sampleRate
@@ -139,8 +139,8 @@ class MPEGDecoderWASM {
 
     return new MPEGDecodedAudio(
       [
-        MPEGDecoderWASM.concatFloat32(left, samples),
-        MPEGDecoderWASM.concatFloat32(right, samples),
+        WASMDecoder.concatFloat32(left, samples),
+        WASMDecoder.concatFloat32(right, samples),
       ],
       samples,
       this._sampleRate
@@ -154,7 +154,7 @@ class MPEGDecoderWASM {
 
 if (typeof importScripts === "function") {
   // We're in a Web Worker
-  let decoder = new MPEGDecoderWASM();
+  let decoder = new WASMDecoder();
 
   const detachBuffers = (buffer) =>
     Array.isArray(buffer)
@@ -177,7 +177,7 @@ if (typeof importScripts === "function") {
           break;
         case "reset":
           decoder.free();
-          decoder = new MPEGDecoderWASM();
+          decoder = new WASMDecoder();
           self.postMessage({
             command: "reset",
           });

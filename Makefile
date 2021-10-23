@@ -32,13 +32,13 @@ opus-wasmlib-clean: dist-clean
 # mpg123
 MPG123_SRC=modules/mpg123
 MPG123_WASM_LIB=tmp/mpg123.bc
-MPG123_MODULE=src/mpg123-decoder/dist/mpg123-decoder.js
+MPG123_EMSCRIPTEN_BUILD=src/mpg123-decoder/src/emscripten-build.js
 MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
 
-mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_MODULE}
-mpg123-decoder-minify: $(MPG123_MODULE)
-	node build/compress.js ${MPG123_MODULE}
-	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${MPG123_MODULE} -o ${MPG123_MODULE_MIN}
+mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
+mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
+	node build/compress.js ${MPG123_EMSCRIPTEN_BUILD}
+	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${MPG123_EMSCRIPTEN_BUILD} -o ${MPG123_MODULE_MIN}
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
@@ -238,16 +238,16 @@ src/mpg123-decoder/src/mpeg_frame_decoder.c
 endef
 
 # $(MPG123_SRC)/src/libmpg123/.libs/libmpg123.so
-${MPG123_MODULE}: $(MPG123_WASM_LIB)
+${MPG123_EMSCRIPTEN_BUILD}: $(MPG123_WASM_LIB)
 	@ mkdir -p src/mpg123-decoder/dist
-	@ echo "Building Emscripten WebAssembly module $(MPG123_MODULE)..."
+	@ echo "Building Emscripten WebAssembly module $(MPG123_EMSCRIPTEN_BUILD)..."
 	@ emcc $(MPG123_WASM_LIB) \
-		-o "$(MPG123_MODULE)" \
+		-o "$(MPG123_EMSCRIPTEN_BUILD)" \
 		$(EMCC_OPTS) \
 		$(MPG123_EMCC_OPTS) 
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(MPG123_MODULE)"
+	@ echo "|  Successfully built JS Module: $(MPG123_EMSCRIPTEN_BUILD)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 

@@ -669,7 +669,7 @@ class MPEGDecodedAudio {
  }
 }
 
-class MPEGDecoderWASM {
+class WASMDecoder {
  constructor() {
   this._init();
  }
@@ -719,7 +719,7 @@ class MPEGDecoderWASM {
    samples += samplesDecoded;
    offset += this._framePtrSize;
   }
-  return new MPEGDecodedAudio([ MPEGDecoderWASM.concatFloat32(left, samples), MPEGDecoderWASM.concatFloat32(right, samples) ], samples, this._sampleRate);
+  return new MPEGDecodedAudio([ WASMDecoder.concatFloat32(left, samples), WASMDecoder.concatFloat32(right, samples) ], samples, this._sampleRate);
  }
  decodeFrame(mpegFrame) {
   HEAPU8.set(mpegFrame, this._framePtr);
@@ -735,12 +735,12 @@ class MPEGDecoderWASM {
    right.push(channelData[1]);
    samples += samplesDecoded;
   });
-  return new MPEGDecodedAudio([ MPEGDecoderWASM.concatFloat32(left, samples), MPEGDecoderWASM.concatFloat32(right, samples) ], samples, this._sampleRate);
+  return new MPEGDecodedAudio([ WASMDecoder.concatFloat32(left, samples), WASMDecoder.concatFloat32(right, samples) ], samples, this._sampleRate);
  }
 }
 
 if (typeof importScripts === "function") {
- let decoder = new MPEGDecoderWASM();
+ let decoder = new WASMDecoder();
  const detachBuffers = buffer => Array.isArray(buffer) ? buffer.map(buffer => new Uint8Array(buffer)) : new Uint8Array(buffer);
  self.onmessage = (msg => {
   decoder.ready.then(() => {
@@ -760,7 +760,7 @@ if (typeof importScripts === "function") {
 
    case "reset":
     decoder.free();
-    decoder = new MPEGDecoderWASM();
+    decoder = new WASMDecoder();
     self.postMessage({
      command: "reset"
     });
@@ -785,5 +785,5 @@ if (typeof importScripts === "function") {
  });
 }
 
-return MPEGDecoderWASM;
+return WASMDecoder;
 };

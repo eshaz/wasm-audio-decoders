@@ -1,4 +1,4 @@
-import getMPEGDecoderWASM from "./MPEGDecoderWASM.js";
+import getMPEGDecoderWASM from "./emscripten-build.js";
 
 let MPEGDecoderWASM;
 

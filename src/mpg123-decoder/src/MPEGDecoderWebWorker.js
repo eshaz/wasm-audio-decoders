@@ -1,16 +1,16 @@
-import getMPEGDecoderWASM from "./MPEGDecoderWASM.js";
+import getMPEGDecoderWASM from "./emscripten-build.js";
 
 export default class MPEGDecoderWebWorker extends Worker {
   constructor() {
     const decoder = "(" + getMPEGDecoderWASM.toString() + ")()";
     super(
       URL.createObjectURL(
-        new Blob([decoder], { type: "application/javascript" })
+        new Blob([decoder], { type: "text/javascript" })
       )
     );
   }
 
-  async _sendToDecoder(command, mpegData) {
+  async _postToDecoder(command, mpegData) {
     return new Promise((resolve) => {
       this.postMessage({
         command,
@@ -30,26 +30,26 @@ export default class MPEGDecoderWebWorker extends Worker {
   }
 
   get ready() {
-    return this._sendToDecoder("ready");
+    return this._postToDecoder("ready");
   }
 
   async free() {
-    await this._sendToDecoder("free");
+    await this._postToDecoder("free");
   }
 
   async reset() {
-    await this._sendToDecoder("reset");
+    await this._postToDecoder("reset");
   }
 
   async decode(data) {
-    return this._sendToDecoder("decode", data);
+    return this._postToDecoder("decode", data);
   }
 
   async decodeFrame(data) {
-    return this._sendToDecoder("decodeFrame", data);
+    return this._postToDecoder("decodeFrame", data);
   }
 
   async decodeFrames(data) {
-    return this._sendToDecoder("decodeFrames", data);
+    return this._postToDecoder("decodeFrames", data);
   }
 }

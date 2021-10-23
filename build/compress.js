@@ -49,7 +49,7 @@ let finalString = Buffer.concat(
     start,
     yencStringifiedWasm,
     end,
-    "\nreturn MPEGDecoderWASM;\n};",
+    "\nreturn WASMDecoder;\n};",
   ].map(Buffer.from)
 );
 
