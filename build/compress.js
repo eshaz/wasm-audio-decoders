@@ -5,7 +5,7 @@ const fflate = require("fflate");
 
 const distPath = process.argv[2];
 const tinyInflatePath = path.join(__dirname, "tiny-inflate.js");
-const opusDecoder = fs.readFileSync(distPath, { encoding: "ascii" });
+const decoder = fs.readFileSync(distPath, { encoding: "ascii" });
 const tinyInflate = fs.readFileSync(tinyInflatePath, { encoding: "ascii" });
 
 const wasmBase64ContentMatcher =
@@ -13,14 +13,14 @@ const wasmBase64ContentMatcher =
 const wasmBase64DeclarationMatcher = 'Module["wasm"] = base64Decode("';
 
 // code before the wasm
-const startIdx = opusDecoder.indexOf(wasmBase64DeclarationMatcher);
-let start = opusDecoder.substring(0, startIdx);
+const startIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
+let start = decoder.substring(0, startIdx);
 
 // add the yenc decode function and inline decoding
 start += 'Module["wasm"] = tinf_uncompress((' + yenc.decode.toString() + ")(`";
 
 // original wasm
-const wasmContent = opusDecoder.match(wasmBase64ContentMatcher).groups.wasm;
+const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
 // compressed buffer
 const wasmBuffer = Uint8Array.from(Buffer.from(wasmContent, "base64"));
 const wasmBufferCompressed = fflate.deflateSync(wasmBuffer, {
@@ -35,11 +35,14 @@ const yencStringifiedWasm = yenc.stringify(yencEncodedWasm);
 const endIdx =
   startIdx + wasmBase64DeclarationMatcher.length + wasmContent.length + 2;
 let end = `\`), new Uint8Array(${wasmBuffer.length}))`;
-end += opusDecoder.substring(endIdx);
+end += decoder.substring(endIdx);
 
 const banner =
-  "// This file is auto-generated using the build tools.\n" +
-  "// Any edits to this file will be overwritten\n\n";
+  "/* **************************************************\n" + 
+  " * This file is auto-generated during the build process.\n" +
+  " * Any edits to this file will be overwritten.\n" + 
+  " ****************************************************/" +
+  "\n\n";
 
 // Concatenate the strings as buffers to preserve extended ascii
 let finalString = Buffer.concat(

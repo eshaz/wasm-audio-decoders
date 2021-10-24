@@ -96,7 +96,7 @@ export default class MPEGDecoderWebWorker extends Worker {
   }
 
   terminate() {
-    this.free().finally(() => {
+    this._postToDecoder("free").finally(() => {
       super.terminate();
     });
   }
@@ -106,7 +106,7 @@ export default class MPEGDecoderWebWorker extends Worker {
   }
 
   async free() {
-    await this._postToDecoder("free");
+    await this.terminate();
   }
 
   async reset() {

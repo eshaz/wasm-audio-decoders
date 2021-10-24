@@ -94,7 +94,7 @@ export default class OpusDecoderWebWorker extends Worker {
   }
 
   terminate() {
-    this.free().finally(() => {
+    this._postToDecoder("free").finally(() => {
       super.terminate();
     });
   }
@@ -104,7 +104,7 @@ export default class OpusDecoderWebWorker extends Worker {
   }
 
   async free() {
-    await this._postToDecoder("free");
+    this.terminate();
   }
 
   async reset() {

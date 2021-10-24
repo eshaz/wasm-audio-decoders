@@ -1,5 +1,7 @@
-// This file is auto-generated using the build tools.
-// Any edits to this file will be overwritten
+/* **************************************************
+ * This file is auto-generated during the build process.
+ * Any edits to this file will be overwritten.
+ ****************************************************/
 
 export default class EmscriptenWASM {
 constructor() {
@@ -68,7 +70,7 @@ const tinf_build_bits_base = (bits, base, delta, first) => {
     base[i] = sum;
     sum += 1 << bits[i];
   }
-}
+};
 
 /* build the fixed huffman trees */
 const tinf_build_fixed_trees = (lt, dt) => {
@@ -92,7 +94,7 @@ const tinf_build_fixed_trees = (lt, dt) => {
   dt.t[5] = 32;
 
   for (i = 0; i < 32; ++i) dt.trans[i] = i;
-}
+};
 
 /* given an array of code lengths, build a tree */
 var offs = new uint16Array(16);
@@ -118,7 +120,7 @@ const tinf_build_tree = (t, lengths, off, num) => {
   for (i = 0; i < num; ++i) {
     if (lengths[off + i]) t.trans[offs[lengths[off + i]]++] = i;
   }
-}
+};
 
 /* ---------------------- *
  * -- decode functions -- *
@@ -138,7 +140,7 @@ const tinf_getbit = (d) => {
   d.t >>>= 1;
 
   return bit;
-}
+};
 
 /* read a num bit value from a stream and add base */
 const tinf_read_bits = (d, num, base) => {
@@ -153,7 +155,7 @@ const tinf_read_bits = (d, num, base) => {
   d.t >>>= num;
   d.bitcount -= num;
   return val + base;
-}
+};
 
 /* given a data stream and a tree, decode a symbol */
 const tinf_decode_symbol = (d, t) => {
@@ -181,7 +183,7 @@ const tinf_decode_symbol = (d, t) => {
   d.bitcount -= len;
 
   return t.trans[sum + cur];
-}
+};
 
 /* given a data stream, decode dynamic trees from it */
 const tinf_decode_trees = (d, lt, dt) => {
@@ -243,7 +245,7 @@ const tinf_decode_trees = (d, lt, dt) => {
   /* build dynamic trees */
   tinf_build_tree(lt, lengths, 0, hlit);
   tinf_build_tree(dt, lengths, hlit, hdist);
-}
+};
 
 /* ----------------------------- *
  * -- block inflate functions -- *
@@ -281,7 +283,7 @@ const tinf_inflate_block_data = (d, lt, dt) => {
       }
     }
   }
-}
+};
 
 /* inflate an uncompressed block of data */
 const tinf_inflate_uncompressed_block = (d) => {
@@ -314,7 +316,7 @@ const tinf_inflate_uncompressed_block = (d) => {
   d.bitcount = 0;
 
   return TINF_OK;
-}
+};
 
 /* inflate stream from source to dest */
 const tinf_uncompress = (source, dest) => {
@@ -356,7 +358,7 @@ const tinf_uncompress = (source, dest) => {
   }
 
   return d.dest;
-}
+};
 
 /* -------------------- *
  * -- initialization -- *

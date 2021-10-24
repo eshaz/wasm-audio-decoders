@@ -1,5 +1,7 @@
-// This file is auto-generated using the build tools.
-// Any edits to this file will be overwritten
+/* **************************************************
+ * This file is auto-generated during the build process.
+ * Any edits to this file will be overwritten.
+ ****************************************************/
 
 export default class EmscriptenWASM {
 constructor() {

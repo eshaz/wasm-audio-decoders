@@ -12,8 +12,10 @@
     }
   }
 
-  // This file is auto-generated using the build tools.
-  // Any edits to this file will be overwritten
+  /* **************************************************
+   * This file is auto-generated during the build process.
+   * Any edits to this file will be overwritten.
+   ****************************************************/
 
   class EmscriptenWASM {
   constructor() {
@@ -929,7 +931,7 @@
     }
 
     terminate() {
-      this.free().finally(() => {
+      this._postToDecoder("free").finally(() => {
         super.terminate();
       });
     }
@@ -939,7 +941,7 @@
     }
 
     async free() {
-      await this._postToDecoder("free");
+      await this.terminate();
     }
 
     async reset() {
