@@ -1,12 +1,12 @@
-import WASM from "./emscripten-build.js";
+import EmscriptenWASM from "./emscripten-wasm.js";
 import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
 import MPEGDecoder from "./MPEGDecoder.js";
 
 export default class MPEGDecoderWebWorker extends Worker {
-  static getWebworkerURL() {
+  constructor() {
     const webworkerSourceCode =
       "'use strict';" +
-      WASM.toString() +
+      EmscriptenWASM.toString() +
       MPEGDecodedAudio.toString() +
       MPEGDecoder.toString() +
       `(${(() => {
@@ -18,64 +18,68 @@ export default class MPEGDecoderWebWorker extends Worker {
             ? buffer.map((buffer) => new Uint8Array(buffer))
             : new Uint8Array(buffer);
 
-        self.onmessage = (msg) => {
-          decoder.ready.then(() => {
-            switch (msg.data.command) {
-              case "ready":
-                decoder.ready.then(() => {
-                  self.postMessage({
-                    command: "ready",
-                  });
-                });
-                break;
-              case "free":
-                decoder.free();
+        self.onmessage = ({ data }) => {
+          switch (data.command) {
+            case "ready":
+              decoder.ready.then(() => {
                 self.postMessage({
-                  command: "free",
+                  command: "ready",
                 });
-                break;
-              case "reset":
-                decoder.reset().then(() => {
-                  self.postMessage({
-                    command: "reset",
-                  });
+              });
+              break;
+            case "free":
+              decoder.free();
+              self.postMessage({
+                command: "free",
+              });
+              break;
+            case "reset":
+              decoder.reset().then(() => {
+                self.postMessage({
+                  command: "reset",
                 });
-                break;
-              case "decode":
-              case "decodeFrame":
-              case "decodeFrames":
-                const { channelData, samplesDecoded, sampleRate } = decoder[
-                  msg.data.command
-                ](detachBuffers(msg.data.mpegData));
+              });
+              break;
+            case "decode":
+            case "decodeFrame":
+            case "decodeFrames":
+              const { channelData, samplesDecoded, sampleRate } = decoder[
+                data.command
+              ](detachBuffers(data.mpegData));
 
-                self.postMessage(
-                  {
-                    command: msg.data.command,
-                    channelData,
-                    samplesDecoded,
-                    sampleRate,
-                  },
-                  // The "transferList" parameter transfers ownership of channel data to main thread,
-                  // which avoids copying memory.
-                  channelData.map((channel) => channel.buffer)
-                );
-                break;
-              default:
-                this.console.error(
-                  "Unknown command sent to worker: " + msg.data.command
-                );
-            }
-          });
+              self.postMessage(
+                {
+                  command: data.command,
+                  channelData,
+                  samplesDecoded,
+                  sampleRate,
+                },
+                // The "transferList" parameter transfers ownership of channel data to main thread,
+                // which avoids copying memory.
+                channelData.map((channel) => channel.buffer)
+              );
+              break;
+            default:
+              this.console.error(
+                "Unknown command sent to worker: " + data.command
+              );
+          }
         };
       }).toString()})()`;
 
-    return URL.createObjectURL(
-      new Blob([webworkerSourceCode], { type: "text/javascript" })
+    super(
+      URL.createObjectURL(
+        new Blob([webworkerSourceCode], { type: "text/javascript" })
+      )
     );
   }
 
-  constructor() {
-    super(MPEGDecoderWebWorker.getWebworkerURL());
+  static _getMPEGDecodedAudio(decodedData) {
+    return new MPEGDecodedAudio(
+      decodedData.channelData,
+      decodedData.samplesDecoded,
+      decodedData.sampleRate
+    );
   }
 
   async _postToDecoder(command, mpegData) {
@@ -110,14 +114,20 @@ export default class MPEGDecoderWebWorker extends Worker {
   }
 
   async decode(data) {
-    return this._postToDecoder("decode", data);
+    return this._postToDecoder("decode", data).then(
+      MPEGDecoderWebWorker._getMPEGDecodedAudio
+    );
   }
 
   async decodeFrame(data) {
-    return this._postToDecoder("decodeFrame", data);
+    return this._postToDecoder("decodeFrame", data).then(
+      MPEGDecoderWebWorker._getMPEGDecodedAudio
+    );
   }
 
   async decodeFrames(data) {
-    return this._postToDecoder("decodeFrames", data);
+    return this._postToDecoder("decodeFrames", data).then(
+      MPEGDecoderWebWorker._getMPEGDecodedAudio
+    );
   }
 }

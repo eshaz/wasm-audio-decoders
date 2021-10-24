@@ -1,7 +1,7 @@
 import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
-import WASM from "./emscripten-build.js";
+import EmscriptenWASM from "./emscripten-wasm.js";
 
-const wasm = new WASM();
+const wasm = new EmscriptenWASM();
 
 export default class MPEGDecoder {
   constructor() {
@@ -31,7 +31,7 @@ export default class MPEGDecoder {
       this._api = wasm;
     } catch {
       // if running as a Web Worker
-      if (!this._api) this._api = new WASM();
+      if (!this._api) this._api = new EmscriptenWASM();
     }
 
     await this._api.ready;

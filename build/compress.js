@@ -45,7 +45,7 @@ const banner =
 let finalString = Buffer.concat(
   [
     banner,
-    "export default class WASM {\n",
+    "export default class EmscriptenWASM {\n",
     "constructor() {\n",
     tinyInflate,
     start,

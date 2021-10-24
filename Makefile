@@ -32,7 +32,7 @@ opus-wasmlib-clean: dist-clean
 # mpg123
 MPG123_SRC=modules/mpg123
 MPG123_WASM_LIB=tmp/mpg123.bc
-MPG123_EMSCRIPTEN_BUILD=src/mpg123-decoder/src/emscripten-build.js
+MPG123_EMSCRIPTEN_BUILD=src/mpg123-decoder/src/emscripten-wasm.js
 MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
 
 mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
@@ -42,6 +42,7 @@ mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
+	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 
 # configures
 CONFIGURE_LIBOPUS=modules/opus/configure
