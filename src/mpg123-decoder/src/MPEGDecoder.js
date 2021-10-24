@@ -8,10 +8,6 @@ export default class MPEGDecoder {
     this._ready = new Promise((resolve) => this._init().then(resolve));
   }
 
-  get ready() {
-    return this._ready;
-  }
-
   static concatFloat32(buffers, length) {
     const ret = new Float32Array(length);
 
@@ -35,8 +31,7 @@ export default class MPEGDecoder {
       this._api = wasm;
     } catch {
       // if running as a Web Worker
-      if (!this._api)
-        this._api = new WASM();
+      if (!this._api) this._api = new WASM();
     }
 
     await this._api.ready;
@@ -54,6 +49,15 @@ export default class MPEGDecoder {
     [this._rightPtr, this._rightArr] = this._createOutputArray(4 * 1152);
   }
 
+  get ready() {
+    return this._ready;
+  }
+
+  async reset() {
+    this.free();
+    await this._init();
+  }
+
   free() {
     this._api._mpeg_frame_decoder_destroy(this._decoder);
 
@@ -62,11 +66,6 @@ export default class MPEGDecoder {
     this._api._free(this._rightPtr);
 
     this._sampleRate = 0;
-  }
-
-  async reset() {
-    this.free();
-    await this._init();
   }
 
   decode(data) {

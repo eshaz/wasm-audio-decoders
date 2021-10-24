@@ -5,15 +5,13 @@ import MPEGDecoder from "./MPEGDecoder.js";
 export default class MPEGDecoderWebWorker extends Worker {
   static getWebworkerURL() {
     const webworkerSourceCode =
+      "'use strict';" +
       WASM.toString() +
-      "\n" +
       MPEGDecodedAudio.toString() +
-      "\n" +
       MPEGDecoder.toString() +
-      "\n" +
       `(${(() => {
         // We're in a Web Worker
-        let decoder = new MPEGDecoder();
+        const decoder = new MPEGDecoder();
 
         const detachBuffers = (buffer) =>
           Array.isArray(buffer)
@@ -24,8 +22,10 @@ export default class MPEGDecoderWebWorker extends Worker {
           decoder.ready.then(() => {
             switch (msg.data.command) {
               case "ready":
-                self.postMessage({
-                  command: "ready",
+                decoder.ready.then(() => {
+                  self.postMessage({
+                    command: "ready",
+                  });
                 });
                 break;
               case "free":
@@ -35,10 +35,10 @@ export default class MPEGDecoderWebWorker extends Worker {
                 });
                 break;
               case "reset":
-                decoder.free();
-                decoder = new MPEGDecoder();
-                self.postMessage({
-                  command: "reset",
+                decoder.reset().then(() => {
+                  self.postMessage({
+                    command: "reset",
+                  });
                 });
                 break;
               case "decode":
