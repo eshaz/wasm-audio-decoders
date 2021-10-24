@@ -1,13 +1,74 @@
-import getMPEGDecoderWASM from "./emscripten-build.js";
+import MPEGDecoderWASM from "./emscripten-build.js";
 
 export default class MPEGDecoderWebWorker extends Worker {
-  constructor() {
-    const decoder = "(" + getMPEGDecoderWASM.toString() + ")()";
-    super(
-      URL.createObjectURL(
-        new Blob([decoder], { type: "text/javascript" })
-      )
+  static getWebworkerURL() {
+    const MPEGDecoder = `(${MPEGDecoderWASM.toString()})()`;
+
+    const webworkerSourceCode = `'use strict';(${((MPEGDecoder) => {
+      // We're in a Web Worker
+      let decoder = new MPEGDecoder();
+
+      const detachBuffers = (buffer) =>
+        Array.isArray(buffer)
+          ? buffer.map((buffer) => new Uint8Array(buffer))
+          : new Uint8Array(buffer);
+
+      self.onmessage = (msg) => {
+        decoder.ready.then(() => {
+          switch (msg.data.command) {
+            case "ready":
+              self.postMessage({
+                command: "ready",
+              });
+              break;
+            case "free":
+              decoder.free();
+              self.postMessage({
+                command: "free",
+              });
+              break;
+            case "reset":
+              decoder.free();
+              decoder = new MPEGDecoder();
+              self.postMessage({
+                command: "reset",
+              });
+              break;
+            case "decode":
+            case "decodeFrame":
+            case "decodeFrames":
+              const { channelData, samplesDecoded, sampleRate } = decoder[
+                msg.data.command
+              ](detachBuffers(msg.data.mpegData));
+
+              self.postMessage(
+                {
+                  command: msg.data.command,
+                  channelData,
+                  samplesDecoded,
+                  sampleRate,
+                },
+                // The "transferList" parameter transfers ownership of channel data to main thread,
+                // which avoids copying memory.
+                channelData.map((channel) => channel.buffer)
+              );
+              break;
+            default:
+              this.console.error(
+                "Unknown command sent to worker: " + msg.data.command
+              );
+          }
+        });
+      };
+    }).toString()})(${MPEGDecoder})`;
+
+    return URL.createObjectURL(
+      new Blob([webworkerSourceCode], { type: "text/javascript" })
     );
+  }
+
+  constructor() {
+    super(MPEGDecoderWebWorker.getWebworkerURL());
   }
 
   async _postToDecoder(command, mpegData) {
