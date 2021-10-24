@@ -44,12 +44,15 @@ const banner =
 // Concatenate the strings as buffers to preserve extended ascii
 let finalString = Buffer.concat(
   [
-    banner + "export default () => {\n",
+    banner,
+    "export default class WASM {\n",
+    "constructor() {\n",
     tinyInflate,
     start,
     yencStringifiedWasm,
     end,
-    "\nreturn WASMDecoder;\n};",
+    "}",
+    "}",
   ].map(Buffer.from)
 );
 
