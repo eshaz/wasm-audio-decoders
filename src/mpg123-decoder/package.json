@@ -2,9 +2,8 @@
   "name": "mpg123-decoder",
   "version": "0.0.3",
   "description": "Web Assembly streaming MPEG Layer I/II/III decoder",
-  "browser": "index.js",
-  "main": "index.js",
-  "type": "module",
+  "browser": "dist/mpg123-decoder.min.js",
+  "main": "dist/mpg123-decoder.min.js",
   "files": [
     "src/*",
     "dist/mpg123-decoder.min.js",

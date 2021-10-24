@@ -1,7 +1,7 @@
 import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
 import EmscriptenWASM from "./emscripten-wasm.js";
 
-const wasm = new EmscriptenWASM();
+let wasm;
 
 export default class MPEGDecoder {
   constructor() {
@@ -27,11 +27,23 @@ export default class MPEGDecoder {
   }
 
   async _init() {
-    try {
-      this._api = wasm;
-    } catch {
-      // if running as a Web Worker
-      if (!this._api) this._api = new EmscriptenWASM();
+    if (!this._api) {
+      let isMainThread;
+
+      try {
+        if (wasm || !wasm) isMainThread = true;
+      } catch {
+        isMainThread = false;
+      }
+
+      if (isMainThread) {
+        // use a global scope singleton so wasm compilation happens once only if class is instantiated
+        if (!wasm) wasm = new EmscriptenWASM();
+        this._api = wasm;
+      } else {
+        // running as a webworker, use class level singleton for wasm compilation
+        this._api = new EmscriptenWASM();
+      }
     }
 
     await this._api.ready;

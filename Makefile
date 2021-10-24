@@ -33,12 +33,14 @@ opus-wasmlib-clean: dist-clean
 MPG123_SRC=modules/mpg123
 MPG123_WASM_LIB=tmp/mpg123.bc
 MPG123_EMSCRIPTEN_BUILD=src/mpg123-decoder/src/emscripten-wasm.js
+MPG123_MODULE=src/mpg123-decoder/dist/mpg123-decoder.js
 MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
 
 mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
 mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
-	node build/compress.js ${MPG123_EMSCRIPTEN_BUILD}
-	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${MPG123_EMSCRIPTEN_BUILD} -o ${MPG123_MODULE_MIN}
+	node build/compress.js $(MPG123_EMSCRIPTEN_BUILD)
+	node_modules/.bin/rollup src/mpg123-decoder/index.js --file $(MPG123_MODULE) --format umd --name "mpg123-decoder"
+	node_modules/.bin/terser --config-file src/mpg123-decoder/terser.json $(MPG123_MODULE) -o $(MPG123_MODULE_MIN)
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
