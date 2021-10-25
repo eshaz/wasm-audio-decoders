@@ -9,16 +9,25 @@ Install via [NPM](https://www.npmjs.com/package/mpg123-decoder).
 
 ## Usage
 
-1. Create a new instance and wait for the WASM to finish compiling. 
+1. Create a new instance and wait for the WASM to finish compiling. Decoding can be done on the main thread synchronously, or in a webworker asynchronously.
+   1. Main thread synchronous decoding:
+      ```javascript
+      import { MPEGDecoder } from 'mpg123-decoder';
 
-   ```javascript
-   import {MPEGDecoder} from 'mpg123-decoder';
-   
-   const decoder = new MPEGDecoder();
-   
-   // wait for the WASM to be compiled
-   await decoder.ready;
-   ```
+      const decoder = new MPEGDecoder();
+
+      // wait for the WASM to be compiled
+      await decoder.ready;
+      ```
+   1. Web Worker asynchronous decoding:
+      ```javascript
+      import { MPEGDecoderWebWorker } from 'mpg123-decoder';
+
+      const decoder = new MPEGDecoderWebWorker();
+
+      // wait for the WASM to be compiled
+      await decoder.ready;
+      ```
 
 1. Begin decoding MPEG data.
 
@@ -33,56 +42,42 @@ Install via [NPM](https://www.npmjs.com/package/mpg123-decoder).
    const {channelData, samplesDecoded, sampleRate} = decoder.decodeFrames(mpegFrameArray);
    ```
 
-1. When done decoding, free up the memory being used by the WASM module. You will need to create a new instance to start decoding again.
+1. When done decoding, reset the decoder to decode a new stream, or free up the memory being used by the WASM module if you have no more audio to decode. 
 
    ```javascript
+   // `reset()` clears the decoder state and allows you do decode a new stream of Opus frames.
+   decoder.reset();
+
+   // `free()` de-allocates the memory used by the decoder. You will need to create a new instance after calling `free()` to start decoding again.
    decoder.free();
    ```
 
-## Async Decoding with Workers
-
-This module can be loaded as a web worker, which will do the decoding in a separate, non-blocking thread. The `audioId` parameter is optional; if you provide a audioId (any arbitrary string or number) can be passed to the decoder and returned with the decoded audio, allowing you to run multiple workers for multi-threaded decoding of multiple files.
-
-```javascript
-const worker = new Worker('/path/to/mpg123-decoder.min.js');
-
-worker.addEventListener('message', (msg) => {
-  const { channelData, samplesDecoded, sampleRate, audioId } = msg.data;
-  const audioBuffer = new AudioBuffer({
-    numberOfChannels: channelData.length,
-    length: samplesDecoded,
-    sampleRate,
-  });
-  // do something with the AudioBuffer
-});
-
-worker.postMessage({
-  command: 'decode',
-  compressedData: mpegDataArrayBuffer,
-  audioId: "example_sound" 
-}, [mpegData]);
-```
-
 ## API
 
+Decoded audio is always returned in the below structure.
+
+```javascript
+{
+    channelData: [
+      leftAudio, // Float32Array of PCM samples for the left channel
+      rightAudio // Float32Array of PCM samples for the right channel
+    ],
+    samplesDecoded: 1234, // number of PCM samples that were decoded
+    sampleRate: 44100 // sample rate of the decoded PCM
+}
+```
+
+Each Float32Array within `channelData` can be used directly in the WebAudio API for playback.
+
+## `MPEGDecoder`
+
+Class that decodes MPEG data or frames synchronously on the main thread.
+
 ### Getters
-* `decoder.ready`
+* `decoder.ready` *async*
   * Returns a promise that is resolved when the WASM is compiled and ready to use.
 
 ### Methods
-
-Each method returns an object containing the decoded audio, number of samples decoded, and sample rate of the decoded audio.
-
-The `channelData` contains the raw decoded PCM for each channel (left, and right). Each Float32Array can be used directly in the WebAudio api. 
-
-```javascript
-// decoded audio return value
-{
-    channelData: [leftAudio, rightAudio],
-    samplesDecoded: 1234,
-    sampleRate: 44100
-}
-```
 
 * `decoder.decode(mpegData)`
   * `mpegData` Uint8Array of MPEG audio data.
@@ -90,26 +85,30 @@ The `channelData` contains the raw decoded PCM for each channel (left, and right
   * `mpegFrame` Uint8Array containing a single MPEG frame.
 * `decoder.decodeFrames(mpegFrames)`
   * `mpegFrames` Array of Uint8Arrays containing MPEG frames.
+* `decoder.reset()` *async*
+  * Resets the decoder so that a new stream of MPEG data can be decoded.
+* `decoder.free()`
+  * De-allocates the memory used by the decoder.
+  * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional MPEG data.
 
-### Web Worker API
+## `MPEGDecoderWebWorker`
 
-When loaded as a Worker, there is a single command you can post to it using postMessage:
+Class that decodes Opus frames asynchronously within a WebWorker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
 
-* `worker.postMessage({ command, compressedData, audioId })`
-  * `command` Must equal `"decode"`.
-  * `compressedData` ArrayBuffer of MPEG audio data.
-  * `audioId` Optional string or number that will be returned with decompressed audio.
-  
-Once decoding is complete, the main thread will receive a `message` event whose sole argument has a `data` parameter with the decoding results:
+### Getters
+* `decoder.ready` *async*
+  * Returns a promise that is resolved when the WASM is compiled and ready to use.
 
-```javascript
-worker.addEventListener('message', (msg) => {
-  console.log(msg.data);
-  // {
-  //   channelData: [leftAudio, rightAudio],
-  //   samplesDecoded: 1234,
-  //   sampleRate: 44100,
-  //   audioId: "whatever was passed in worker.postMessage`
-  // }
-});
-```
+### Methods
+
+* `decoder.decode(mpegData)` *async*
+  * `mpegData` Uint8Array of MPEG audio data.
+* `decoder.decodeFrame(mpegFrame)` *async*
+  * `mpegFrame` Uint8Array containing a single MPEG frame.
+* `decoder.decodeFrames(mpegFrames)` *async*
+  * `mpegFrames` Array of Uint8Arrays containing MPEG frames.
+* `decoder.reset()` *async*
+  * Resets the decoder so that a new stream of MPEG data can be decoded.
+* `decoder.free()`
+  * De-allocates the memory used by the decoder and terminates the WebWorker.
+  * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional MPEG data.

@@ -38,9 +38,9 @@ let end = `\`), new Uint8Array(${wasmBuffer.length}))`;
 end += decoder.substring(endIdx);
 
 const banner =
-  "/* **************************************************\n" + 
+  "/* **************************************************\n" +
   " * This file is auto-generated during the build process.\n" +
-  " * Any edits to this file will be overwritten.\n" + 
+  " * Any edits to this file will be overwritten.\n" +
   " ****************************************************/" +
   "\n\n";
 
