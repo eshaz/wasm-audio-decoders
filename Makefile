@@ -19,7 +19,8 @@ OGG_OPUS_DECODER_MODULE_MIN=src/ogg-opus-decoder/dist/ogg-opus-decoder.min.js
 ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	node build/compress.js ${OGG_OPUS_DECODER_EMSCRIPTEN_BUILD}
-	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_EMSCRIPTEN_BUILD} -o ${OGG_OPUS_DECODER_MODULE_MIN}
+	node_modules/.bin/rollup src/ogg-opus-decoder/index.js --file $(OGG_OPUS_DECODER_MODULE) --format umd --name "ogg-opus-decoder"
+	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
 
 # opus-decoder
 OPUS_DECODER_EMSCRIPTEN_BUILD=src/opus-decoder/src/emscripten-wasm.js
