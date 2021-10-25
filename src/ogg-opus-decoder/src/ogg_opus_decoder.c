@@ -93,17 +93,22 @@ int ogg_opus_decoder_enqueue(OggOpusDecoder *decoder, unsigned char *data, size_
   return 1;
 }
 
-// returns total samples decoded
-int ogg_opus_decode_float_stereo(OggOpusDecoder *decoder, float *pcm_out, int pcm_out_size) {
+int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *decoder, float *left, float *right) {
   if (!decoder->of) return 0;
-  return op_read_float_stereo(decoder->of, pcm_out, pcm_out_size);
+
+  int samples_decoded = op_read_float_stereo(decoder->of, decoder->pcm, 120*48*2);
+
+  for (int i=samples_decoded-1; i>=0; i--) {
+    left[i] =  decoder->pcm[i*2];
+    right[i] = decoder->pcm[i*2+1];
+  }
+
+  return samples_decoded;
 }
 
-// returns total samples decoded.  convenience function for de-interlacing
-int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *decoder, float *pcm_out, int pcm_out_size, float *left, float *right) {
-  int samples_decoded = ogg_opus_decode_float_stereo(decoder, pcm_out, pcm_out_size);
-  ogg_opus_decoder_deinterleave(pcm_out, samples_decoded, left, right);
-  return samples_decoded;
+void ogg_opus_decoder_free(OggOpusDecoder *decoder) {
+  op_free(decoder->of);
+  free(decoder);
 }
 
 static ByteBuffer create_bytebuffer() {
@@ -126,16 +131,4 @@ OggOpusDecoder *ogg_opus_decoder_create() {
   OggOpusDecoder *ptr = malloc(sizeof(decoder));
   *ptr = decoder;
   return ptr;
-}
-
-void ogg_opus_decoder_free(OggOpusDecoder *decoder) {
-  op_free(decoder->of);
-  free(decoder);
-}
-
-void ogg_opus_decoder_deinterleave(float *interleaved, int total_samples, float *left, float *right) {
-  for (int i=total_samples-1; i>=0; i--) {
-    left[i] =  interleaved[i*2];
-    right[i] = interleaved[i*2+1];
-  }
 }

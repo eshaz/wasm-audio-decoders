@@ -6,7 +6,7 @@ let wasm;
 export default class OggOpusDecoder {
   constructor() {
     // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
-    this._outSize = 120 * 48 * 2; // 120ms @ 48 khz * 2 channels.
+    this._outSize = 120 * 48; // 120ms @ 48 khz.
 
     //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
     this._sendMax = 64 * 1024;
@@ -66,9 +66,8 @@ export default class OggOpusDecoder {
     this._srcPointer = this._api._malloc(this._sendMax);
 
     // All decoded PCM data will go into these arrays.
-    [this._outPtr, this._outArr] = this._getOutputArray(this._outSize);
-    [this._leftPtr, this._leftArr] = this._getOutputArray(this._outSize / 2);
-    [this._rightPtr, this._rightArr] = this._getOutputArray(this._outSize / 2);
+    [this._leftPtr, this._leftArr] = this._getOutputArray(this._outSize);
+    [this._rightPtr, this._rightArr] = this._getOutputArray(this._outSize);
   }
 
   get ready() {
@@ -84,7 +83,6 @@ export default class OggOpusDecoder {
     this._api._ogg_opus_decoder_free(this._decoder);
 
     this._api._free(this._srcPointer);
-    this._api._free(this._outPtr);
     this._api._free(this._leftPtr);
     this._api._free(this._rightPtr);
   }
@@ -129,8 +127,6 @@ export default class OggOpusDecoder {
       while (
         (samplesDecoded = this._api._ogg_opus_decode_float_stereo_deinterleaved(
           this._decoder,
-          this._outPtr, // interleaved audio
-          this._outSize,
           this._leftPtr, // left channel
           this._rightPtr // right channel
         )) > 0
