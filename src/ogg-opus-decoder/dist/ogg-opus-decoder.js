@@ -531,7 +531,7 @@
       this._outSize = 120 * 48; // 120ms @ 48 khz.
 
       //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
-      this._sendMax = 64 * 1024;
+      this._inputArrSize = 64 * 1024;
 
       this._ready = new Promise((resolve) => this._init().then(resolve));
     }
@@ -550,10 +550,6 @@
 
     // creates Float32Array on Wasm heap and returns it and its pointer
     // returns [pointer, array]
-    // free(pointer) must be done after using it.
-    // array values cannot be guaranteed since memory space may be reused
-    // call array.fill(0) if instantiation is required
-    // set as read-only
     _getOutputArray(length) {
       const pointer = this._api._malloc(Float32Array.BYTES_PER_ELEMENT * length);
       const array = new Float32Array(this._api.HEAPF32.buffer, pointer, length);
@@ -584,10 +580,9 @@
 
       this._decoder = this._api._ogg_opus_decoder_create();
 
-      // put uint8array 64k sends on Wasm HEAP and get pointer to it
-      this._srcPointer = this._api._malloc(this._sendMax);
+      this._inputPtr = this._api._malloc(this._inputArrSize);
 
-      // All decoded PCM data will go into these arrays.
+      // output data
       [this._leftPtr, this._leftArr] = this._getOutputArray(this._outSize);
       [this._rightPtr, this._rightArr] = this._getOutputArray(this._outSize);
     }
@@ -604,7 +599,7 @@
     free() {
       this._api._ogg_opus_decoder_free(this._decoder);
 
-      this._api._free(this._srcPointer);
+      this._api._free(this._inputPtr);
       this._api._free(this._leftPtr);
       this._api._free(this._rightPtr);
     }
@@ -615,7 +610,9 @@
     */
     decode(data) {
       if (!(data instanceof Uint8Array))
-        throw Error("Data to decode must be Uint8Array");
+        throw Error(
+          `Data to decode must be Uint8Array. Instead got ${typeof data}`
+        );
 
       let decodedLeft = [],
         decodedRight = [],
@@ -625,18 +622,18 @@
       while (offset < data.length) {
         const dataToSend = data.subarray(
           offset,
-          offset + Math.min(this._sendMax, data.length - offset)
+          offset + Math.min(this._inputArrSize, data.length - offset)
         );
 
-        this._api.HEAPU8.set(dataToSend, this._srcPointer);
-
         offset += dataToSend.length;
+
+        this._api.HEAPU8.set(dataToSend, this._inputPtr);
 
         // enqueue bytes to decode. Fail on error
         if (
           !this._api._ogg_opus_decoder_enqueue(
             this._decoder,
-            this._srcPointer,
+            this._inputPtr,
             dataToSend.length
           )
         )
@@ -694,7 +691,114 @@
     }
   }
 
+  class OpusDecoderWebWorker extends Worker {
+    constructor() {
+      const webworkerSourceCode =
+        "'use strict';" +
+        EmscriptenWASM.toString() +
+        OpusDecodedAudio.toString() +
+        OggOpusDecoder.toString() +
+        `(${(() => {
+        // We're in a Web Worker
+        const decoder = new OggOpusDecoder();
+
+        self.onmessage = ({ data }) => {
+          switch (data.command) {
+            case "ready":
+              decoder.ready.then(() => {
+                self.postMessage({
+                  command: "ready",
+                });
+              });
+              break;
+            case "free":
+              decoder.free();
+              self.postMessage({
+                command: "free",
+              });
+              break;
+            case "reset":
+              decoder.reset().then(() => {
+                self.postMessage({
+                  command: "reset",
+                });
+              });
+              break;
+            case "decode":
+              const { channelData, samplesDecoded, sampleRate } =
+                decoder.decode(new Uint8Array(data.oggOpusData));
+
+              self.postMessage(
+                {
+                  command: "decode",
+                  channelData,
+                  samplesDecoded,
+                  sampleRate,
+                },
+                // The "transferList" parameter transfers ownership of channel data to main thread,
+                // which avoids copying memory.
+                channelData.map((channel) => channel.buffer)
+              );
+              break;
+            default:
+              this.console.error(
+                "Unknown command sent to worker: " + data.command
+              );
+          }
+        };
+      }).toString()})()`;
+
+      super(
+        URL.createObjectURL(
+          new Blob([webworkerSourceCode], { type: "text/javascript" })
+        )
+      );
+    }
+
+    async _postToDecoder(command, oggOpusData) {
+      return new Promise((resolve) => {
+        this.postMessage({
+          command,
+          oggOpusData,
+        });
+
+        this.onmessage = (message) => {
+          if (message.data.command === command) resolve(message.data);
+        };
+      });
+    }
+
+    terminate() {
+      this._postToDecoder("free").finally(() => {
+        super.terminate();
+      });
+    }
+
+    get ready() {
+      return this._postToDecoder("ready");
+    }
+
+    async free() {
+      this.terminate();
+    }
+
+    async reset() {
+      await this._postToDecoder("reset");
+    }
+
+    async decode(data) {
+      return this._postToDecoder("decode", data).then(
+        (decodedData) =>
+          new OpusDecodedAudio(
+            decodedData.channelData,
+            decodedData.samplesDecoded
+          )
+      );
+    }
+  }
+
   exports.OggOpusDecoder = OggOpusDecoder;
+  exports.OggOpusDecoderWebWorker = OpusDecoderWebWorker;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 

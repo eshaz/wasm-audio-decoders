@@ -19,11 +19,10 @@
         "OggOpusDecoder",
         "OggOpusDecoderWebWorker",
         "instance",
-        "onDecode",
-        "onDecodeAll",
         "free",
         "ready",
         "reset",
+        "decode",
         "channelData",
         "samplesDecoded"
       ]

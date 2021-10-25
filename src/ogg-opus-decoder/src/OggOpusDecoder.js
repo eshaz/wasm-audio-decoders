@@ -9,7 +9,7 @@ export default class OggOpusDecoder {
     this._outSize = 120 * 48; // 120ms @ 48 khz.
 
     //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
-    this._sendMax = 64 * 1024;
+    this._inputArrSize = 64 * 1024;
 
     this._ready = new Promise((resolve) => this._init().then(resolve));
   }
@@ -28,10 +28,6 @@ export default class OggOpusDecoder {
 
   // creates Float32Array on Wasm heap and returns it and its pointer
   // returns [pointer, array]
-  // free(pointer) must be done after using it.
-  // array values cannot be guaranteed since memory space may be reused
-  // call array.fill(0) if instantiation is required
-  // set as read-only
   _getOutputArray(length) {
     const pointer = this._api._malloc(Float32Array.BYTES_PER_ELEMENT * length);
     const array = new Float32Array(this._api.HEAPF32.buffer, pointer, length);
@@ -62,10 +58,9 @@ export default class OggOpusDecoder {
 
     this._decoder = this._api._ogg_opus_decoder_create();
 
-    // put uint8array 64k sends on Wasm HEAP and get pointer to it
-    this._srcPointer = this._api._malloc(this._sendMax);
+    this._inputPtr = this._api._malloc(this._inputArrSize);
 
-    // All decoded PCM data will go into these arrays.
+    // output data
     [this._leftPtr, this._leftArr] = this._getOutputArray(this._outSize);
     [this._rightPtr, this._rightArr] = this._getOutputArray(this._outSize);
   }
@@ -82,7 +77,7 @@ export default class OggOpusDecoder {
   free() {
     this._api._ogg_opus_decoder_free(this._decoder);
 
-    this._api._free(this._srcPointer);
+    this._api._free(this._inputPtr);
     this._api._free(this._leftPtr);
     this._api._free(this._rightPtr);
   }
@@ -93,7 +88,9 @@ export default class OggOpusDecoder {
   */
   decode(data) {
     if (!(data instanceof Uint8Array))
-      throw Error("Data to decode must be Uint8Array");
+      throw Error(
+        `Data to decode must be Uint8Array. Instead got ${typeof data}`
+      );
 
     let decodedLeft = [],
       decodedRight = [],
@@ -103,18 +100,18 @@ export default class OggOpusDecoder {
     while (offset < data.length) {
       const dataToSend = data.subarray(
         offset,
-        offset + Math.min(this._sendMax, data.length - offset)
+        offset + Math.min(this._inputArrSize, data.length - offset)
       );
 
-      this._api.HEAPU8.set(dataToSend, this._srcPointer);
-
       offset += dataToSend.length;
+
+      this._api.HEAPU8.set(dataToSend, this._inputPtr);
 
       // enqueue bytes to decode. Fail on error
       if (
         !this._api._ogg_opus_decoder_enqueue(
           this._decoder,
-          this._srcPointer,
+          this._inputPtr,
           dataToSend.length
         )
       )
