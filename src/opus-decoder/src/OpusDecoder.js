@@ -75,6 +75,11 @@ export default class OpusDecoder {
   }
 
   decodeFrame(opusFrame) {
+    if (!(opusFrame instanceof Uint8Array))
+      throw Error(
+        `Data to decode must be Uint8Array. Instead got ${typeof opusFrame}`
+      );
+
     this._api.HEAPU8.set(opusFrame, this._dataPtr);
 
     const samplesDecoded = this._api._opus_frame_decode_float_deinterleaved(

@@ -762,6 +762,11 @@
     }
 
     decode(data) {
+      if (!(data instanceof Uint8Array))
+        throw Error(
+          `Data to decode must be Uint8Array. Instead got ${typeof data}`
+        );
+
       let left = [],
         right = [],
         samples = 0,
@@ -790,6 +795,11 @@
     }
 
     decodeFrame(mpegFrame) {
+      if (!(mpegFrame instanceof Uint8Array))
+        throw Error(
+          `Data to decode must be Uint8Array. Instead got ${typeof mpegFrame}`
+        );
+
       this._api.HEAPU8.set(mpegFrame, this._framePtr);
 
       const samplesDecoded = this._api._mpeg_decode_float_deinterleaved(
