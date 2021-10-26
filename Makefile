@@ -7,38 +7,50 @@ dist-clean:
 	rm -rf src/opus-decoder/dist/*
 	rm -rf src/ogg-opus-decoder/dist/*
 	rm -rf src/mpg123-decoder/dist/*
+	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
+	rm -rf $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
+	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 
-# opus
-OPUS_WASM_LIB=tmp/opus.bc
+# ogg-opus-decoder
+OGG_OPUS_DECODER_EMSCRIPTEN_BUILD=src/ogg-opus-decoder/src/emscripten-wasm.js
 OGG_OPUS_DECODER_MODULE=src/ogg-opus-decoder/dist/ogg-opus-decoder.js
 OGG_OPUS_DECODER_MODULE_MIN=src/ogg-opus-decoder/dist/ogg-opus-decoder.min.js
-OGG_OPUS_DECODER_MODULE_ESM=src/ogg-opus-decoder/dist/ogg-opus-decoder.mjs
+
+ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
+ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
+	node build/compress.js ${OGG_OPUS_DECODER_EMSCRIPTEN_BUILD}
+	node_modules/.bin/rollup src/ogg-opus-decoder/index.js --file $(OGG_OPUS_DECODER_MODULE) --format umd --name "ogg-opus-decoder"
+	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
+
+# opus-decoder
+OPUS_DECODER_EMSCRIPTEN_BUILD=src/opus-decoder/src/emscripten-wasm.js
 OPUS_DECODER_MODULE=src/opus-decoder/dist/opus-decoder.js
 OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
-OPUS_DECODER_MODULE_ESM=src/opus-decoder/dist/opus-decoder.mjs
 
-ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_MODULE) $(OGG_OPUS_DECODER_MODULE_ESM)
-ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_MODULE)
-	node build/compress.js ${OGG_OPUS_DECODER_MODULE}
-	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
-opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_ESM)
-opus-decoder-minify: $(OPUS_DECODER_MODULE)
-	node build/compress.js ${OPUS_DECODER_MODULE}
-	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${OPUS_DECODER_MODULE} -o ${OPUS_DECODER_MODULE_MIN}
+opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_EMSCRIPTEN_BUILD)
+opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
+	node build/compress.js $(OPUS_DECODER_EMSCRIPTEN_BUILD)
+	node_modules/.bin/rollup src/opus-decoder/index.js --file $(OPUS_DECODER_MODULE) --format umd --name "opus-decoder"
+	node_modules/.bin/terser --config-file src/opus-decoder/terser.json $(OPUS_DECODER_MODULE) -o $(OPUS_DECODER_MODULE_MIN)
+
+# libopus
+OPUS_WASM_LIB=tmp/opus.bc
 opus-wasmlib: configures $(OPUS_WASM_LIB)
 opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
 
-# mpg123
+# mpg123-decoder
 MPG123_SRC=modules/mpg123
 MPG123_WASM_LIB=tmp/mpg123.bc
+MPG123_EMSCRIPTEN_BUILD=src/mpg123-decoder/src/emscripten-wasm.js
 MPG123_MODULE=src/mpg123-decoder/dist/mpg123-decoder.js
 MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
 
-mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_MODULE}
-mpg123-decoder-minify: $(MPG123_MODULE)
-	node build/compress.js ${MPG123_MODULE}
-	node_modules/.bin/terser --config-file src/opus-decoder/terser.json ${MPG123_MODULE} -o ${MPG123_MODULE_MIN}
+mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
+mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
+	node build/compress.js $(MPG123_EMSCRIPTEN_BUILD)
+	node_modules/.bin/rollup src/mpg123-decoder/index.js --file $(MPG123_MODULE) --format umd --name "mpg123-decoder"
+	node_modules/.bin/terser --config-file src/mpg123-decoder/terser.json $(MPG123_MODULE) -o $(MPG123_MODULE_MIN)
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
@@ -87,21 +99,21 @@ define OPUS_DECODER_EMCC_OPTS
 src/opus-decoder/src/opus_frame_decoder.c
 endef
 
-$(OPUS_DECODER_MODULE): $(OPUS_WASM_LIB)
+$(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ mkdir -p src/opus-decoder/dist
-	@ echo "Building Emscripten WebAssembly module $(OPUS_DECODER_MODULE)..."
+	@ echo "Building Emscripten WebAssembly module $(OPUS_DECODER_EMSCRIPTEN_BUILD)..."
 	@ emcc \
-		-o "$(OPUS_DECODER_MODULE)" \
+		-o "$(OPUS_DECODER_EMSCRIPTEN_BUILD)" \
 	  ${EMCC_OPTS} \
 	  $(OPUS_DECODER_EMCC_OPTS) \
 	  $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(OPUS_DECODER_MODULE)"
+	@ echo "|  Successfully built JS Module: $(OPUS_DECODER_EMSCRIPTEN_BUILD)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_DECODER_MODULE_ESM): $(OPUS_DECODER_MODULE)
+$(OPUS_DECODER_MODULE_ESM): $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	@ echo "Building Emscripten WebAssembly ES Module $(OPUS_DECODER_MODULE_ESM)..."
 	@ emcc \
 		-o "$(OPUS_DECODER_MODULE_ESM)" \
@@ -136,21 +148,21 @@ define OGG_OPUS_DECODER_EMCC_OPTS
 src/ogg-opus-decoder/src/ogg_opus_decoder.c
 endef
 
-$(OGG_OPUS_DECODER_MODULE): $(OPUS_WASM_LIB)
+$(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ mkdir -p src/ogg-opus-decoder/dist
-	@ echo "Building Emscripten WebAssembly module $(OGG_OPUS_DECODER_MODULE)..."
+	@ echo "Building Emscripten WebAssembly module $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)..."
 	@ emcc \
-		-o "$(OGG_OPUS_DECODER_MODULE)" \
+		-o "$(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)" \
 	  ${EMCC_OPTS} \
 	  $(OGG_OPUS_DECODER_EMCC_OPTS) \
 	  $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(OGG_OPUS_DECODER_MODULE)"
+	@ echo "|  Successfully built JS Module: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OGG_OPUS_DECODER_MODULE_ESM): $(OGG_OPUS_DECODER_MODULE)
+$(OGG_OPUS_DECODER_MODULE_ESM): $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	@ echo "Building Emscripten WebAssembly ES Module $(OGG_OPUS_DECODER_MODULE_ESM)..."
 	@ emcc \
 		-o "$(OGG_OPUS_DECODER_MODULE_ESM)" \
@@ -238,16 +250,16 @@ src/mpg123-decoder/src/mpeg_frame_decoder.c
 endef
 
 # $(MPG123_SRC)/src/libmpg123/.libs/libmpg123.so
-${MPG123_MODULE}: $(MPG123_WASM_LIB)
+${MPG123_EMSCRIPTEN_BUILD}: $(MPG123_WASM_LIB)
 	@ mkdir -p src/mpg123-decoder/dist
-	@ echo "Building Emscripten WebAssembly module $(MPG123_MODULE)..."
+	@ echo "Building Emscripten WebAssembly module $(MPG123_EMSCRIPTEN_BUILD)..."
 	@ emcc $(MPG123_WASM_LIB) \
-		-o "$(MPG123_MODULE)" \
+		-o "$(MPG123_EMSCRIPTEN_BUILD)" \
 		$(EMCC_OPTS) \
 		$(MPG123_EMCC_OPTS) 
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(MPG123_MODULE)"
+	@ echo "|  Successfully built JS Module: $(MPG123_EMSCRIPTEN_BUILD)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 

@@ -1,1 +1,1 @@
-Module = module;
+Module = {};
