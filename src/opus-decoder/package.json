@@ -1,6 +1,6 @@
 {
   "name": "opus-decoder",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Web Assembly streaming Opus decoder",
   "main": "dist/opus-decoder.min.js",
   "files": [
@@ -19,7 +19,8 @@
     "streams",
     "libopus",
     "WebAssembly",
-    "Wasm"
+    "Wasm",
+    "WebWorker"
   ],
   "author": "Ethan Halsall",
   "license": "MIT",

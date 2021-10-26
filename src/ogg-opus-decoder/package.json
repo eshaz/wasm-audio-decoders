@@ -1,6 +1,6 @@
 {
   "name": "ogg-opus-decoder",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Web Assembly streaming Ogg Opus decoder",
   "main": "dist/ogg-opus-decoder.min.js",
   "files": [
@@ -21,7 +21,8 @@
     "libopusfile",
     "Ogg Opus",
     "WebAssembly",
-    "Wasm"
+    "Wasm",
+    "WebWorker"
   ],
   "author": "Ethan Halsall",
   "license": "MIT",
