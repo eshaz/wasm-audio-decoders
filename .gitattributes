@@ -1,5 +1,10 @@
-src/ogg/* linguist-vendored
-src/opus/* linguist-vendored
-src/opusfile/* linguist-vendored
-src/*.c linguist-vendored
-src/*.h linguist-vendored
+# submodules
+modules/mpg123/* linguist-vendored
+modules/ogg/* linguist-vendored
+modules/opus/* linguist-vendored
+modules/opusfile/* linguist-vendored
+
+# builds
+src/mpg123-decoder/dist/* linguist-generated
+src/ogg-opus-decoder/dist/* linguist-generated
+src/opus-decoder/dist/* linguist-generated

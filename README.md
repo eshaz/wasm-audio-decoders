@@ -1,6 +1,8 @@
 # WASM Audio Decoders
 
-WASM Audio Decoders is a collection of Web Assembly audio decoder libraries that are highly optimized for browser use. Web Assembly is a binary instruction format for a stack-based virtual machine that allows for near native code execution speed inside of a web browser. In practice, these decoders are just as fast, and in some cases faster, than the browser implementation.
+WASM Audio Decoders is a collection of Web Assembly audio decoder libraries that are highly optimized for browser use. Each module supports synchronous decoding on the main thread as well as asynchronous (threaded) decoding through a built in [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API) implementation.
+
+Web Assembly is a binary instruction format for a stack-based virtual machine that allows for near native code execution speed inside of a web browser. In practice, these decoders are just as fast, and in some cases faster, than the browser implementation.
 
 ## Decoders
 
@@ -10,19 +12,22 @@ Pre-built minified JS files are available from NPM and in each decoder's `dist` 
 
 ### [`mpg123-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder)
 Decodes MPEG Layer I/II/III into PCM
-  * 82.9 KiB bundle size
-  * Based on [`libmpg123`](https://www.mpg123.de/)
+  * 85.1 KiB bundle size
+  * Built in WebWorker support
+  * Based on [`mpg123`](https://www.mpg123.de/)
   * Install using [NPM](https://www.npmjs.com/package/mpg123-decoder)
 
 ### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 113.3 KiB bundle size
+  * 114.7 KiB bundle size
+  * Built in WebWorker support
   * Based on [`libopusfile`](https://github.com/xiph/opusfile)
   * Install using [NPM](https://www.npmjs.com/package/ogg-opus-decoder)
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
 Decodes raw Opus audio frames into PCM
-  * 85.2 KiB bundle size
+  * 86.9 KiB bundle size
+  * Built in WebWorker support
   * Based on [`libopus`](https://github.com/xiph/opus)
   * Install using [NPM](https://www.npmjs.com/package/opus-decoder)
 
@@ -43,3 +48,16 @@ Decodes raw Opus audio frames into PCM
    * opus-decoder: `src/opus-decoder/dist/` 
    * ogg-opus-decoder: `src/ogg-opus-decoder/dist/` 
    * mpg123-decoder: `src/mpg123-decoder/dist/` 
+
+## Attributions
+
+* `OggOpusDecoder` was originally based on [AnthumChris/opus-stream-decoder](https://github.com/AnthumChris/opus-stream-decoder).
+  * This version has been optimized for size and for simple bundling in web applications:
+    * Everything is bundled in a single minified Javascript file for ease of use.
+    * WASM binary is encoded inline using yEnc binary encoding and compressed using DEFLATE to significantly reduce bundle size.
+    * WASM compiler, minifier, and bundler options are tuned for best possible size and performance.
+* `tiny-inflate` is included from [foliojs/tiny-inflate](https://github.com/foliojs/tiny-inflate) and is used to decompress the WASM binary.
+
+## Licensing
+
+The source code that originates in this project is licensed under the MIT license. Please note that any external source code included by repository, such as the decoding libraries included as git submodules and compiled into the dist files, may have different licensing terms.

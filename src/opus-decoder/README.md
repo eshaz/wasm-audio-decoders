@@ -1,11 +1,28 @@
-# opus-decoder
+# `opus-decoder`
 
 `opus-decoder` is a Web Assembly Opus audio decoder based on on [`libopus`](https://github.com/xiph/opus).
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
 ## Installing
-Install via [NPM](https://www.npmjs.com/package/opus-decoder).
+* Install from [NPM](https://www.npmjs.com/package/opus-decoder).
+  ```
+  npm i opus-decoder
+  ```
+
+  ```javascript
+  import { OpusDecoder } from 'opus-decoder';
+
+  const decoder = new OpusDecoder();
+  ```
+ 
+* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder/dist) and include it as a script.
+  ```html
+  <script src="opus-decoder.min.js"></script>
+  <script>
+    const decoder = new OpusDecoder();
+  </script>
+  ```
 
 ## Usage
 

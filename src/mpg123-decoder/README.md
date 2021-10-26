@@ -1,11 +1,28 @@
-# mpg123-decoder
+# `mpg123-decoder`
 
 `mpg123-decoder` is a Web Assembly MPEG Layer (I/II/II) audio decoder based on [`mpg123`](https://www.mpg123.de/).
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
 ## Installing
-Install via [NPM](https://www.npmjs.com/package/mpg123-decoder).
+* Install from [NPM](https://www.npmjs.com/package/mpg123-decoder).
+  ```
+  npm i mpg123-decoder
+  ```
+
+  ```javascript
+  import { MPEGDecoder } from 'mpg123-decoder';
+
+  const decoder = new MPEGDecoder();
+  ```
+ 
+* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder/dist) and include it as a script.
+  ```html
+  <script src="mpg123-decoder.min.js"></script>
+  <script>
+    const decoder = new MPEGDecoder();
+  </script>
+  ```
 
 ## Usage
 
