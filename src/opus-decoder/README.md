@@ -1,6 +1,6 @@
 # `opus-decoder`
 
-`opus-decoder` is a Web Assembly Opus audio decoder based on on [`libopus`](https://github.com/xiph/opus).
+`opus-decoder` is a Web Assembly Opus audio decoder based on [`libopus`](https://github.com/xiph/opus).
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 

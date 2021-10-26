@@ -1,6 +1,6 @@
 # `ogg-opus-decoder`
 
-`ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder based on on [`libopusfile`](https://github.com/xiph/opusfile).
+`ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder based on [`libopusfile`](https://github.com/xiph/opusfile).
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
