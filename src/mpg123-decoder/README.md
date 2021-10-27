@@ -6,9 +6,8 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
 ## Installing
 * Install from [NPM](https://www.npmjs.com/package/mpg123-decoder).
-  ```
-  npm i mpg123-decoder
-  ```
+  
+  Run `npm i mpg123-decoder`
 
   ```javascript
   import { MPEGDecoder } from 'mpg123-decoder';
@@ -27,24 +26,26 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 ## Usage
 
 1. Create a new instance and wait for the WASM to finish compiling. Decoding can be done on the main thread synchronously, or in a webworker asynchronously.
-   1. Main thread synchronous decoding:
-      ```javascript
-      import { MPEGDecoder } from 'mpg123-decoder';
+   
+    **Main thread synchronous decoding**
+    ```javascript
+    import { MPEGDecoder } from 'mpg123-decoder';
 
-      const decoder = new MPEGDecoder();
+    const decoder = new MPEGDecoder();
 
-      // wait for the WASM to be compiled
-      await decoder.ready;
-      ```
-   1. Web Worker asynchronous decoding:
-      ```javascript
-      import { MPEGDecoderWebWorker } from 'mpg123-decoder';
+    // wait for the WASM to be compiled
+    await decoder.ready;
+    ```
 
-      const decoder = new MPEGDecoderWebWorker();
+    **Web Worker asynchronous decoding**
+    ```javascript
+    import { MPEGDecoderWebWorker } from 'mpg123-decoder';
 
-      // wait for the WASM to be compiled
-      await decoder.ready;
-      ```
+    const decoder = new MPEGDecoderWebWorker();
+
+    // wait for the WASM to be compiled
+    await decoder.ready;
+    ```
 
 1. Begin decoding MPEG data.
 
@@ -132,7 +133,7 @@ Class that decodes Opus frames asynchronously within a WebWorker. Decoding is pe
 
 ### Properly using the asynchronous Web Worker interface
 
-`MPEGDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, you code should avoid using `await` on decode operations where it will block synchronous code.
+`MPEGDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, your code should avoid using `await` on decode operations where it will the main thread.
 
 **Only one operation at a time can happen on `MPEGDecoderWebWorker`.**
 When needing to run multiple operations on a single instance, each method call must wait for the previous operation to complete. This can be accomplished by using a `Promise` chain or by using `await` (within an async function) before calling another method on the instance. If you call multiple methods on the instance without waiting for the previous call to finish, you may loose the results of some of the calls.

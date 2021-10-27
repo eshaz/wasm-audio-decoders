@@ -6,9 +6,8 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
 ## Installing
 * Install from [NPM](https://www.npmjs.com/package/opus-decoder).
-  ```
-  npm i opus-decoder
-  ```
+
+  Run `npm i mpg123-decoder`
 
   ```javascript
   import { OpusDecoder } from 'opus-decoder';
@@ -131,7 +130,7 @@ Class that decodes Opus frames asynchronously within a WebWorker. Decoding is pe
 
 ### Properly using the asynchronous Web Worker interface
 
-`OpusDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, you code should avoid using `await` on decode operations where it will block synchronous code.
+`OpusDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, your code should avoid using `await` on decode operations where it will block the main thread.
 
 **Only one operation at a time can happen on `OpusDecoderWebWorker`.**
 When needing to run multiple operations on a single instance, each method call must wait for the previous operation to complete. This can be accomplished by using a `Promise` chain or by using `await` (within an async function) before calling another method on the instance. If you call multiple methods on the instance without waiting for the previous call to finish, you may loose the results of some of the calls.
