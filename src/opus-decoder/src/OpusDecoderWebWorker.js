@@ -18,37 +18,37 @@ export default class OpusDecoderWebWorker extends Worker {
             ? buffer.map((buffer) => new Uint8Array(buffer))
             : new Uint8Array(buffer);
 
-        self.onmessage = ({ data }) => {
-          switch (data.command) {
+        self.onmessage = ({ data: { id, command, opusData } }) => {
+          switch (command) {
             case "ready":
               decoder.ready.then(() => {
                 self.postMessage({
-                  command: "ready",
+                  id,
                 });
               });
               break;
             case "free":
               decoder.free();
               self.postMessage({
-                command: "free",
+                id,
               });
               break;
             case "reset":
               decoder.reset().then(() => {
                 self.postMessage({
-                  command: "reset",
+                  id,
                 });
               });
               break;
             case "decodeFrame":
             case "decodeFrames":
               const { channelData, samplesDecoded, sampleRate } = decoder[
-                data.command
-              ](detachBuffers(data.opusData));
+                command
+              ](detachBuffers(opusData));
 
               self.postMessage(
                 {
-                  command: data.command,
+                  id,
                   channelData,
                   samplesDecoded,
                   sampleRate,
@@ -59,9 +59,7 @@ export default class OpusDecoderWebWorker extends Worker {
               );
               break;
             default:
-              this.console.error(
-                "Unknown command sent to worker: " + data.command
-              );
+              this.console.error("Unknown command sent to worker: " + command);
           }
         };
       }).toString()})()`;
@@ -73,29 +71,23 @@ export default class OpusDecoderWebWorker extends Worker {
     );
   }
 
-  static _getOpusDecodedAudio(decodedData) {
-    return new OpusDecodedAudio(
-      decodedData.channelData,
-      decodedData.samplesDecoded
-    );
+  static _getOpusDecodedAudio({ channelData, samplesDecoded }) {
+    return new OpusDecodedAudio(channelData, samplesDecoded);
   }
 
   async _postToDecoder(command, opusData) {
     return new Promise((resolve) => {
+      const id = Math.random();
+
       this.postMessage({
         command,
+        id,
         opusData,
       });
 
       this.onmessage = (message) => {
-        if (message.data.command === command) resolve(message.data);
+        if (message.data.id === id) resolve(message.data);
       };
-    });
-  }
-
-  terminate() {
-    this._postToDecoder("free").finally(() => {
-      super.terminate();
     });
   }
 
@@ -104,7 +96,9 @@ export default class OpusDecoderWebWorker extends Worker {
   }
 
   async free() {
-    this.terminate();
+    await this._postToDecoder("free").finally(() => {
+      this.terminate();
+    });
   }
 
   async reset() {

@@ -702,35 +702,35 @@
         // We're in a Web Worker
         const decoder = new OggOpusDecoder();
 
-        self.onmessage = ({ data }) => {
-          switch (data.command) {
+        self.onmessage = ({ data: { id, command, oggOpusData } }) => {
+          switch (command) {
             case "ready":
               decoder.ready.then(() => {
                 self.postMessage({
-                  command: "ready",
+                  id,
                 });
               });
               break;
             case "free":
               decoder.free();
               self.postMessage({
-                command: "free",
+                id,
               });
               break;
             case "reset":
               decoder.reset().then(() => {
                 self.postMessage({
-                  command: "reset",
+                  id,
                 });
               });
               break;
             case "decode":
               const { channelData, samplesDecoded, sampleRate } =
-                decoder.decode(new Uint8Array(data.oggOpusData));
+                decoder.decode(new Uint8Array(oggOpusData));
 
               self.postMessage(
                 {
-                  command: "decode",
+                  id,
                   channelData,
                   samplesDecoded,
                   sampleRate,
@@ -741,9 +741,7 @@
               );
               break;
             default:
-              this.console.error(
-                "Unknown command sent to worker: " + data.command
-              );
+              this.console.error("Unknown command sent to worker: " + command);
           }
         };
       }).toString()})()`;
@@ -757,20 +755,17 @@
 
     async _postToDecoder(command, oggOpusData) {
       return new Promise((resolve) => {
+        const id = Math.random();
+
         this.postMessage({
+          id,
           command,
           oggOpusData,
         });
 
         this.onmessage = (message) => {
-          if (message.data.command === command) resolve(message.data);
+          if (message.data.id === id) resolve(message.data);
         };
-      });
-    }
-
-    terminate() {
-      this._postToDecoder("free").finally(() => {
-        super.terminate();
       });
     }
 
@@ -779,7 +774,9 @@
     }
 
     async free() {
-      this.terminate();
+      await this._postToDecoder("free").finally(() => {
+        this.terminate();
+      });
     }
 
     async reset() {
@@ -788,11 +785,8 @@
 
     async decode(data) {
       return this._postToDecoder("decode", data).then(
-        (decodedData) =>
-          new OpusDecodedAudio(
-            decodedData.channelData,
-            decodedData.samplesDecoded
-          )
+        ({ channelData, samplesDecoded }) =>
+          new OpusDecodedAudio(channelData, samplesDecoded)
       );
     }
   }

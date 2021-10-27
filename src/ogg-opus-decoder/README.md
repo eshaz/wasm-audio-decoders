@@ -118,6 +118,62 @@ Class that decodes Ogg Opus data asynchronously within a WebWorker. Decoding is 
   * Returns a promise that resolves with the decoded audio.
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Ogg Opus data can be decoded.
-* `decoder.free()`
+* `decoder.free()` *async*
   * De-allocates the memory used by the decoder and terminates the WebWorker.
   * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional Ogg Opus data.
+
+### Properly using the asynchronous Web Worker interface
+
+`OggOpusDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, you code should avoid using `await` on decode operations where it will block synchronous code.
+
+**Only one operation at a time can happen on `OggOpusDecoderWebWorker`.**
+When needing to run multiple operations on a single instance, each method call must wait for the previous operation to complete. This can be accomplished by using a `Promise` chain or by using `await` (within an async function) before calling another method on the instance. If you call multiple methods on the instance without waiting for the previous call to finish, you may loose the results of some of the calls.
+
+  * **Good** Main thread is not blocked during each decode operation. Each decode operation waits for the previous decode to complete.
+    ```javascript
+    const playAudio = ({ channelData, samplesDecoded, sampleRate }) => {
+      // does something to play the audio data.
+    }
+
+    // In practice you would do this with a loop, or by appending additional `.then` calls to an existing promise.
+    const allDataDecodedPromise = 
+      decoder.decode(data1)
+        .then(playAudio)
+        .then(() => decoder.decode(data2))
+        .then(playAudio)
+        .then(() => decoder.decode(data3))
+        .then(playAudio);
+    ```
+  * **Good** Main thread is not blocked since `await` is being used inside of an `async` function.
+    ```javascript
+    const decodeAudio = async ([data1, data2, data3]) => {
+      const decoded1 = await decoder.decode(data1);
+      playAudio(decoded1);
+  
+      const decoded2 = await decoder.decode(data2);
+      playAudio(decoded2);
+  
+      const decoded3 = await decoder.decode(data3);
+      playAudio(decoded3);
+    }
+
+    decodeAudio(frames); // does not block the main thread
+    ```
+  * **Bad** Main thread is being blocked by `await` during each decode operation. Synchronous code is halted while decoding completes, negating the benefits of using a webworker.
+    ```javascript
+    const decoded1 = await decoder.decode(data1); // blocks the main thread
+    playAudio(decoded1);
+
+    const decoded2 = await decoder.decode(data2); // blocks the main thread
+    playAudio(decoded2);
+
+    const decoded3 = await decoder.decode(data3); // blocks the main thread
+    playAudio(decoded3);
+    ```
+  * **Bad** The calls to decode are not waiting for the previous call to completed. Only the last decode operation will complete correctly in this example.
+    ```javascript
+    decoder.decode(data1).then(playAudio); // decode operation will be skipped
+    decoder.decode(data2).then(playAudio); // decode operation will be skipped
+    decoder.decode(data3).then(playAudio);
+    ```
+    

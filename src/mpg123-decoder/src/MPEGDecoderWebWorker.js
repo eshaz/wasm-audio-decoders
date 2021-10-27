@@ -18,25 +18,25 @@ export default class MPEGDecoderWebWorker extends Worker {
             ? buffer.map((buffer) => new Uint8Array(buffer))
             : new Uint8Array(buffer);
 
-        self.onmessage = ({ data }) => {
-          switch (data.command) {
+        self.onmessage = ({ data: { id, command, mpegData } }) => {
+          switch (command) {
             case "ready":
               decoder.ready.then(() => {
                 self.postMessage({
-                  command: "ready",
+                  id,
                 });
               });
               break;
             case "free":
               decoder.free();
               self.postMessage({
-                command: "free",
+                id,
               });
               break;
             case "reset":
               decoder.reset().then(() => {
                 self.postMessage({
-                  command: "reset",
+                  id,
                 });
               });
               break;
@@ -44,12 +44,12 @@ export default class MPEGDecoderWebWorker extends Worker {
             case "decodeFrame":
             case "decodeFrames":
               const { channelData, samplesDecoded, sampleRate } = decoder[
-                data.command
-              ](detachBuffers(data.mpegData));
+                command
+              ](detachBuffers(mpegData));
 
               self.postMessage(
                 {
-                  command: data.command,
+                  id,
                   channelData,
                   samplesDecoded,
                   sampleRate,
@@ -60,9 +60,7 @@ export default class MPEGDecoderWebWorker extends Worker {
               );
               break;
             default:
-              this.console.error(
-                "Unknown command sent to worker: " + data.command
-              );
+              this.console.error("Unknown command sent to worker: " + command);
           }
         };
       }).toString()})()`;
@@ -74,30 +72,23 @@ export default class MPEGDecoderWebWorker extends Worker {
     );
   }
 
-  static _getMPEGDecodedAudio(decodedData) {
-    return new MPEGDecodedAudio(
-      decodedData.channelData,
-      decodedData.samplesDecoded,
-      decodedData.sampleRate
-    );
+  static _getMPEGDecodedAudio({ channelData, samplesDecoded, sampleRate }) {
+    return new MPEGDecodedAudio(channelData, samplesDecoded, sampleRate);
   }
 
   async _postToDecoder(command, mpegData) {
     return new Promise((resolve) => {
+      const id = Math.random();
+
       this.postMessage({
+        id,
         command,
         mpegData,
       });
 
       this.onmessage = (message) => {
-        if (message.data.command === command) resolve(message.data);
+        if (message.data.id === id) resolve(message.data);
       };
-    });
-  }
-
-  terminate() {
-    this._postToDecoder("free").finally(() => {
-      super.terminate();
     });
   }
 
@@ -106,7 +97,9 @@ export default class MPEGDecoderWebWorker extends Worker {
   }
 
   async free() {
-    await this.terminate();
+    await this._postToDecoder("free").finally(() => {
+      this.terminate();
+    });
   }
 
   async reset() {
