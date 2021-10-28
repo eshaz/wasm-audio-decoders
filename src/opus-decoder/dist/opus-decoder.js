@@ -709,6 +709,14 @@
           new Blob([webworkerSourceCode], { type: "text/javascript" })
         )
       );
+
+      this._id = Number.MIN_SAFE_INTEGER;
+      this._enqueuedOperations = new Map();
+
+      this.onmessage = ({ data }) => {
+        this._enqueuedOperations.get(data.id)(data);
+        this._enqueuedOperations.delete(data.id);
+      };
     }
 
     static _getOpusDecodedAudio({ channelData, samplesDecoded }) {
@@ -717,17 +725,13 @@
 
     async _postToDecoder(command, opusData) {
       return new Promise((resolve) => {
-        const id = Math.random();
-
         this.postMessage({
           command,
-          id,
+          id: this._id,
           opusData,
         });
 
-        this.onmessage = (message) => {
-          if (message.data.id === id) resolve(message.data);
-        };
+        this._enqueuedOperations.set(this._id++, resolve);
       });
     }
 
