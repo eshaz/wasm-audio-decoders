@@ -1,6 +1,9 @@
 # `opus-decoder`
 
-`opus-decoder` is a Web Assembly Opus audio decoder based on [`libopus`](https://github.com/xiph/opus).
+`opus-decoder` is a Web Assembly Opus audio decoder.
+  * 87.2 KiB minified bundle size
+  * Built in Web Worker support
+  * Based on [`libopus`](https://github.com/xiph/opus)
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
@@ -108,7 +111,7 @@ Class that decodes Opus frames synchronously on the main thread.
 
 ## `OpusDecoderWebWorker`
 
-Class that decodes Opus frames asynchronously within a WebWorker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
+Class that decodes Opus frames asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
 
 ### Getters
 * `decoder.ready` *async*
@@ -125,46 +128,28 @@ Class that decodes Opus frames asynchronously within a WebWorker. Decoding is pe
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Opus frames can be decoded.
 * `decoder.free()` *async*
-  * De-allocates the memory used by the decoder and terminates the WebWorker.
+  * De-allocates the memory used by the decoder and terminates the web worker.
   * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional Opus frames.
 
-### Properly using the asynchronous Web Worker interface
+### Properly using the Web Worker interface
 
 `OpusDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, your code should avoid using `await` on decode operations where it will block the main thread.
 
-**Only one operation at a time can happen on `OpusDecoderWebWorker`.**
-When needing to run multiple operations on a single instance, each method call must wait for the previous operation to complete. This can be accomplished by using a `Promise` chain or by using `await` (within an async function) before calling another method on the instance. If you call multiple methods on the instance without waiting for the previous call to finish, you may loose the results of some of the calls.
+Each method call on a `OpusDecoderWebWorker` instance will queue up an operation to the web worker. Operations will complete within the web worker thread one at a time and in the same order in which the methods were called.
 
-  * **Good** Main thread is not blocked during each decode operation. Each decode operation waits for the previous decode to complete.
+  * **Good** Main thread is not blocked during each decode operation. The example `playAudio` function is called when each decode operation completes. Also, the next decode operation can begin while `playAudio` is doing work on the main thread.
     ```javascript
     const playAudio = ({ channelData, samplesDecoded, sampleRate }) => {
       // does something to play the audio data.
     }
 
-    // In practice you would do this with a loop, or by appending additional `.then` calls to an existing promise.
-    const allDataDecodedPromise = 
-      decoder.decodeFrame(frameData1)
-        .then(playAudio)
-        .then(() => decoder.decodeFrame(frameData2))
-        .then(playAudio)
-        .then(() => decoder.decodeFrame(frameData3))
-        .then(playAudio);
-    ```
-  * **Good** Main thread is not blocked since `await` is being used inside of an `async` function.
-    ```javascript
-    const decodeAudio = async ([frameData1, frameData2, frameData3]) => {
-      const decoded1 = await decoder.decodeFrame(frameData1);
-      playAudio(decoded1);
-  
-      const decoded2 = await decoder.decodeFrame(frameData2);
-      playAudio(decoded2);
-  
-      const decoded3 = await decoder.decodeFrame(frameData3);
-      playAudio(decoded3);
-    }
+    decoder.decodeFrame(frameData1).then(playAudio);
+    decoder.decodeFrame(frameData2).then(playAudio);
+    decoder.decodeFrame(frameData3).then(playAudio);
 
-    decodeAudio(frames); // does not block the main thread
+    // do some other operations while the audio is decoded
     ```
+
   * **Bad** Main thread is being blocked by `await` during each decode operation. Synchronous code is halted while decoding completes, negating the benefits of using a webworker.
     ```javascript
     const decoded1 = await decoder.decodeFrame(frameData1); // blocks the main thread
@@ -176,10 +161,3 @@ When needing to run multiple operations on a single instance, each method call m
     const decoded3 = await decoder.decodeFrame(frameData3); // blocks the main thread
     playAudio(decoded3);
     ```
-  * **Bad** The calls to decode are not waiting for the previous call to completed. Only the last decode operation will complete correctly in this example.
-    ```javascript
-    decoder.decodeFrame(frameData1).then(playAudio); // decode operation will be skipped
-    decoder.decodeFrame(frameData2).then(playAudio); // decode operation will be skipped
-    decoder.decodeFrame(frameData3).then(playAudio);
-    ```
-    

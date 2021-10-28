@@ -1,6 +1,6 @@
 {
   "sourceMap": {
-    "url": "ogg-opus-decoder.min.js.map"
+    "url": "opus-decoder.min.js.map"
   },
   "output": {
     "preamble": "/* Copyright 2021 Ethan Halsall. This file is part of wasm-audio-decoders. https://github.com/eshaz/wasm-audio-decoders */"

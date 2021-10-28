@@ -916,6 +916,14 @@
           new Blob([webworkerSourceCode], { type: "text/javascript" })
         )
       );
+
+      this._id = Number.MIN_SAFE_INTEGER;
+      this._enqueuedOperations = new Map();
+
+      this.onmessage = ({ data }) => {
+        this._enqueuedOperations.get(data.id)(data);
+        this._enqueuedOperations.delete(data.id);
+      };
     }
 
     static _getMPEGDecodedAudio({ channelData, samplesDecoded, sampleRate }) {
@@ -924,17 +932,13 @@
 
     async _postToDecoder(command, mpegData) {
       return new Promise((resolve) => {
-        const id = Math.random();
-
         this.postMessage({
-          id,
           command,
+          id: this._id,
           mpegData,
         });
 
-        this.onmessage = (message) => {
-          if (message.data.id === id) resolve(message.data);
-        };
+        this._enqueuedOperations.set(this._id++, resolve);
       });
     }
 
