@@ -1,6 +1,9 @@
 # `ogg-opus-decoder`
 
-`ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder based on [`libopusfile`](https://github.com/xiph/opusfile).
+`ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder.
+  * 115.1 KiB minified bundle size
+  * Built in Web Worker support
+  * Based on [`libopusfile`](https://github.com/xiph/opusfile)
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
@@ -104,7 +107,7 @@ Class that decodes Ogg Opus data synchronously on the main thread.
 
 ## `OggOpusDecoderWebWorker`
 
-Class that decodes Ogg Opus data asynchronously within a WebWorker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
+Class that decodes Ogg Opus data asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
 
 ### Getters
 * `decoder.ready` *async*
@@ -118,7 +121,7 @@ Class that decodes Ogg Opus data asynchronously within a WebWorker. Decoding is 
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Ogg Opus data can be decoded.
 * `decoder.free()` *async*
-  * De-allocates the memory used by the decoder and terminates the WebWorker.
+  * De-allocates the memory used by the decoder and terminates the web worker.
   * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional Ogg Opus data.
 
 ### Properly using the Web Worker interface

@@ -1,6 +1,9 @@
 # `mpg123-decoder`
 
-`mpg123-decoder` is a Web Assembly MPEG Layer (I/II/II) audio decoder based on [`mpg123`](https://www.mpg123.de/).
+`mpg123-decoder` is a Web Assembly MPEG Layer (I/II/II) audio decoder.
+  * 85.2 KiB minified bundle size
+  * Built in Web Worker support
+  * Based on [`mpg123`](https://www.mpg123.de/)
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
@@ -128,7 +131,7 @@ Class that decodes MPEG data or frames asynchronously within a WebWorker. Decodi
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of MPEG data can be decoded.
 * `decoder.free()` *async*
-  * De-allocates the memory used by the decoder and terminates the WebWorker.
+  * De-allocates the memory used by the decoder and terminates the web worker.
   * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional MPEG data.
 
 ### Properly using the Web Worker interface

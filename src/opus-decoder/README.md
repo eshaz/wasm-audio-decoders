@@ -1,6 +1,9 @@
 # `opus-decoder`
 
-`opus-decoder` is a Web Assembly Opus audio decoder based on [`libopus`](https://github.com/xiph/opus).
+`opus-decoder` is a Web Assembly Opus audio decoder.
+  * 87.2 KiB minified bundle size
+  * Built in Web Worker support
+  * Based on [`libopus`](https://github.com/xiph/opus)
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
@@ -108,7 +111,7 @@ Class that decodes Opus frames synchronously on the main thread.
 
 ## `OpusDecoderWebWorker`
 
-Class that decodes Opus frames asynchronously within a WebWorker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
+Class that decodes Opus frames asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
 
 ### Getters
 * `decoder.ready` *async*
@@ -125,7 +128,7 @@ Class that decodes Opus frames asynchronously within a WebWorker. Decoding is pe
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Opus frames can be decoded.
 * `decoder.free()` *async*
-  * De-allocates the memory used by the decoder and terminates the WebWorker.
+  * De-allocates the memory used by the decoder and terminates the web worker.
   * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional Opus frames.
 
 ### Properly using the Web Worker interface
