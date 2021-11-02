@@ -1,4 +1,5 @@
 package-lock.json
 modules/
 dist
+coverage
 emscripten-wasm.js

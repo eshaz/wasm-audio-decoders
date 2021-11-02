@@ -1,10 +1,9 @@
-const fs = require("fs");
-const path = require("path");
-const yenc = require("simple-yenc");
-const fflate = require("fflate");
+import fs from "fs";
+import yenc from "simple-yenc";
+import { deflateSync } from "fflate";
 
 const distPath = process.argv[2];
-const tinyInflatePath = path.join(__dirname, "tiny-inflate.js");
+const tinyInflatePath = new URL("tiny-inflate.js", import.meta.url).pathname;
 const decoder = fs.readFileSync(distPath, { encoding: "ascii" });
 const tinyInflate = fs.readFileSync(tinyInflatePath, { encoding: "ascii" });
 
@@ -23,7 +22,7 @@ start += 'Module["wasm"] = tinf_uncompress((' + yenc.decode.toString() + ")(`";
 const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
 // compressed buffer
 const wasmBuffer = Uint8Array.from(Buffer.from(wasmContent, "base64"));
-const wasmBufferCompressed = fflate.deflateSync(wasmBuffer, {
+const wasmBufferCompressed = deflateSync(wasmBuffer, {
   level: 9,
   mem: 12,
 });

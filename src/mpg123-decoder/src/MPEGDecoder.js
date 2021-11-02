@@ -101,17 +101,7 @@ export default class MPEGDecoder {
       this._rightPtr
     );
 
-    if (!this._sampleRate)
-      this._sampleRate = this._api._mpeg_get_sample_rate(this._decoder);
-
-    return new MPEGDecodedAudio(
-      [
-        this._leftArr.slice(0, samplesDecoded),
-        this._rightArr.slice(0, samplesDecoded),
-      ],
-      samplesDecoded,
-      this._sampleRate
-    );
+    return new MPEGDecodedAudio(channelData, samplesDecoded, this._sampleRate);
   }
 
   _decodeArray(dataArray, inputPtr) {
