@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "description": "Web Assembly streaming Ogg Opus decoder",
   "main": "dist/ogg-opus-decoder.min.js",
+  "types": "types.d.ts",
   "files": [
     "dist/ogg-opus-decoder.min.js",
     "dist/ogg-opus-decoder.min.js.map"
