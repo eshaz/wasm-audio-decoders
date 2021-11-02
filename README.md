@@ -12,7 +12,7 @@ Pre-built minified JS files are available from NPM and in each decoder's `dist` 
 
 ### [`mpg123-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder)
 Decodes MPEG Layer I/II/III into PCM
-  * 85.2 KiB minified bundle size
+  * 85.1 KiB minified bundle size
   * Built in Web Worker support
   * Based on [`mpg123`](https://www.mpg123.de/)
   * Install using [NPM](https://www.npmjs.com/package/mpg123-decoder)

@@ -738,6 +738,11 @@
       this._framePtrSize = 2889;
       this._framePtr = this._api._malloc(this._framePtrSize);
 
+      // min theoretical frame size
+      // mpg123 works when the input data is at or smaller than the actual frame size
+      this._rawDataPtrSize = 48;
+      this._rawDataPtr = this._api._malloc(this._rawDataPtrSize);
+
       // max samples per MPEG frame
       [this._leftPtr, this._leftArr] = this._createOutputArray(4 * 1152);
       [this._rightPtr, this._rightArr] = this._createOutputArray(4 * 1152);
@@ -762,51 +767,18 @@
       this._sampleRate = 0;
     }
 
-    decode(data) {
+    _decode(data, inputPtr) {
       if (!(data instanceof Uint8Array))
         throw Error(
           `Data to decode must be Uint8Array. Instead got ${typeof data}`
         );
 
-      let left = [],
-        right = [],
-        samples = 0,
-        offset = 0;
-
-      while (offset < data.length) {
-        const { channelData, samplesDecoded } = this.decodeFrame(
-          data.subarray(offset, offset + this._framePtrSize)
-        );
-
-        left.push(channelData[0]);
-        right.push(channelData[1]);
-        samples += samplesDecoded;
-
-        offset += this._framePtrSize;
-      }
-
-      return new MPEGDecodedAudio(
-        [
-          MPEGDecoder.concatFloat32(left, samples),
-          MPEGDecoder.concatFloat32(right, samples),
-        ],
-        samples,
-        this._sampleRate
-      );
-    }
-
-    decodeFrame(mpegFrame) {
-      if (!(mpegFrame instanceof Uint8Array))
-        throw Error(
-          `Data to decode must be Uint8Array. Instead got ${typeof mpegFrame}`
-        );
-
-      this._api.HEAPU8.set(mpegFrame, this._framePtr);
+      this._api.HEAPU8.set(data, inputPtr);
 
       const samplesDecoded = this._api._mpeg_decode_float_deinterleaved(
         this._decoder,
-        this._framePtr,
-        mpegFrame.length,
+        inputPtr,
+        data.length,
         this._leftPtr,
         this._rightPtr
       );
@@ -824,13 +796,13 @@
       );
     }
 
-    decodeFrames(mpegFrames) {
+    _decodeArray(dataArray, inputPtr) {
       let left = [],
         right = [],
         samples = 0;
 
-      mpegFrames.forEach((frame) => {
-        const { channelData, samplesDecoded } = this.decodeFrame(frame);
+      dataArray.forEach((data) => {
+        const { channelData, samplesDecoded } = this._decode(data, inputPtr);
 
         left.push(channelData[0]);
         right.push(channelData[1]);
@@ -845,6 +817,23 @@
         samples,
         this._sampleRate
       );
+    }
+
+    decode(data) {
+      const input = [];
+
+      for (let offset = 0; offset < data.length; offset += this._rawDataPtrSize)
+        input.push(data.subarray(offset, offset + this._rawDataPtrSize));
+
+      return this._decodeArray(input, this._rawDataPtr);
+    }
+
+    decodeFrame(mpegFrame) {
+      return this._decode(mpegFrame, this._framePtr);
+    }
+
+    decodeFrames(mpegFrames) {
+      return this._decodeArray(mpegFrames, this._framePtr);
     }
   }
 
