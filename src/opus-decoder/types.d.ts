@@ -9,17 +9,15 @@ declare module 'opus-decoder' {
     ready: Promise<void>;
     reset: () => Promise<void>;
     free: () => void;
-    decode: (data: Uint8Array) => OpusDecodedAudio;
-    decodeFrame: (data: Uint8Array) => OpusDecodedAudio;
-    decodeFrames: (data: Uint8Array) => OpusDecodedAudio;
+    decodeFrame: (opusFrame: Uint8Array) => OpusDecodedAudio;
+    decodeFrames: (opusFrames: Uint8Array[]) => OpusDecodedAudio;
   }
 
   export class OpusDecoderWebWorker {
     ready: Promise<void>;
     reset: () => Promise<void>;
     free: () => Promise<void>;
-    decode: (data: Uint8Array) => Promise<OpusDecodedAudio>;
-    decodeFrame: (data: Uint8Array) => Promise<OpusDecodedAudio>;
-    decodeFrames: (data: Uint8Array) => Promise<OpusDecodedAudio>;
+    decodeFrame: (opusFrame: Uint8Array) => Promise<OpusDecodedAudio>;
+    decodeFrames: (opusFrames: Uint8Array[]) => Promise<OpusDecodedAudio>;
   }
 }

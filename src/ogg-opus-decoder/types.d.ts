@@ -10,8 +10,6 @@ declare module 'ogg-opus-decoder' {
     reset: () => Promise<void>;
     free: () => void;
     decode: (data: Uint8Array) => OpusDecodedAudio;
-    decodeFrame: (data: Uint8Array) => OpusDecodedAudio;
-    decodeFrames: (data: Uint8Array) => OpusDecodedAudio;
   }
 
   export class OggOpusDecoderWebWorker {
@@ -19,7 +17,5 @@ declare module 'ogg-opus-decoder' {
     reset: () => Promise<void>;
     free: () => Promise<void>;
     decode: (data: Uint8Array) => Promise<OpusDecodedAudio>;
-    decodeFrame: (data: Uint8Array) => Promise<OpusDecodedAudio>;
-    decodeFrames: (data: Uint8Array) => Promise<OpusDecodedAudio>;
   }
 }
