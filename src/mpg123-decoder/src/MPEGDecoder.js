@@ -49,21 +49,25 @@ export default class MPEGDecoder {
     await this._api.ready;
 
     this._sampleRate = 0;
-    this._decoder = this._api._mpeg_frame_decoder_create();
+
+    this._outputLength = 1152 * 512;
+    [this._leftPtr, this._leftArr] = this._createOutputArray(
+      this._outputLength
+    );
+
+    [this._rightPtr, this._rightArr] = this._createOutputArray(
+      this._outputLength
+    );
+
+    this._rawDataPtrSize = 2 ** 18;
+    this._rawDataPtr = this._api._malloc(this._rawDataPtrSize);
 
     // max theoretical size of a MPEG frame (MPEG 2.5 Layer II, 8000 Hz @ 160 kbps, with a padding slot)
     // https://www.mars.org/pipermail/mad-dev/2002-January/000425.html
     this._framePtrSize = 2889;
     this._framePtr = this._api._malloc(this._framePtrSize);
 
-    // min theoretical frame size
-    // mpg123 works when the input data is at or smaller than the actual frame size
-    this._rawDataPtrSize = 48;
-    this._rawDataPtr = this._api._malloc(this._rawDataPtrSize);
-
-    // max samples per MPEG frame
-    [this._leftPtr, this._leftArr] = this._createOutputArray(4 * 1152);
-    [this._rightPtr, this._rightArr] = this._createOutputArray(4 * 1152);
+    this._decoder = this._api._mpeg_frame_decoder_create();
   }
 
   get ready() {
@@ -93,7 +97,7 @@ export default class MPEGDecoder {
 
     this._api.HEAPU8.set(data, inputPtr);
 
-    const samplesDecoded = this._api._mpeg_decode_float_deinterleaved(
+    const samplesDecoded = this._api._mpeg_decode_frame(
       this._decoder,
       inputPtr,
       data.length,
@@ -114,18 +118,53 @@ export default class MPEGDecoder {
     );
   }
 
-  _decodeArray(dataArray, inputPtr) {
+  decode(data) {
     let left = [],
       right = [],
       samples = 0;
 
-    dataArray.forEach((data) => {
-      const { channelData, samplesDecoded } = this._decode(data, inputPtr);
+    const decodedBytesPtr = this._api._malloc(Uint32Array.BYTES_PER_ELEMENT);
+    const decodedBytes = new Uint32Array(
+      this._api.HEAPU32.buffer,
+      decodedBytesPtr,
+      1
+    );
 
-      left.push(channelData[0]);
-      right.push(channelData[1]);
+    let offset = 0;
+    let loops = 0;
+
+    while (offset < data.length) {
+      loops++
+      const inputData = data.subarray(offset, offset + this._rawDataPtrSize);
+
+      this._api.HEAPU8.set(
+        inputData,
+        this._rawDataPtr
+      );
+
+      decodedBytes[0] = 0;
+
+      const samplesDecoded = this._api._mpeg_decode_frames(
+        this._decoder,
+        this._rawDataPtr,
+        inputData.length,
+        this._leftPtr,
+        this._rightPtr,
+        this._outputLength,
+        decodedBytesPtr
+      );
+
+      offset += decodedBytes[0];
+
+      if (!this._sampleRate)
+        this._sampleRate = this._api._mpeg_get_sample_rate(this._decoder);
+
+      left.push(this._leftArr.slice(0, samplesDecoded));
+      right.push(this._rightArr.slice(0, samplesDecoded));
       samples += samplesDecoded;
-    });
+    }
+    
+    console.log("loops", loops)
 
     return new MPEGDecodedAudio(
       [
@@ -135,15 +174,6 @@ export default class MPEGDecoder {
       samples,
       this._sampleRate
     );
-  }
-
-  decode(data) {
-    const input = [];
-
-    for (let offset = 0; offset < data.length; offset += this._rawDataPtrSize)
-      input.push(data.subarray(offset, offset + this._rawDataPtrSize));
-
-    return this._decodeArray(input, this._rawDataPtr);
   }
 
   decodeFrame(mpegFrame) {

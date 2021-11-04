@@ -239,7 +239,8 @@ define MPG123_EMCC_OPTS
     '_free', '_malloc' \
   ,	'_mpeg_frame_decoder_create' \
   ,	'_mpeg_frame_decoder_destroy' \
-  ,	'_mpeg_decode_float_deinterleaved' \
+  ,	'_mpeg_decode_frame' \
+  ,	'_mpeg_decode_frames' \
   ,	'_mpeg_get_sample_rate' \
 ]" \
 --pre-js 'src/mpg123-decoder/src/emscripten-pre.js' \
