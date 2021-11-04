@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import { performance } from "perf_hooks";
 import path from "path";
 import waveHeader from "@wpdas/wave-header";
 
@@ -8,10 +9,12 @@ const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
 const TEST_DATA_PATH = new URL("data", import.meta.url).pathname;
 
-const getWaveFile = (channelData, { samples, bitDepth, sampleRate }) => {
-  const floatToInt = (val) =>
-    val > 0 ? Math.min(val * 32767, 32767) : Math.max(val * 32767, -32768);
+const max = (a, b) => (a > b ? a : b);
+const min = (a, b) => (a < b ? a : b);
+const floatToInt = (val) =>
+  val > 0 ? min(val * 32767, 32767) : max(val * 32767, -32768);
 
+const getInterleavedInt16Array = (channelData, samples) => {
   const channels = channelData.length;
   const interleaved = new Int16Array(samples * channels);
 
@@ -20,10 +23,24 @@ const getWaveFile = (channelData, { samples, bitDepth, sampleRate }) => {
     interleaved[offset * channels + 1] = floatToInt(channelData[1][offset]);
   }
 
-  const header = waveHeader.generateHeader(interleaved.length * 2, {
+  return interleaved;
+};
+
+const getWaveFileHeader = ({ bitDepth, sampleRate, byteLength, channels }) =>
+  waveHeader.generateHeader(Int16Array.BYTES_PER_ELEMENT * byteLength, {
     channels,
     bitDepth,
     sampleRate,
+  });
+
+const getWaveFile = (channelData, { samples, bitDepth, sampleRate }) => {
+  const interleaved = getInterleavedInt16Array(channelData, samples);
+
+  const header = getWaveFileHeader({
+    bitDepth,
+    sampleRate,
+    byteLength: interleaved.length,
+    channels: channelData.length,
   });
 
   return Buffer.concat([header, Buffer.from(interleaved.buffer)]);
@@ -33,6 +50,7 @@ const testDecoder = async (fileName, decoder) => {
   const inputData = await fs.readFile(path.join(TEST_DATA_PATH, fileName));
 
   const decoderOutput = await decoder.decode(inputData);
+
   const actualWaveData = getWaveFile(decoderOutput.channelData, {
     samples: decoderOutput.samplesDecoded,
     sampleRate: decoderOutput.sampleRate,
