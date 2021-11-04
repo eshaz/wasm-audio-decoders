@@ -227,7 +227,7 @@ $(CONFIGURE_LIBOPUS):
 $(CONFIGURE_LIBOGG):
 	cd modules/ogg; ./autogen.sh
 $(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
-	cd modules/ogg; emconfigure ./configure
+	cd modules/ogg; emconfigure ./configure --host=none-none-none
 	# Remove a.wasm* files created by emconfigure
 	cd modules/ogg; rm a.wasm*
 
