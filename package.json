@@ -1,7 +1,7 @@
 {
   "scripts": {
     "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*'",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100% --coverage"
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%"
   },
   "type": "module",
   "devDependencies": {

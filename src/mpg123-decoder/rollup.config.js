@@ -4,7 +4,7 @@ export default {
     format: "umd",
     name: "mpg123-decoder",
     globals: {
-      "web-worker": "Worker"
+      "web-worker": "Worker",
     },
   },
 };
