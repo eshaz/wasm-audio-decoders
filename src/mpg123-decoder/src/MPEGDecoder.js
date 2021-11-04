@@ -86,7 +86,8 @@ export default class MPEGDecoder {
   free() {
     this._api._mpeg_frame_decoder_destroy(this._decoder);
 
-    this._api._free(this._framePtr);
+    this._api._free(this._inDataPtr);
+    this._api._free(this._decodedBytesPtr);
     this._api._free(this._leftPtr);
     this._api._free(this._rightPtr);
 
