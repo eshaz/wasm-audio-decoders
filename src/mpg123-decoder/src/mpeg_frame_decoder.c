@@ -15,50 +15,55 @@ MPEGFrameDecoder *mpeg_frame_decoder_create() {
     return ptr;
 }
 
-int mpeg_decode_frame(MPEGFrameDecoder *decoder, unsigned char *in, size_t in_size, float *left, float *right) {
-    size_t bytes_decoded = 0;
-
-    int mpg123_error_code = mpg123_decode(decoder->mh, in, in_size, decoder->pcm, 4*2*1152, &bytes_decoded);
-
-    int samples_decoded = bytes_decoded / sizeof(float) / 2;
-
-    for (int i=samples_decoded-1; i>=0; i--) {
-        unsigned char *left_ptr = (unsigned char *) &left[i];
-        left_ptr[0] = decoder->pcm[i*8];
-        left_ptr[1] = decoder->pcm[i*8+1];
-        left_ptr[2] = decoder->pcm[i*8+2];
-        left_ptr[3] = decoder->pcm[i*8+3];
-
-        unsigned char *right_ptr = (unsigned char *) &right[i];
-        right_ptr[0] = decoder->pcm[i*8+4];
-        right_ptr[1] = decoder->pcm[i*8+5];
-        right_ptr[2] = decoder->pcm[i*8+6];
-        right_ptr[3] = decoder->pcm[i*8+7];
-    }
-
-    return samples_decoded;
-}
-
-int mpeg_decode_frames(MPEGFrameDecoder *decoder, unsigned char *in, size_t in_size, float *left, float *right, size_t out_size, unsigned int *read_pos) {
-    size_t read_size = in_size > 48 ? 48 : in_size;
-
+int mpeg_decode_interleaved(
+    MPEGFrameDecoder *decoder, // mpg123 decoder handle
+    unsigned char *in, // input data
+    size_t in_size, // input data size
+    unsigned int *in_read_pos, // pointer to save the total bytes read from input buffer
+    size_t in_read_chunk_size, // interval of bytes to read from input data
+    float *left, // pointer to save the left output audio
+    float *right, // pointer to save the right output audio
+    size_t decode_buffer_size // output audio buffer size
+) {
+    in_read_chunk_size = in_size > in_read_chunk_size ? in_read_chunk_size : in_size;
     int samples_decoded = 0;
-    
-    while (*read_pos + read_size <= in_size && samples_decoded < out_size) {
-        samples_decoded += mpeg_decode_frame(
-            decoder, 
-            in + *read_pos, 
-            read_size, 
-            left + samples_decoded, 
-            right + samples_decoded
+
+    while (*in_read_pos + in_read_chunk_size <= in_size && samples_decoded < decode_buffer_size) {
+        size_t bytes_decoded = 0;
+
+        int mpg123_error_code = mpg123_decode(
+            decoder->mh, 
+            in + *in_read_pos, 
+            in_read_chunk_size, 
+            decoder->pcm, 
+            4*2*1152, 
+            &bytes_decoded
         );
-        
-        *read_pos += read_size;
+    
+        int current_samples_decoded = bytes_decoded / sizeof(float) / 2;
+    
+        // deinterleave pcm
+        for (int i=current_samples_decoded-1; i>=0; i--) {
+            unsigned char *left_ptr = (unsigned char *) &left[i + samples_decoded];
+            left_ptr[0] = decoder->pcm[i*8];
+            left_ptr[1] = decoder->pcm[i*8+1];
+            left_ptr[2] = decoder->pcm[i*8+2];
+            left_ptr[3] = decoder->pcm[i*8+3];
+    
+            unsigned char *right_ptr = (unsigned char *) &right[i + samples_decoded];
+            right_ptr[0] = decoder->pcm[i*8+4];
+            right_ptr[1] = decoder->pcm[i*8+5];
+            right_ptr[2] = decoder->pcm[i*8+6];
+            right_ptr[3] = decoder->pcm[i*8+7];
+        }
+
+        samples_decoded += current_samples_decoded;
+        *in_read_pos += in_read_chunk_size;
     }
 
     // shows decoding stats for each iteration
-    // printf("read_pos %u, in_size %zu, total_bytes_decoded %u, out_size %zu\n", 
-    //        *read_pos,    in_size,     samples_decoded * 8,    out_size * 8);
+    // printf("in_read_pos %u, in_size %zu, total_bytes_decoded %u, decode_buffer_size %zu\n", 
+    //        *in_read_pos,    in_size,     samples_decoded * 8,    decode_buffer_size * 8);
 
     return samples_decoded;
 }

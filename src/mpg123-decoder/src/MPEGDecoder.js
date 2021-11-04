@@ -50,22 +50,26 @@ export default class MPEGDecoder {
 
     this._sampleRate = 0;
 
+    // output buffer
     this._outputLength = 1152 * 512;
     [this._leftPtr, this._leftArr] = this._createOutputArray(
       this._outputLength
     );
-
     [this._rightPtr, this._rightArr] = this._createOutputArray(
       this._outputLength
     );
 
-    this._rawDataPtrSize = 2 ** 18;
-    this._rawDataPtr = this._api._malloc(this._rawDataPtrSize);
+    // input buffer
+    this._inDataPtrSize = 2 ** 18;
+    this._inDataPtr = this._api._malloc(this._inDataPtrSize);
 
-    // max theoretical size of a MPEG frame (MPEG 2.5 Layer II, 8000 Hz @ 160 kbps, with a padding slot)
-    // https://www.mars.org/pipermail/mad-dev/2002-January/000425.html
-    this._framePtrSize = 2889;
-    this._framePtr = this._api._malloc(this._framePtrSize);
+    // input decoded bytes pointer
+    this._decodedBytesPtr = this._api._malloc(Uint32Array.BYTES_PER_ELEMENT);
+    this._decodedBytes = new Uint32Array(
+      this._api.HEAPU32.buffer,
+      this._decodedBytesPtr,
+      1
+    );
 
     this._decoder = this._api._mpeg_frame_decoder_create();
   }
@@ -89,20 +93,25 @@ export default class MPEGDecoder {
     this._sampleRate = 0;
   }
 
-  _decode(data, inputPtr) {
+  _decode(data, decodeInterval) {
     if (!(data instanceof Uint8Array))
       throw Error(
         `Data to decode must be Uint8Array. Instead got ${typeof data}`
       );
 
-    this._api.HEAPU8.set(data, inputPtr);
+    this._api.HEAPU8.set(data, this._inDataPtr);
 
-    const samplesDecoded = this._api._mpeg_decode_frame(
+    this._decodedBytes[0] = 0;
+
+    const samplesDecoded = this._api._mpeg_decode_interleaved(
       this._decoder,
-      inputPtr,
+      this._inDataPtr,
       data.length,
+      this._decodedBytesPtr,
+      decodeInterval,
       this._leftPtr,
-      this._rightPtr
+      this._rightPtr,
+      this._outputLength
     );
 
     if (!this._sampleRate)
@@ -123,48 +132,20 @@ export default class MPEGDecoder {
       right = [],
       samples = 0;
 
-    const decodedBytesPtr = this._api._malloc(Uint32Array.BYTES_PER_ELEMENT);
-    const decodedBytes = new Uint32Array(
-      this._api.HEAPU32.buffer,
-      decodedBytesPtr,
-      1
-    );
-
-    let offset = 0;
-    let loops = 0;
-
-    while (offset < data.length) {
-      loops++
-      const inputData = data.subarray(offset, offset + this._rawDataPtrSize);
-
-      this._api.HEAPU8.set(
-        inputData,
-        this._rawDataPtr
+    for (
+      let offset = 0;
+      offset < data.length;
+      offset += this._decodedBytes[0]
+    ) {
+      const { channelData, samplesDecoded } = this._decode(
+        data.subarray(offset, offset + this._inDataPtrSize),
+        48
       );
 
-      decodedBytes[0] = 0;
-
-      const samplesDecoded = this._api._mpeg_decode_frames(
-        this._decoder,
-        this._rawDataPtr,
-        inputData.length,
-        this._leftPtr,
-        this._rightPtr,
-        this._outputLength,
-        decodedBytesPtr
-      );
-
-      offset += decodedBytes[0];
-
-      if (!this._sampleRate)
-        this._sampleRate = this._api._mpeg_get_sample_rate(this._decoder);
-
-      left.push(this._leftArr.slice(0, samplesDecoded));
-      right.push(this._rightArr.slice(0, samplesDecoded));
+      left.push(channelData[0]);
+      right.push(channelData[1]);
       samples += samplesDecoded;
     }
-    
-    console.log("loops", loops)
 
     return new MPEGDecodedAudio(
       [
@@ -177,10 +158,29 @@ export default class MPEGDecoder {
   }
 
   decodeFrame(mpegFrame) {
-    return this._decode(mpegFrame, this._framePtr);
+    return this._decode(mpegFrame, mpegFrame.length);
   }
 
   decodeFrames(mpegFrames) {
-    return this._decodeArray(mpegFrames, this._framePtr);
+    let left = [],
+      right = [],
+      samples = 0;
+
+    for (const frame of mpegFrames) {
+      const { channelData, samplesDecoded } = this.decodeFrame(frame);
+
+      left.push(channelData[0]);
+      right.push(channelData[1]);
+      samples += samplesDecoded;
+    }
+
+    return new MPEGDecodedAudio(
+      [
+        MPEGDecoder.concatFloat32(left, samples),
+        MPEGDecoder.concatFloat32(right, samples),
+      ],
+      samples,
+      this._sampleRate
+    );
   }
 }

@@ -12,8 +12,7 @@ this.ready = new Promise((resolve) => {
   this._malloc = _malloc;
   this._free = _free;
   this._mpeg_frame_decoder_create = _mpeg_frame_decoder_create;
-  this._mpeg_decode_frame = _mpeg_decode_frame;
-  this._mpeg_decode_frames = _mpeg_decode_frames;
+  this._mpeg_decode_interleaved = _mpeg_decode_interleaved;
   this._mpeg_get_sample_rate = _mpeg_get_sample_rate;
   this._mpeg_frame_decoder_destroy = _mpeg_frame_decoder_destroy;
 });
