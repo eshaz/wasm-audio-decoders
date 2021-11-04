@@ -49,7 +49,7 @@ MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
 mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
 mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 	node build/compress.js $(MPG123_EMSCRIPTEN_BUILD)
-	node_modules/.bin/rollup src/mpg123-decoder/index.js --file $(MPG123_MODULE) --format umd --name "mpg123-decoder"
+	node_modules/.bin/rollup src/mpg123-decoder/index.js --file $(MPG123_MODULE) --config src/mpg123-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/mpg123-decoder/terser.json $(MPG123_MODULE) -o $(MPG123_MODULE_MIN)
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean

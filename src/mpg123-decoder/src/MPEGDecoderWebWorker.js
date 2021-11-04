@@ -1,10 +1,8 @@
+import Worker from "web-worker";
+
 import EmscriptenWASM from "./emscripten-wasm.js";
 import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
 import MPEGDecoder from "./MPEGDecoder.js";
-
-// prettier-ignore
-//const Worker = await import("worker_threads").then(({ Worker }) => Worker).catch(() => Worker);
-class Worker {}
 
 export default class MPEGDecoderWebWorker extends Worker {
   constructor() {

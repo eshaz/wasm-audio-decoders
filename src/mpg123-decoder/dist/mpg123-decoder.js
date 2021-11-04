@@ -1,8 +1,12 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["mpg123-decoder"] = {}));
-})(this, (function (exports) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('web-worker')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'web-worker'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["mpg123-decoder"] = {}, global.Worker));
+})(this, (function (exports, Worker) { 'use strict';
+
+  function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+  var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
   class MPEGDecodedAudio {
     constructor(channelData, samplesDecoded, sampleRate) {
@@ -867,11 +871,7 @@
     }
   }
 
-  // prettier-ignore
-  //const Worker = await import("worker_threads").then(({ Worker }) => Worker).catch(() => Worker);
-  //class Worker {}
-
-  class MPEGDecoderWebWorker extends Worker {
+  class MPEGDecoderWebWorker extends Worker__default["default"] {
     constructor() {
       const webworkerSourceCode =
         "'use strict';" +
