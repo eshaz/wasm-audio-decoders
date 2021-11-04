@@ -32,18 +32,23 @@ const getWaveFile = (channelData, { samples, bitDepth, sampleRate }) => {
 const testDecoder = async (fileName, decoder) => {
   const inputData = await fs.readFile(path.join(TEST_DATA_PATH, fileName));
 
-  const outputData = decoder.decode(inputData);
+  const decoderOutput = decoder.decode(inputData);
+  const actualWaveData = getWaveFile(decoderOutput.channelData, {
+    samples: decoderOutput.samplesDecoded,
+    sampleRate: decoderOutput.sampleRate,
+    bitDepth: 16,
+  });
 
-  await fs.writeFile(
-    path.join(ACTUAL_PATH, fileName + ".wav"),
-    getWaveFile(outputData.channelData, {
-      samples: outputData.samplesDecoded,
-      sampleRate: outputData.sampleRate,
-      bitDepth: 16,
-    })
-  );
+  const [expectedWaveData] = await Promise.all([
+    fs.readFile(path.join(EXPECTED_PATH, fileName + ".wav")),
+    fs.writeFile(path.join(ACTUAL_PATH, fileName + ".wav"), actualWaveData),
+  ]);
 
-  return outputData;
+  return {
+    decoderOutput,
+    actualWaveData,
+    expectedWaveData,
+  };
 };
 
 describe("mpg123-decoder", () => {
@@ -51,9 +56,12 @@ describe("mpg123-decoder", () => {
     const decoder = new MPEGDecoder();
 
     await decoder.ready;
-    const output = await testDecoder("mpeg.cbr.mp3", decoder);
+    const { decoderOutput, actualWaveData, expectedWaveData } =
+      await testDecoder("mpeg.cbr.mp3", decoder);
 
-    expect(output.samplesDecoded).toEqual(3499776);
-    expect(output.sampleRate).toEqual(44100);
+    expect(decoderOutput.samplesDecoded).toEqual(3499776);
+    expect(decoderOutput.sampleRate).toEqual(44100);
+    expect(actualWaveData.length).toEqual(expectedWaveData.length);
+    expect(Buffer.compare(expectedWaveData, actualWaveData)).toEqual(0);
   });
-}, 60000);
+});
