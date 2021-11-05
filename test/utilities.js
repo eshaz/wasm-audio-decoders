@@ -37,7 +37,7 @@ const printStats = ({
   totalBytesWritten,
 }) => {
   process.stderr.write(
-    "rate: " +
+    "  rate: " +
       (samplesDecoded / sampleRate / decodeTime).toFixed(0) +
       "x" +
       "\tmins: " +

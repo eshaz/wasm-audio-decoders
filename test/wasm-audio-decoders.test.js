@@ -74,22 +74,91 @@ describe("mpg123-decoder", () => {
     decoder.terminate();
   });
 
+  describe("frame decoding", () => {
+    let fileName,
+      paths,
+      frames = [],
+      framesLength = 0;
+
+    beforeAll(async () => {
+      fileName = "mpeg.cbr.mp3";
+      paths = getTestPaths("frames.mpeg.cbr.mp3");
+
+      const parser = new CodecParser("audio/mpeg");
+      const inputData = await fs.readFile(getTestPaths(fileName).inputPath);
+
+      for (const { data } of parser.iterator(inputData)) {
+        frames.push(data);
+        framesLength += data.length;
+      }
+    });
+
+    it("should decode mpeg frames", async () => {
+      const decoder = new MPEGDecoder();
+      await decoder.ready;
+
+      const { sampleRate, samplesDecoded } = await testDecoder_decodeFrames(
+        decoder,
+        fileName,
+        frames,
+        framesLength,
+        paths.actualPath
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(samplesDecoded).toEqual(3497472);
+      expect(sampleRate).toEqual(44100);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    it("should decode mpeg frames in a web worker", async () => {
+      const decoder = new MPEGDecoderWebWorker();
+      await decoder.ready;
+
+      const { sampleRate, samplesDecoded } = await testDecoder_decodeFrames(
+        decoder,
+        fileName,
+        frames,
+        framesLength,
+        paths.actualPath
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(samplesDecoded).toEqual(3497472);
+      expect(sampleRate).toEqual(44100);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+
+      decoder.terminate();
+    });
+  });
+
   /*it("should decode a large mpeg", async () => {
     const decoder = new MPEGDecoder();
     await decoder.ready;
 
-    const paths = getTestPaths("waug-edm-fest-spr-2015.mp3");
+    const fileName = "waug-edm-fest-spr-2015.mp3";
+    const paths = getTestPaths(fileName);
 
-    const out = await testDecoder(
+    const { sampleRate, samplesDecoded } = await testDecoder_decode(
       decoder,
-      paths.fileName,
+      fileName,
       paths.inputPath,
       paths.actualPath
     );
 
-    expect(decoderOutput.samplesDecoded).toEqual(751564800);
-    expect(decoderOutput.sampleRate).toEqual(44100);
-  }, 500000);*/
+    expect(samplesDecoded).toEqual(751564800);
+    expect(sampleRate).toEqual(44100);
+  }, 100000);*/
 });
 
 describe("opus-decoder", () => {
@@ -99,11 +168,11 @@ describe("opus-decoder", () => {
     framesLength = 0;
 
   beforeAll(async () => {
-    const inputData = await fs.readFile(getTestPaths("ogg.opus").inputPath);
-    const parser = new CodecParser("application/ogg");
-
     fileName = "ogg.opus";
     paths = getTestPaths("frames.opus");
+
+    const parser = new CodecParser("application/ogg");
+    const inputData = await fs.readFile(getTestPaths(fileName).inputPath);
 
     for (const { codecFrames } of parser.iterator(inputData)) {
       for (const { data } of codecFrames) {
