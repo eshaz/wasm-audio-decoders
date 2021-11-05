@@ -1,8 +1,12 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["ogg-opus-decoder"] = {}));
-})(this, (function (exports) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('web-worker')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'web-worker'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["ogg-opus-decoder"] = {}, global.Worker));
+})(this, (function (exports, Worker) { 'use strict';
+
+  function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+  var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
   class OpusDecodedAudio {
     constructor(channelData, samplesDecoded) {
@@ -691,7 +695,7 @@
     }
   }
 
-  class OpusDecoderWebWorker extends Worker {
+  class OpusDecoderWebWorker extends Worker__default["default"] {
     constructor() {
       const webworkerSourceCode =
         "'use strict';" +
@@ -746,11 +750,22 @@
         };
       }).toString()})()`;
 
-      super(
-        URL.createObjectURL(
-          new Blob([webworkerSourceCode], { type: "text/javascript" })
-        )
-      );
+      const type = "text/javascript";
+      let sourceURL;
+
+      try {
+        // browser
+        sourceURL = URL.createObjectURL(
+          new Blob([webworkerSourceCode], { type })
+        );
+      } catch {
+        // nodejs
+        sourceURL = `data:${type};base64,${Buffer.from(
+        webworkerSourceCode
+      ).toString("base64")}`;
+      }
+
+      super(sourceURL);
 
       this._id = Number.MIN_SAFE_INTEGER;
       this._enqueuedOperations = new Map();

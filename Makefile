@@ -19,7 +19,7 @@ OGG_OPUS_DECODER_MODULE_MIN=src/ogg-opus-decoder/dist/ogg-opus-decoder.min.js
 ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	node build/compress.js ${OGG_OPUS_DECODER_EMSCRIPTEN_BUILD}
-	node_modules/.bin/rollup src/ogg-opus-decoder/index.js --file $(OGG_OPUS_DECODER_MODULE) --format umd --name "ogg-opus-decoder"
+	node_modules/.bin/rollup src/ogg-opus-decoder/index.js --file $(OGG_OPUS_DECODER_MODULE) --config src/ogg-opus-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
 
 # opus-decoder
@@ -30,7 +30,7 @@ OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
 opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	node build/compress.js $(OPUS_DECODER_EMSCRIPTEN_BUILD)
-	node_modules/.bin/rollup src/opus-decoder/index.js --file $(OPUS_DECODER_MODULE) --format umd --name "opus-decoder"
+	node_modules/.bin/rollup src/opus-decoder/index.js --file $(OPUS_DECODER_MODULE) --config src/opus-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/opus-decoder/terser.json $(OPUS_DECODER_MODULE) -o $(OPUS_DECODER_MODULE_MIN)
 
 # libopus

@@ -4,8 +4,11 @@ import path from "path";
 import { testDecoder } from "./utilities";
 
 import { MPEGDecoder, MPEGDecoderWebWorker } from "../src/mpg123-decoder/index";
-//import { OpusDecoder, OpusDecoderWebWorker } from "../src/opus-decoder/index";
-//import { OggOpusDecoder, OggOpusDecoderWebWorker } from "../src/ogg-opus-decoder/index";
+import { OpusDecoder, OpusDecoderWebWorker } from "../src/opus-decoder/index";
+import {
+  OggOpusDecoder,
+  OggOpusDecoderWebWorker,
+} from "../src/ogg-opus-decoder/index";
 
 const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
@@ -86,4 +89,57 @@ describe("mpg123-decoder", () => {
     expect(decoderOutput.samplesDecoded).toEqual(751564800);
     expect(decoderOutput.sampleRate).toEqual(44100);
   }, 500000);*/
+});
+
+describe("ogg-opus-decoder", () => {
+  it("should decode ogg opus", async () => {
+    const decoder = new OggOpusDecoder();
+    await decoder.ready;
+
+    const fileName = "ogg.opus";
+    const paths = getTestPaths(fileName);
+
+    const { sampleRate, samplesDecoded } = await testDecoder(
+      decoder,
+      fileName,
+      paths.inputPath,
+      paths.actualPath
+    );
+
+    const [actual, expected] = await Promise.all([
+      fs.readFile(paths.actualPath),
+      fs.readFile(paths.expectedPath),
+    ]);
+
+    expect(samplesDecoded).toEqual(3806842);
+    expect(sampleRate).toEqual(48000);
+    expect(actual.length).toEqual(expected.length);
+    expect(Buffer.compare(actual, expected)).toEqual(0);
+  });
+
+  it("should decode ogg opus in a web worker", async () => {
+    const decoder = new OggOpusDecoderWebWorker();
+    await decoder.ready;
+
+    const paths = getTestPaths("ogg.opus");
+
+    const { sampleRate, samplesDecoded } = await testDecoder(
+      decoder,
+      paths.fileName,
+      paths.inputPath,
+      paths.actualPath
+    );
+
+    const [actual, expected] = await Promise.all([
+      fs.readFile(paths.actualPath),
+      fs.readFile(paths.expectedPath),
+    ]);
+
+    expect(samplesDecoded).toEqual(3806842);
+    expect(sampleRate).toEqual(48000);
+    expect(actual.length).toEqual(expected.length);
+    expect(Buffer.compare(actual, expected)).toEqual(0);
+
+    decoder.terminate();
+  });
 });
