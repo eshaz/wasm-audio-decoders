@@ -12,7 +12,7 @@ dist-clean:
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 
 # ogg-opus-decoder
-OGG_OPUS_DECODER_EMSCRIPTEN_BUILD=src/ogg-opus-decoder/src/emscripten-wasm.js
+OGG_OPUS_DECODER_EMSCRIPTEN_BUILD=src/ogg-opus-decoder/src/EmscriptenWasm.js
 OGG_OPUS_DECODER_MODULE=src/ogg-opus-decoder/dist/ogg-opus-decoder.js
 OGG_OPUS_DECODER_MODULE_MIN=src/ogg-opus-decoder/dist/ogg-opus-decoder.min.js
 
@@ -23,7 +23,7 @@ ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
 
 # opus-decoder
-OPUS_DECODER_EMSCRIPTEN_BUILD=src/opus-decoder/src/emscripten-wasm.js
+OPUS_DECODER_EMSCRIPTEN_BUILD=src/opus-decoder/src/EmscriptenWasm.js
 OPUS_DECODER_MODULE=src/opus-decoder/dist/opus-decoder.js
 OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
 
@@ -42,7 +42,7 @@ opus-wasmlib-clean: dist-clean
 # mpg123-decoder
 MPG123_SRC=modules/mpg123
 MPG123_WASM_LIB=tmp/mpg123.bc
-MPG123_EMSCRIPTEN_BUILD=src/mpg123-decoder/src/emscripten-wasm.js
+MPG123_EMSCRIPTEN_BUILD=src/mpg123-decoder/src/EmscriptenWasm.js
 MPG123_MODULE=src/mpg123-decoder/dist/mpg123-decoder.js
 MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
 

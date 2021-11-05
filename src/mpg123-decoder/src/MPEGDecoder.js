@@ -1,5 +1,5 @@
 import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
-import EmscriptenWASM from "./emscripten-wasm.js";
+import EmscriptenWASM from "./EmscriptenWasm.js";
 
 let wasm;
 
