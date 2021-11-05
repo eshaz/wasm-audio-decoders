@@ -2,18 +2,23 @@
 #include <mpg123.h>
 
 typedef struct {
-    // stores the interleaved PCM result
-    int *errors;
+    // stores the interleaved PCM result of one MPEG frame
     unsigned char pcm[4*2*1152]; //max_mpeg_frame_size*bit_reservoir*channels*sizeof(float)
     mpg123_handle *mh;
     struct mpg123_frameinfo fr;
 } MPEGFrameDecoder;
 
-// sample rate should almost always be 48000
 MPEGFrameDecoder *mpeg_frame_decoder_create();
 
-// left and right should be able to store frame_size*channels*sizeof(float) 
-// frame_size should be the maximum packet duration (120ms; 5760 for 48kHz)
-int mpeg_decode_float_deinterleaved(MPEGFrameDecoder *st, unsigned char *in, size_t in_size, float *left, float *right);
+int mpeg_decode_interleaved(
+    MPEGFrameDecoder *decoder, // mpg123 decoder handle
+    unsigned char *in, // input data
+    size_t in_size, // input data size
+    unsigned int *in_read_pos, // total bytes read from input buffer
+    size_t in_read_chunk_size, // interval of bytes to read from input data
+    float *left, // left output audio
+    float *right, // right output audio
+    size_t out_size // output audio buffer size
+);
 
 void mpeg_frame_decoder_destroy(MPEGFrameDecoder *st);

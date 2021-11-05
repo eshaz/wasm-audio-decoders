@@ -1,4 +1,5 @@
-import EmscriptenWASM from "./emscripten-wasm.js";
+import Worker from "web-worker";
+import EmscriptenWASM from "./EmscriptenWasm.js";
 import OpusDecodedAudio from "./OpusDecodedAudio.js";
 import OpusDecoder from "./OpusDecoder.js";
 
@@ -64,11 +65,22 @@ export default class OpusDecoderWebWorker extends Worker {
         };
       }).toString()})()`;
 
-    super(
-      URL.createObjectURL(
-        new Blob([webworkerSourceCode], { type: "text/javascript" })
-      )
-    );
+    const type = "text/javascript";
+    let sourceURL;
+
+    try {
+      // browser
+      sourceURL = URL.createObjectURL(
+        new Blob([webworkerSourceCode], { type })
+      );
+    } catch {
+      // nodejs
+      sourceURL = `data:${type};base64,${Buffer.from(
+        webworkerSourceCode
+      ).toString("base64")}`;
+    }
+
+    super(sourceURL);
 
     this._id = Number.MIN_SAFE_INTEGER;
     this._enqueuedOperations = new Map();

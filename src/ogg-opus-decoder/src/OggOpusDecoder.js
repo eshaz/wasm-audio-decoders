@@ -1,5 +1,5 @@
 import OpusDecodedAudio from "./OpusDecodedAudio.js";
-import EmscriptenWASM from "./emscripten-wasm.js";
+import EmscriptenWASM from "./EmscriptenWasm.js";
 
 let wasm;
 

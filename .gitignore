@@ -3,3 +3,6 @@
 .DS_Store
 node_modules
 .vscode
+
+coverage
+test/actual/*
