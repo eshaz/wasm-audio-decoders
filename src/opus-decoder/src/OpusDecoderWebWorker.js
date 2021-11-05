@@ -1,3 +1,4 @@
+import Worker from "web-worker";
 import EmscriptenWASM from "./emscripten-wasm.js";
 import OpusDecodedAudio from "./OpusDecodedAudio.js";
 import OpusDecoder from "./OpusDecoder.js";

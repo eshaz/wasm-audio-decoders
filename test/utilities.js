@@ -26,13 +26,103 @@ const getWaveFileHeader = ({ bitDepth, sampleRate, length, channels }) =>
     sampleRate,
   });
 
-export const testDecoder = async (decoder, fileName, inputPath, outputPath) => {
+const printStats = ({
+  decodeTime,
+  samplesDecoded,
+  sampleRate,
+  totalSamplesDecoded,
+  bytesRead,
+  totalBytesRead,
+  bytesWritten,
+  totalBytesWritten,
+}) => {
+  process.stderr.write(
+    "rate: " +
+      (samplesDecoded / sampleRate / decodeTime).toFixed(0) +
+      "x" +
+      "\tmins: " +
+      (totalSamplesDecoded / sampleRate / 60).toFixed(2) +
+      "\tin: " +
+      (totalBytesRead / 1024 ** 2).toFixed(2) +
+      " MiB (" +
+      (bytesRead / decodeTime / 1024 ** 2).toFixed(2) +
+      " MiB/s)" +
+      "\tout: " +
+      (totalBytesWritten / 1024 ** 2).toFixed(2) +
+      " MiB (" +
+      (bytesWritten / decodeTime / 1024 ** 2).toFixed(2) +
+      "MiB/s)" +
+      "\n"
+  );
+};
+
+export const testDecoder_decodeFrames = async (
+  decoder,
+  fileName,
+  frames,
+  framesLength,
+  outputPath
+) => {
+  const output = await fs.open(outputPath, "w+");
+
+  // allocate space for the wave header
+  await output.writeFile(Buffer.alloc(44));
+
+  // print the initial stats header
+  process.stderr.write("\n" + decoder.constructor.name + " " + fileName + "\n");
+
+  const decodeStart = performance.now();
+  const { channelData, samplesDecoded, sampleRate } =
+    await decoder.decodeFrames(frames);
+  const decodeEnd = performance.now();
+
+  const interleaved = getInterleavedInt16Array(channelData, samplesDecoded);
+
+  await output.writeFile(interleaved);
+
+  const decodeTime = (decodeEnd - decodeStart) / 1000;
+
+  printStats({
+    decodeTime,
+    samplesDecoded,
+    sampleRate,
+    totalSamplesDecoded: samplesDecoded,
+    bytesRead: framesLength,
+    totalBytesRead: framesLength,
+    bytesWritten: interleaved.length * 2,
+    totalBytesWritten: interleaved.length * 2,
+  });
+
+  const header = getWaveFileHeader({
+    bitDepth: 16,
+    sampleRate,
+    samplesDecoded,
+    length: interleaved.length,
+    channels: 2,
+  });
+
+  await output.write(header, 0, header.length, 0);
+  await output.close();
+
+  return {
+    samplesDecoded,
+    sampleRate,
+  };
+};
+
+export const testDecoder_decode = async (
+  decoder,
+  fileName,
+  inputPath,
+  outputPath
+) => {
   const input = await fs.open(inputPath, "r+");
   const output = await fs.open(outputPath, "w+");
 
   let decodeStart, decodeEnd, inStart, inEnd, outStart, outEnd;
 
-  let bytesWritten = 44,
+  let bytesWritten = 0,
+    totalBytesWritten = 0,
     totalBytesRead = 0,
     sampleRate,
     totalSamplesDecoded = 0;
@@ -69,40 +159,32 @@ export const testDecoder = async (decoder, fileName, inputPath, outputPath) => {
     outEnd = performance.now();
 
     sampleRate = rate;
-    bytesWritten += interleaved.length;
+    bytesWritten = interleaved.length * 2;
+    totalBytesWritten += bytesWritten;
     totalSamplesDecoded += samplesDecoded;
     totalBytesRead += bytesRead;
 
     const decodeTime = (decodeEnd - decodeStart) / 1000;
     const inTime = (inEnd - inStart) / 1000;
     const outTime = (outEnd - outStart) / 1000;
-    const actualBytesWritten = bytesWritten * 2;
 
-    process.stderr.write(
-      "rate: " +
-        (samplesDecoded / sampleRate / decodeTime).toFixed(0) +
-        "x" +
-        "\tmins: " +
-        (totalSamplesDecoded / sampleRate / 60).toFixed(2) +
-        "\tin: " +
-        (totalBytesRead / 1024 ** 2).toFixed(2) +
-        " MiB (" +
-        (bytesRead / decodeTime / 1024 ** 2).toFixed(2) +
-        " MiB/s)" +
-        "\tout: " +
-        (actualBytesWritten / 1024 ** 2).toFixed(2) +
-        " MiB (" +
-        ((interleaved.length * 2) / decodeTime / 1024 ** 2).toFixed(2) +
-        "MiB/s)" +
-        "\n"
-    );
+    printStats({
+      decodeTime,
+      samplesDecoded,
+      sampleRate,
+      totalSamplesDecoded,
+      bytesRead,
+      totalBytesRead,
+      bytesWritten,
+      totalBytesWritten,
+    });
   }
 
   const header = getWaveFileHeader({
     bitDepth: 16,
     sampleRate,
     samplesDecoded: totalSamplesDecoded,
-    length: bytesWritten - 44,
+    length: totalBytesWritten / 2,
     channels: 2,
   });
 

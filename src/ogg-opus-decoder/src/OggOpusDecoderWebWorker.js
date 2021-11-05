@@ -4,7 +4,7 @@ import EmscriptenWASM from "./emscripten-wasm.js";
 import OpusDecodedAudio from "./OpusDecodedAudio.js";
 import OggOpusDecoder from "./OggOpusDecoder.js";
 
-export default class OpusDecoderWebWorker extends Worker {
+export default class OggOpusDecoderWebWorker extends Worker {
   constructor() {
     const webworkerSourceCode =
       "'use strict';" +

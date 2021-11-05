@@ -695,7 +695,7 @@
     }
   }
 
-  class OpusDecoderWebWorker extends Worker__default["default"] {
+  class OggOpusDecoderWebWorker extends Worker__default["default"] {
     constructor() {
       const webworkerSourceCode =
         "'use strict';" +
@@ -811,7 +811,7 @@
   }
 
   exports.OggOpusDecoder = OggOpusDecoder;
-  exports.OggOpusDecoderWebWorker = OpusDecoderWebWorker;
+  exports.OggOpusDecoderWebWorker = OggOpusDecoderWebWorker;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
