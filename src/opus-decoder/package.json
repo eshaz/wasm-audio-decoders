@@ -1,12 +1,13 @@
 {
   "name": "opus-decoder",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Web Assembly streaming Opus decoder",
   "main": "dist/opus-decoder.min.js",
   "module": "index.js",
   "types": "types.d.ts",
   "files": [
     "index.js",
+    "types.d.ts",
     "src/EmscriptenWasm.js",
     "src/OpusDecodedAudio.js",
     "src/OpusDecoder.js",
