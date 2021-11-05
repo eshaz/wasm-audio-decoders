@@ -37,6 +37,8 @@ describe("mpg123-decoder", () => {
       paths.actualPath
     );
 
+    decoder.free();
+
     const [actual, expected] = await Promise.all([
       fs.readFile(paths.actualPath),
       fs.readFile(paths.expectedPath),
@@ -61,6 +63,8 @@ describe("mpg123-decoder", () => {
       paths.actualPath
     );
 
+    decoder.terminate();
+
     const [actual, expected] = await Promise.all([
       fs.readFile(paths.actualPath),
       fs.readFile(paths.expectedPath),
@@ -70,9 +74,27 @@ describe("mpg123-decoder", () => {
     expect(sampleRate).toEqual(44100);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
-
-    decoder.terminate();
   });
+
+  /*it("should decode a large mpeg", async () => {
+    const decoder = new MPEGDecoder();
+    await decoder.ready;
+
+    const fileName = "waug-edm-fest-spr-2015.mp3";
+    const paths = getTestPaths(fileName);
+
+    const { sampleRate, samplesDecoded } = await testDecoder_decode(
+      decoder,
+      fileName,
+      paths.inputPath,
+      paths.actualPath
+    );
+
+    decoder.free()
+
+    expect(samplesDecoded).toEqual(751564800);
+    expect(sampleRate).toEqual(44100);
+  }, 100000);*/
 
   describe("frame decoding", () => {
     let fileName,
@@ -110,6 +132,8 @@ describe("mpg123-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
+      decoder.free();
+
       expect(samplesDecoded).toEqual(3497472);
       expect(sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
@@ -133,32 +157,14 @@ describe("mpg123-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
+      decoder.terminate();
+
       expect(samplesDecoded).toEqual(3497472);
       expect(sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
-
-      decoder.terminate();
     });
   });
-
-  /*it("should decode a large mpeg", async () => {
-    const decoder = new MPEGDecoder();
-    await decoder.ready;
-
-    const fileName = "waug-edm-fest-spr-2015.mp3";
-    const paths = getTestPaths(fileName);
-
-    const { sampleRate, samplesDecoded } = await testDecoder_decode(
-      decoder,
-      fileName,
-      paths.inputPath,
-      paths.actualPath
-    );
-
-    expect(samplesDecoded).toEqual(751564800);
-    expect(sampleRate).toEqual(44100);
-  }, 100000);*/
 });
 
 describe("opus-decoder", () => {
@@ -199,6 +205,8 @@ describe("opus-decoder", () => {
       fs.readFile(paths.expectedPath),
     ]);
 
+    decoder.free();
+
     expect(samplesDecoded).toEqual(3791040);
     expect(sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
@@ -222,12 +230,12 @@ describe("opus-decoder", () => {
       fs.readFile(paths.expectedPath),
     ]);
 
+    decoder.terminate();
+
     expect(samplesDecoded).toEqual(3791040);
     expect(sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
-
-    decoder.terminate();
   });
 });
 
@@ -245,6 +253,8 @@ describe("ogg-opus-decoder", () => {
       paths.inputPath,
       paths.actualPath
     );
+
+    decoder.free();
 
     const [actual, expected] = await Promise.all([
       fs.readFile(paths.actualPath),
@@ -270,6 +280,8 @@ describe("ogg-opus-decoder", () => {
       paths.actualPath
     );
 
+    decoder.terminate();
+
     const [actual, expected] = await Promise.all([
       fs.readFile(paths.actualPath),
       fs.readFile(paths.expectedPath),
@@ -279,7 +291,5 @@ describe("ogg-opus-decoder", () => {
     expect(sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
-
-    decoder.terminate();
   });
 });
