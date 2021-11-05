@@ -7,7 +7,10 @@
   "types": "types.d.ts",
   "files": [
     "index.js",
-    "src/*",
+    "src/EmscriptenWasm.js",
+    "src/OggOpusDecodedAudio.js",
+    "src/OggOpusDecoder.js",
+    "src/OggOpusDecoderWebWorker.js",
     "dist/ogg-opus-decoder.min.js",
     "dist/ogg-opus-decoder.min.js.map"
   ],
