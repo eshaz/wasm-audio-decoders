@@ -1,101 +1,89 @@
 import fs from "fs/promises";
-import { performance } from "perf_hooks";
 import path from "path";
-import waveHeader from "@wpdas/wave-header";
+
+import { testDecoder } from "./utilities";
 
 import { MPEGDecoder, MPEGDecoderWebWorker } from "../src/mpg123-decoder/index";
+//import { OpusDecoder, OpusDecoderWebWorker } from "../src/opus-decoder/index";
+//import { OggOpusDecoder, OggOpusDecoderWebWorker } from "../src/ogg-opus-decoder/index";
 
 const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
 const TEST_DATA_PATH = new URL("data", import.meta.url).pathname;
 
-const max = (a, b) => (a > b ? a : b);
-const min = (a, b) => (a < b ? a : b);
-const floatToInt = (val) =>
-  val > 0 ? min(val * 32767, 32767) : max(val * 32767, -32768);
-
-const getInterleavedInt16Array = (channelData, samples) => {
-  const channels = channelData.length;
-  const interleaved = new Int16Array(samples * channels);
-
-  for (let offset = 0; offset - channels < samples; offset++) {
-    interleaved[offset * channels] = floatToInt(channelData[0][offset]);
-    interleaved[offset * channels + 1] = floatToInt(channelData[1][offset]);
-  }
-
-  return interleaved;
-};
-
-const getWaveFileHeader = ({ bitDepth, sampleRate, byteLength, channels }) =>
-  waveHeader.generateHeader(Int16Array.BYTES_PER_ELEMENT * byteLength, {
-    channels,
-    bitDepth,
-    sampleRate,
-  });
-
-const getWaveFile = (channelData, { samples, bitDepth, sampleRate }) => {
-  const interleaved = getInterleavedInt16Array(channelData, samples);
-
-  const header = getWaveFileHeader({
-    bitDepth,
-    sampleRate,
-    byteLength: interleaved.length,
-    channels: channelData.length,
-  });
-
-  return Buffer.concat([header, Buffer.from(interleaved.buffer)]);
-};
-
-const testDecoder = async (fileName, decoder) => {
-  const inputData = await fs.readFile(path.join(TEST_DATA_PATH, fileName));
-
-  const decoderOutput = await decoder.decode(inputData);
-
-  const actualWaveData = getWaveFile(decoderOutput.channelData, {
-    samples: decoderOutput.samplesDecoded,
-    sampleRate: decoderOutput.sampleRate,
-    bitDepth: 16,
-  });
-
-  const [expectedWaveData] = await Promise.all([
-    fs.readFile(path.join(EXPECTED_PATH, fileName + ".wav")),
-    fs.writeFile(path.join(ACTUAL_PATH, fileName + ".wav"), actualWaveData),
-  ]);
-
-  return {
-    decoderOutput,
-    actualWaveData,
-    expectedWaveData,
-  };
-};
+const getTestPaths = (fileName) => ({
+  fileName,
+  inputPath: path.join(TEST_DATA_PATH, fileName),
+  actualPath: path.join(ACTUAL_PATH, fileName + ".wav"),
+  expectedPath: path.join(EXPECTED_PATH, fileName + ".wav"),
+});
 
 describe("mpg123-decoder", () => {
   it("should decode mpeg", async () => {
     const decoder = new MPEGDecoder();
-
     await decoder.ready;
-    const { decoderOutput, actualWaveData, expectedWaveData } =
-      await testDecoder("mpeg.cbr.mp3", decoder);
 
-    expect(decoderOutput.samplesDecoded).toEqual(3499776);
-    expect(decoderOutput.sampleRate).toEqual(44100);
-    expect(actualWaveData.length).toEqual(expectedWaveData.length);
-    expect(Buffer.compare(expectedWaveData, actualWaveData)).toEqual(0);
+    const fileName = "mpeg.cbr.mp3";
+    const paths = getTestPaths(fileName);
+
+    const { sampleRate, samplesDecoded } = await testDecoder(
+      decoder,
+      fileName,
+      paths.inputPath,
+      paths.actualPath
+    );
+
+    const [actual, expected] = await Promise.all([
+      fs.readFile(paths.actualPath),
+      fs.readFile(paths.expectedPath),
+    ]);
+
+    expect(samplesDecoded).toEqual(3499776);
+    expect(sampleRate).toEqual(44100);
+    expect(actual.length).toEqual(expected.length);
+    expect(Buffer.compare(actual, expected)).toEqual(0);
   });
 
   it("should decode mpeg in a web worker", async () => {
     const decoder = new MPEGDecoderWebWorker();
-
     await decoder.ready;
 
-    const { decoderOutput, actualWaveData, expectedWaveData } =
-      await testDecoder("mpeg.cbr.mp3", decoder);
+    const paths = getTestPaths("mpeg.cbr.mp3");
 
-    expect(decoderOutput.samplesDecoded).toEqual(3499776);
-    expect(decoderOutput.sampleRate).toEqual(44100);
-    expect(actualWaveData.length).toEqual(expectedWaveData.length);
-    expect(Buffer.compare(expectedWaveData, actualWaveData)).toEqual(0);
+    const { sampleRate, samplesDecoded } = await testDecoder(
+      decoder,
+      paths.fileName,
+      paths.inputPath,
+      paths.actualPath
+    );
+
+    const [actual, expected] = await Promise.all([
+      fs.readFile(paths.actualPath),
+      fs.readFile(paths.expectedPath),
+    ]);
+
+    expect(samplesDecoded).toEqual(3499776);
+    expect(sampleRate).toEqual(44100);
+    expect(actual.length).toEqual(expected.length);
+    expect(Buffer.compare(actual, expected)).toEqual(0);
 
     decoder.terminate();
   });
+
+  /*it("should decode a large mpeg", async () => {
+    const decoder = new MPEGDecoder();
+    await decoder.ready;
+
+    const paths = getTestPaths("waug-edm-fest-spr-2015.mp3");
+
+    const out = await testDecoder(
+      decoder,
+      paths.fileName,
+      paths.inputPath,
+      paths.actualPath
+    );
+
+    expect(decoderOutput.samplesDecoded).toEqual(751564800);
+    expect(decoderOutput.sampleRate).toEqual(44100);
+  }, 500000);*/
 });
