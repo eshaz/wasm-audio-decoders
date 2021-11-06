@@ -1,7 +1,8 @@
 # `opus-decoder`
 
 `opus-decoder` is a Web Assembly Opus audio decoder.
-  * 87.2 KiB minified bundle size
+  * 87.4 KiB minified bundle size
+  * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`libopus`](https://github.com/xiph/opus)
 
