@@ -529,7 +529,9 @@
 
   class OpusDecoder {
     constructor(_OpusDecodedAudio, _EmscriptenWASM) {
-      this._ready = new Promise((resolve) => this._init(_OpusDecodedAudio, _EmscriptenWASM).then(resolve));
+      this._ready = new Promise((resolve) =>
+        this._init(_OpusDecodedAudio, _EmscriptenWASM).then(resolve)
+      );
     }
 
     static concatFloat32(buffers, length) {
@@ -553,15 +555,16 @@
     // injects dependencies when running as a web worker
     async _init(_OpusDecodedAudio, _EmscriptenWASM) {
       if (!this._api) {
-        let isMainThread;
+        const isWebWorker = _OpusDecodedAudio && _EmscriptenWASM;
 
-        try {
-          if (wasm || !wasm) isMainThread = true;
-        } catch {
-          isMainThread = false;
-        }
+        if (isWebWorker) {
+          // use classes injected into constructor parameters
+          this._OpusDecodedAudio = _OpusDecodedAudio;
+          this._EmscriptenWASM = _EmscriptenWASM;
 
-        if (isMainThread) {
+          // running as a webworker, use class level singleton for wasm compilation
+          this._api = new this._EmscriptenWASM();
+        } else {
           // use classes from es6 imports
           this._OpusDecodedAudio = OpusDecodedAudio;
           this._EmscriptenWASM = EmscriptenWASM;
@@ -569,13 +572,6 @@
           // use a global scope singleton so wasm compilation happens once only if class is instantiated
           if (!wasm) wasm = new this._EmscriptenWASM();
           this._api = wasm;
-        } else {
-          // use classes injected into constructor parameters
-          this._OpusDecodedAudio = _OpusDecodedAudio;
-          this._EmscriptenWASM = _EmscriptenWASM;
-
-          // running as a webworker, use class level singleton for wasm compilation
-          this._api = new this._EmscriptenWASM();
         }
       }
 
