@@ -22,56 +22,79 @@ const getTestPaths = (fileName) => ({
   expectedPath: path.join(EXPECTED_PATH, fileName + ".wav"),
 });
 
+const test_decode = async (DecoderClass, testName, fileName) => {
+  const decoder = new DecoderClass();
+
+  const paths = getTestPaths(fileName);
+
+  const result = await decoder.ready.then(() =>
+    testDecoder_decode(decoder, testName, paths.inputPath, paths.actualPath)
+  );
+
+  decoder.free();
+
+  return { paths, result };
+};
+
+const test_decodeFrames = async (
+  DecoderClass,
+  testName,
+  fileName,
+  frames,
+  framesLength
+) => {
+  const decoder = new DecoderClass();
+
+  const paths = getTestPaths(fileName);
+
+  const result = await decoder.ready.then(() =>
+    testDecoder_decodeFrames(
+      decoder,
+      testName,
+      frames,
+      framesLength,
+      paths.actualPath
+    )
+  );
+
+  decoder.free();
+
+  return { paths, result };
+};
+
 describe("mpg123-decoder", () => {
   it("should decode mpeg", async () => {
-    const decoder = new MPEGDecoder();
-    await decoder.ready;
-
-    const fileName = "mpeg.cbr.mp3";
-    const paths = getTestPaths(fileName);
-
-    const { sampleRate, samplesDecoded } = await testDecoder_decode(
-      decoder,
-      fileName,
-      paths.inputPath,
-      paths.actualPath
+    const { paths, result } = await test_decode(
+      MPEGDecoder,
+      "should decode mpeg",
+      "mpeg.cbr.mp3"
     );
-
-    decoder.free();
 
     const [actual, expected] = await Promise.all([
       fs.readFile(paths.actualPath),
       fs.readFile(paths.expectedPath),
     ]);
 
-    expect(samplesDecoded).toEqual(3499776);
-    expect(sampleRate).toEqual(44100);
+    expect(result.samplesDecoded).toEqual(3499776);
+    expect(result.sampleRate).toEqual(44100);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
 
   it("should decode mpeg in a web worker", async () => {
-    const decoder = new MPEGDecoderWebWorker();
-    await decoder.ready;
-
-    const paths = getTestPaths("mpeg.cbr.mp3");
-
-    const { sampleRate, samplesDecoded } = await testDecoder_decode(
-      decoder,
-      paths.fileName,
-      paths.inputPath,
-      paths.actualPath
+    const { paths, result } = await test_decode(
+      MPEGDecoderWebWorker,
+      "should decode mpeg in a web worker",
+      "mpeg.cbr.mp3"
     );
-
-    decoder.terminate();
 
     const [actual, expected] = await Promise.all([
       fs.readFile(paths.actualPath),
       fs.readFile(paths.expectedPath),
     ]);
 
-    expect(samplesDecoded).toEqual(3499776);
-    expect(sampleRate).toEqual(44100);
+    expect(result.samplesDecoded).toEqual(3499776);
+    expect(result.sampleRate).toEqual(44100);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
@@ -98,13 +121,11 @@ describe("mpg123-decoder", () => {
 
   describe("frame decoding", () => {
     let fileName,
-      paths,
       frames = [],
       framesLength = 0;
 
     beforeAll(async () => {
       fileName = "mpeg.cbr.mp3";
-      paths = getTestPaths("frames.mpeg.cbr.mp3");
 
       const parser = new CodecParser("audio/mpeg");
       const inputData = await fs.readFile(getTestPaths(fileName).inputPath);
@@ -116,15 +137,12 @@ describe("mpg123-decoder", () => {
     });
 
     it("should decode mpeg frames", async () => {
-      const decoder = new MPEGDecoder();
-      await decoder.ready;
-
-      const { sampleRate, samplesDecoded } = await testDecoder_decodeFrames(
-        decoder,
-        fileName,
+      const { paths, result } = await test_decodeFrames(
+        MPEGDecoder,
+        "should decode mpeg frames in a web worker",
+        "frames.mpeg.cbr.mp3",
         frames,
-        framesLength,
-        paths.actualPath
+        framesLength
       );
 
       const [actual, expected] = await Promise.all([
@@ -132,24 +150,19 @@ describe("mpg123-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      decoder.free();
-
-      expect(samplesDecoded).toEqual(3497472);
-      expect(sampleRate).toEqual(44100);
+      expect(result.samplesDecoded).toEqual(3497472);
+      expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
 
     it("should decode mpeg frames in a web worker", async () => {
-      const decoder = new MPEGDecoderWebWorker();
-      await decoder.ready;
-
-      const { sampleRate, samplesDecoded } = await testDecoder_decodeFrames(
-        decoder,
-        fileName,
+      const { paths, result } = await test_decodeFrames(
+        MPEGDecoderWebWorker,
+        "should decode mpeg frames in a web worker",
+        "frames.mpeg.cbr.mp3",
         frames,
-        framesLength,
-        paths.actualPath
+        framesLength
       );
 
       const [actual, expected] = await Promise.all([
@@ -157,25 +170,91 @@ describe("mpg123-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      decoder.terminate();
-
-      expect(samplesDecoded).toEqual(3497472);
-      expect(sampleRate).toEqual(44100);
+      expect(result.samplesDecoded).toEqual(3497472);
+      expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+  });
+
+  describe("sample rates", () => {
+    it("should return 44100 as the sample rate", async () => {
+      const [
+        { paths: paths1, result: result1 },
+        { paths: paths2, result: result2 },
+        { paths: paths3, result: result3 },
+        { paths: paths4, result: result4 },
+      ] = await Promise.all([
+        test_decode(
+          MPEGDecoderWebWorker,
+          "should return 44100 as the sample rate",
+          "samplerate.1.mp3"
+        ),
+        test_decode(
+          MPEGDecoderWebWorker,
+          "should return 44100 as the sample rate",
+          "samplerate.2.mp3"
+        ),
+        test_decode(
+          MPEGDecoderWebWorker,
+          "should return 44100 as the sample rate",
+          "samplerate.3.mp3"
+        ),
+        test_decode(
+          MPEGDecoderWebWorker,
+          "should return 44100 as the sample rate",
+          "samplerate.4.mp3"
+        ),
+      ]);
+
+      const [
+        actual1,
+        expected1,
+        actual2,
+        expected2,
+        actual3,
+        expected3,
+        actual4,
+        expected4,
+      ] = await Promise.all([
+        fs.readFile(paths1.actualPath),
+        fs.readFile(paths1.expectedPath),
+        fs.readFile(paths2.actualPath),
+        fs.readFile(paths2.expectedPath),
+        fs.readFile(paths3.actualPath),
+        fs.readFile(paths3.expectedPath),
+        fs.readFile(paths4.actualPath),
+        fs.readFile(paths4.expectedPath),
+      ]);
+
+      expect(result1.sampleRate).toEqual(44100);
+      expect(result1.samplesDecoded).toEqual(21888);
+      expect(result2.sampleRate).toEqual(44100);
+      expect(result2.samplesDecoded).toEqual(21888);
+      expect(result3.sampleRate).toEqual(44100);
+      expect(result3.samplesDecoded).toEqual(21888);
+      expect(result4.sampleRate).toEqual(44100);
+      expect(result4.samplesDecoded).toEqual(21888);
+
+      expect(actual1.length).toEqual(expected1.length);
+      expect(actual2.length).toEqual(expected2.length);
+      expect(actual3.length).toEqual(expected3.length);
+      expect(actual4.length).toEqual(expected4.length);
+      expect(Buffer.compare(actual1, expected1)).toEqual(0);
+      expect(Buffer.compare(actual2, expected2)).toEqual(0);
+      expect(Buffer.compare(actual3, expected3)).toEqual(0);
+      expect(Buffer.compare(actual4, expected4)).toEqual(0);
     });
   });
 });
 
 describe("opus-decoder", () => {
   let fileName,
-    paths,
     frames = [],
     framesLength = 0;
 
   beforeAll(async () => {
     fileName = "ogg.opus";
-    paths = getTestPaths("frames.opus");
 
     const parser = new CodecParser("application/ogg");
     const inputData = await fs.readFile(getTestPaths(fileName).inputPath);
@@ -189,15 +268,12 @@ describe("opus-decoder", () => {
   });
 
   it("should decode opus frames", async () => {
-    const decoder = new OpusDecoder();
-    await decoder.ready;
-
-    const { sampleRate, samplesDecoded } = await testDecoder_decodeFrames(
-      decoder,
-      fileName,
+    const { paths, result } = await test_decodeFrames(
+      OpusDecoder,
+      "should decode opus frames",
+      "frames.opus",
       frames,
-      framesLength,
-      paths.actualPath
+      framesLength
     );
 
     const [actual, expected] = await Promise.all([
@@ -205,24 +281,19 @@ describe("opus-decoder", () => {
       fs.readFile(paths.expectedPath),
     ]);
 
-    decoder.free();
-
-    expect(samplesDecoded).toEqual(3791040);
-    expect(sampleRate).toEqual(48000);
+    expect(result.samplesDecoded).toEqual(3791040);
+    expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
 
   it("should decode opus frames in a web worker", async () => {
-    const decoder = new OpusDecoderWebWorker();
-    await decoder.ready;
-
-    const { sampleRate, samplesDecoded } = await testDecoder_decodeFrames(
-      decoder,
-      fileName,
+    const { paths, result } = await test_decodeFrames(
+      OpusDecoderWebWorker,
+      "should decode opus frames in a web worker",
+      "frames.opus",
       frames,
-      framesLength,
-      paths.actualPath
+      framesLength
     );
 
     const [actual, expected] = await Promise.all([
@@ -230,10 +301,8 @@ describe("opus-decoder", () => {
       fs.readFile(paths.expectedPath),
     ]);
 
-    decoder.terminate();
-
-    expect(samplesDecoded).toEqual(3791040);
-    expect(sampleRate).toEqual(48000);
+    expect(result.samplesDecoded).toEqual(3791040);
+    expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
@@ -241,54 +310,37 @@ describe("opus-decoder", () => {
 
 describe("ogg-opus-decoder", () => {
   it("should decode ogg opus", async () => {
-    const decoder = new OggOpusDecoder();
-    await decoder.ready;
-
-    const fileName = "ogg.opus";
-    const paths = getTestPaths(fileName);
-
-    const { sampleRate, samplesDecoded } = await testDecoder_decode(
-      decoder,
-      fileName,
-      paths.inputPath,
-      paths.actualPath
+    const { paths, result } = await test_decode(
+      OggOpusDecoder,
+      "should decode ogg opus",
+      "ogg.opus"
     );
-
-    decoder.free();
 
     const [actual, expected] = await Promise.all([
       fs.readFile(paths.actualPath),
       fs.readFile(paths.expectedPath),
     ]);
 
-    expect(samplesDecoded).toEqual(3806842);
-    expect(sampleRate).toEqual(48000);
+    expect(result.samplesDecoded).toEqual(3806842);
+    expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
 
   it("should decode ogg opus in a web worker", async () => {
-    const decoder = new OggOpusDecoderWebWorker();
-    await decoder.ready;
-
-    const paths = getTestPaths("ogg.opus");
-
-    const { sampleRate, samplesDecoded } = await testDecoder_decode(
-      decoder,
-      paths.fileName,
-      paths.inputPath,
-      paths.actualPath
+    const { paths, result } = await test_decode(
+      OggOpusDecoderWebWorker,
+      "should decode ogg opus in a web worker",
+      "ogg.opus"
     );
-
-    decoder.terminate();
 
     const [actual, expected] = await Promise.all([
       fs.readFile(paths.actualPath),
       fs.readFile(paths.expectedPath),
     ]);
 
-    expect(samplesDecoded).toEqual(3806842);
-    expect(sampleRate).toEqual(48000);
+    expect(result.samplesDecoded).toEqual(3806842);
+    expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });

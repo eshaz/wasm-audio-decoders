@@ -8,12 +8,10 @@ export default class MPEGDecoderWebWorker extends Worker {
   constructor() {
     const webworkerSourceCode =
       "'use strict';" +
-      EmscriptenWASM.toString() +
-      MPEGDecodedAudio.toString() +
-      MPEGDecoder.toString() +
-      `(${(() => {
+      // dependencies need to be manually resolved when stringifying this function
+      `(${((_MPEGDecoder, _MPEGDecodedAudio, _EmscriptenWASM) => {
         // We're in a Web Worker
-        const decoder = new MPEGDecoder();
+        const decoder = new _MPEGDecoder(_MPEGDecodedAudio, _EmscriptenWASM);
 
         const detachBuffers = (buffer) =>
           Array.isArray(buffer)
@@ -65,7 +63,7 @@ export default class MPEGDecoderWebWorker extends Worker {
               this.console.error("Unknown command sent to worker: " + command);
           }
         };
-      }).toString()})()`;
+      }).toString()})(${MPEGDecoder}, ${MPEGDecodedAudio}, ${EmscriptenWASM})`;
 
     const type = "text/javascript";
     let sourceURL;

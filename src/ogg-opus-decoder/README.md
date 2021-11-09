@@ -1,7 +1,8 @@
 # `ogg-opus-decoder`
 
 `ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder.
-  * 115.1 KiB minified bundle size
+  * 115.3 KiB minified bundle size
+  * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`libopusfile`](https://github.com/xiph/opusfile)
 

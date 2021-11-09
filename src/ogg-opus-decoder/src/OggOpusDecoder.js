@@ -4,14 +4,16 @@ import EmscriptenWASM from "./EmscriptenWasm.js";
 let wasm;
 
 export default class OggOpusDecoder {
-  constructor() {
+  constructor(_OpusDecodedAudio, _EmscriptenWASM) {
     // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
     this._outSize = 120 * 48; // 120ms @ 48 khz.
 
     //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
     this._inputArrSize = 64 * 1024;
 
-    this._ready = new Promise((resolve) => this._init().then(resolve));
+    this._ready = new Promise((resolve) =>
+      this._init(_OpusDecodedAudio, _EmscriptenWASM).then(resolve)
+    );
   }
 
   static concatFloat32(buffers, length) {
@@ -34,23 +36,26 @@ export default class OggOpusDecoder {
     return [pointer, array];
   }
 
-  async _init() {
+  // injects dependencies when running as a web worker
+  async _init(_OpusDecodedAudio, _EmscriptenWASM) {
     if (!this._api) {
-      let isMainThread;
+      const isWebWorker = _OpusDecodedAudio && _EmscriptenWASM;
 
-      try {
-        if (wasm || !wasm) isMainThread = true;
-      } catch {
-        isMainThread = false;
-      }
+      if (isWebWorker) {
+        // use classes injected into constructor parameters
+        this._OpusDecodedAudio = _OpusDecodedAudio;
+        this._EmscriptenWASM = _EmscriptenWASM;
 
-      if (isMainThread) {
-        // use a global scope singleton so wasm compilation happens once only if class is instantiated
-        if (!wasm) wasm = new EmscriptenWASM();
-        this._api = wasm;
-      } else {
         // running as a webworker, use class level singleton for wasm compilation
-        this._api = new EmscriptenWASM();
+        this._api = new this._EmscriptenWASM();
+      } else {
+        // use classes from es6 imports
+        this._OpusDecodedAudio = OpusDecodedAudio;
+        this._EmscriptenWASM = EmscriptenWASM;
+
+        // use a global scope singleton so wasm compilation happens once only if class is instantiated
+        if (!wasm) wasm = new this._EmscriptenWASM();
+        this._api = wasm;
       }
     }
 
@@ -159,7 +164,7 @@ export default class OggOpusDecoder {
       }
     }
 
-    return new OpusDecodedAudio(
+    return new this._OpusDecodedAudio(
       [
         OggOpusDecoder.concatFloat32(decodedLeft, decodedSamples),
         OggOpusDecoder.concatFloat32(decodedRight, decodedSamples),
