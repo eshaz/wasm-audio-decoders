@@ -52,6 +52,10 @@ Decodes raw Opus audio frames into PCM
    * ogg-opus-decoder: `src/ogg-opus-decoder/dist/` 
    * mpg123-decoder: `src/mpg123-decoder/dist/` 
 
+### Testing
+1. Run `npm i` to install the build tool and test dependencies.
+1. Run `npm run test` to run the test suite.
+
 ## Attributions
 
 * `OggOpusDecoder` was originally based on [AnthumChris/opus-stream-decoder](https://github.com/AnthumChris/opus-stream-decoder).

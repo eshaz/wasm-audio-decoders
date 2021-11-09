@@ -36,6 +36,7 @@ export default class OggOpusDecoder {
     return [pointer, array];
   }
 
+  // injects dependencies when running as a web worker
   async _init(_OpusDecodedAudio, _EmscriptenWASM) {
     if (!this._api) {
       const isWebWorker = _OpusDecodedAudio && _EmscriptenWASM;
