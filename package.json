@@ -13,6 +13,7 @@
     "prettier": "^2.4.1",
     "rollup": "^2.58.3",
     "simple-yenc": "0.0.2",
-    "terser": "^5.9.0"
+    "terser": "^5.9.0",
+    "web-worker": "^1.1.0"
   }
 }
