@@ -528,8 +528,8 @@
   let wasm;
 
   class OpusDecoder {
-    constructor() {
-      this._ready = new Promise((resolve) => this._init().then(resolve));
+    constructor(_OpusDecodedAudio, _EmscriptenWASM) {
+      this._ready = new Promise((resolve) => this._init(_OpusDecodedAudio, _EmscriptenWASM).then(resolve));
     }
 
     static concatFloat32(buffers, length) {
@@ -550,7 +550,8 @@
       return [pointer, array];
     }
 
-    async _init() {
+    // injects dependencies when running as a web worker
+    async _init(_OpusDecodedAudio, _EmscriptenWASM) {
       if (!this._api) {
         let isMainThread;
 
@@ -561,12 +562,20 @@
         }
 
         if (isMainThread) {
+          // use classes from es6 imports
+          this._OpusDecodedAudio = OpusDecodedAudio;
+          this._EmscriptenWASM = EmscriptenWASM;
+
           // use a global scope singleton so wasm compilation happens once only if class is instantiated
-          if (!wasm) wasm = new EmscriptenWASM();
+          if (!wasm) wasm = new this._EmscriptenWASM();
           this._api = wasm;
         } else {
+          // use classes injected into constructor parameters
+          this._OpusDecodedAudio = _OpusDecodedAudio;
+          this._EmscriptenWASM = _EmscriptenWASM;
+
           // running as a webworker, use class level singleton for wasm compilation
-          this._api = new EmscriptenWASM();
+          this._api = new this._EmscriptenWASM();
         }
       }
 
@@ -614,7 +623,7 @@
         this._rightPtr
       );
 
-      return new OpusDecodedAudio(
+      return new this._OpusDecodedAudio(
         [
           this._leftArr.slice(0, samplesDecoded),
           this._rightArr.slice(0, samplesDecoded),
@@ -636,7 +645,7 @@
         samples += samplesDecoded;
       });
 
-      return new OpusDecodedAudio(
+      return new this._OpusDecodedAudio(
         [
           OpusDecoder.concatFloat32(left, samples),
           OpusDecoder.concatFloat32(right, samples),
@@ -650,12 +659,10 @@
     constructor() {
       const webworkerSourceCode =
         "'use strict';" +
-        EmscriptenWASM.toString() +
-        OpusDecodedAudio.toString() +
-        OpusDecoder.toString() +
-        `(${(() => {
+        // dependencies need to be manually resolved when stringifying this function
+        `(${((_OpusDecoder, _OpusDecodedAudio, _EmscriptenWASM) => {
         // We're in a Web Worker
-        const decoder = new OpusDecoder();
+        const decoder = new _OpusDecoder(_OpusDecodedAudio, _EmscriptenWASM);
 
         const detachBuffers = (buffer) =>
           Array.isArray(buffer)
@@ -706,7 +713,7 @@
               this.console.error("Unknown command sent to worker: " + command);
           }
         };
-      }).toString()})()`;
+      }).toString()})(${OpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
 
       const type = "text/javascript";
       let sourceURL;

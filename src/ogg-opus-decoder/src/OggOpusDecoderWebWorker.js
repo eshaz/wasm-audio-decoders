@@ -8,12 +8,10 @@ export default class OggOpusDecoderWebWorker extends Worker {
   constructor() {
     const webworkerSourceCode =
       "'use strict';" +
-      EmscriptenWASM.toString() +
-      OpusDecodedAudio.toString() +
-      OggOpusDecoder.toString() +
-      `(${(() => {
+      // dependencies need to be manually resolved when stringifying this function
+      `(${((_OggOpusDecoder, _OpusDecodedAudio, _EmscriptenWASM) => {
         // We're in a Web Worker
-        const decoder = new OggOpusDecoder();
+        const decoder = new _OggOpusDecoder(_OpusDecodedAudio, _EmscriptenWASM);
 
         self.onmessage = ({ data: { id, command, oggOpusData } }) => {
           switch (command) {
@@ -57,7 +55,7 @@ export default class OggOpusDecoderWebWorker extends Worker {
               this.console.error("Unknown command sent to worker: " + command);
           }
         };
-      }).toString()})()`;
+      }).toString()})(${OggOpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
 
     const type = "text/javascript";
     let sourceURL;

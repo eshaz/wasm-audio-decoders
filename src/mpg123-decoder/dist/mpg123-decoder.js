@@ -690,8 +690,10 @@
   let wasm;
 
   class MPEGDecoder {
-    constructor() {
-      this._ready = new Promise((resolve) => this._init().then(resolve));
+    constructor(_MPEGDecodedAudio, _EmscriptenWASM) {
+      this._ready = new Promise((resolve) =>
+        this._init(_MPEGDecodedAudio, _EmscriptenWASM).then(resolve)
+      );
     }
 
     static concatFloat32(buffers, length) {
@@ -712,7 +714,8 @@
       return [pointer, array];
     }
 
-    async _init() {
+    // injects dependencies when running as a web worker
+    async _init(_MPEGDecodedAudio, _EmscriptenWASM) {
       if (!this._api) {
         let isMainThread;
 
@@ -723,12 +726,20 @@
         }
 
         if (isMainThread) {
+          // use classes from es6 imports
+          this._MPEGDecodedAudio = MPEGDecodedAudio;
+          this._EmscriptenWASM = EmscriptenWASM;
+
           // use a global scope singleton so wasm compilation happens once only if class is instantiated
-          if (!wasm) wasm = new EmscriptenWASM();
+          if (!wasm) wasm = new this._EmscriptenWASM();
           this._api = wasm;
         } else {
+          // use classes injected into constructor parameters
+          this._MPEGDecodedAudio = _MPEGDecodedAudio;
+          this._EmscriptenWASM = _EmscriptenWASM;
+
           // running as a webworker, use class level singleton for wasm compilation
-          this._api = new EmscriptenWASM();
+          this._api = new this._EmscriptenWASM();
         }
       }
 
@@ -804,7 +815,7 @@
       if (!this._sampleRate)
         this._sampleRate = this._api._mpeg_get_sample_rate(this._decoder);
 
-      return new MPEGDecodedAudio(
+      return new this._MPEGDecodedAudio(
         [
           this._leftArr.slice(0, samplesDecoded),
           this._rightArr.slice(0, samplesDecoded),
@@ -834,7 +845,7 @@
         samples += samplesDecoded;
       }
 
-      return new MPEGDecodedAudio(
+      return new this._MPEGDecodedAudio(
         [
           MPEGDecoder.concatFloat32(left, samples),
           MPEGDecoder.concatFloat32(right, samples),
@@ -861,7 +872,7 @@
         samples += samplesDecoded;
       }
 
-      return new MPEGDecodedAudio(
+      return new this._MPEGDecodedAudio(
         [
           MPEGDecoder.concatFloat32(left, samples),
           MPEGDecoder.concatFloat32(right, samples),
@@ -876,12 +887,10 @@
     constructor() {
       const webworkerSourceCode =
         "'use strict';" +
-        EmscriptenWASM.toString() +
-        MPEGDecodedAudio.toString() +
-        MPEGDecoder.toString() +
-        `(${(() => {
+        // dependencies need to be manually resolved when stringifying this function
+        `(${((_MPEGDecoder, _MPEGDecodedAudio, _EmscriptenWASM) => {
         // We're in a Web Worker
-        const decoder = new MPEGDecoder();
+        const decoder = new _MPEGDecoder(_MPEGDecodedAudio, _EmscriptenWASM);
 
         const detachBuffers = (buffer) =>
           Array.isArray(buffer)
@@ -933,7 +942,7 @@
               this.console.error("Unknown command sent to worker: " + command);
           }
         };
-      }).toString()})()`;
+      }).toString()})(${MPEGDecoder}, ${MPEGDecodedAudio}, ${EmscriptenWASM})`;
 
       const type = "text/javascript";
       let sourceURL;

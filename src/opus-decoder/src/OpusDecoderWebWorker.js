@@ -7,12 +7,10 @@ export default class OpusDecoderWebWorker extends Worker {
   constructor() {
     const webworkerSourceCode =
       "'use strict';" +
-      EmscriptenWASM.toString() +
-      OpusDecodedAudio.toString() +
-      OpusDecoder.toString() +
-      `(${(() => {
+      // dependencies need to be manually resolved when stringifying this function
+      `(${((_OpusDecoder, _OpusDecodedAudio, _EmscriptenWASM) => {
         // We're in a Web Worker
-        const decoder = new OpusDecoder();
+        const decoder = new _OpusDecoder(_OpusDecodedAudio, _EmscriptenWASM);
 
         const detachBuffers = (buffer) =>
           Array.isArray(buffer)
@@ -63,7 +61,7 @@ export default class OpusDecoderWebWorker extends Worker {
               this.console.error("Unknown command sent to worker: " + command);
           }
         };
-      }).toString()})()`;
+      }).toString()})(${OpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
 
     const type = "text/javascript";
     let sourceURL;

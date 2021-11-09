@@ -530,14 +530,14 @@
   let wasm;
 
   class OggOpusDecoder {
-    constructor() {
+    constructor(_OpusDecodedAudio, _EmscriptenWASM) {
       // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
       this._outSize = 120 * 48; // 120ms @ 48 khz.
 
       //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
       this._inputArrSize = 64 * 1024;
 
-      this._ready = new Promise((resolve) => this._init().then(resolve));
+      this._ready = new Promise((resolve) => this._init(_OpusDecodedAudio, _EmscriptenWASM).then(resolve));
     }
 
     static concatFloat32(buffers, length) {
@@ -560,7 +560,7 @@
       return [pointer, array];
     }
 
-    async _init() {
+    async _init(_OpusDecodedAudio, _EmscriptenWASM) {
       if (!this._api) {
         let isMainThread;
 
@@ -571,12 +571,20 @@
         }
 
         if (isMainThread) {
+          // use classes from es6 imports
+          this._OpusDecodedAudio = OpusDecodedAudio;
+          this._EmscriptenWASM = EmscriptenWASM;
+
           // use a global scope singleton so wasm compilation happens once only if class is instantiated
-          if (!wasm) wasm = new EmscriptenWASM();
+          if (!wasm) wasm = new this._EmscriptenWASM();
           this._api = wasm;
         } else {
+          // use classes injected into constructor parameters
+          this._OpusDecodedAudio = _OpusDecodedAudio;
+          this._EmscriptenWASM = _EmscriptenWASM;
+
           // running as a webworker, use class level singleton for wasm compilation
-          this._api = new EmscriptenWASM();
+          this._api = new this._EmscriptenWASM();
         }
       }
 
@@ -685,7 +693,7 @@
         }
       }
 
-      return new OpusDecodedAudio(
+      return new this._OpusDecodedAudio(
         [
           OggOpusDecoder.concatFloat32(decodedLeft, decodedSamples),
           OggOpusDecoder.concatFloat32(decodedRight, decodedSamples),
@@ -699,12 +707,10 @@
     constructor() {
       const webworkerSourceCode =
         "'use strict';" +
-        EmscriptenWASM.toString() +
-        OpusDecodedAudio.toString() +
-        OggOpusDecoder.toString() +
-        `(${(() => {
+        // dependencies need to be manually resolved when stringifying this function
+        `(${((_OggOpusDecoder, _OpusDecodedAudio, _EmscriptenWASM) => {
         // We're in a Web Worker
-        const decoder = new OggOpusDecoder();
+        const decoder = new _OggOpusDecoder(_OpusDecodedAudio, _EmscriptenWASM);
 
         self.onmessage = ({ data: { id, command, oggOpusData } }) => {
           switch (command) {
@@ -748,7 +754,7 @@
               this.console.error("Unknown command sent to worker: " + command);
           }
         };
-      }).toString()})()`;
+      }).toString()})(${OggOpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
 
       const type = "text/javascript";
       let sourceURL;
