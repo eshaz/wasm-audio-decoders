@@ -120,9 +120,7 @@ describe("mpg123-decoder", () => {
   }, 100000);*/
 
   describe("frame decoding", () => {
-    let fileName,
-      frames = [],
-      framesLength = 0;
+    let fileName, frames, framesLength;
 
     beforeAll(async () => {
       fileName = "mpeg.cbr.mp3";
@@ -130,10 +128,8 @@ describe("mpg123-decoder", () => {
       const parser = new CodecParser("audio/mpeg");
       const inputData = await fs.readFile(getTestPaths(fileName).inputPath);
 
-      for (const { data } of parser.iterator(inputData)) {
-        frames.push(data);
-        framesLength += data.length;
-      }
+      frames = parser.parseAll(inputData).map((frame) => frame.data);
+      framesLength = frames.reduce((acc, data) => acc + data.length, 0);
     });
 
     it("should decode mpeg frames", async () => {
@@ -150,7 +146,7 @@ describe("mpg123-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(3497472);
+      expect(result.samplesDecoded).toEqual(3498624);
       expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -170,7 +166,7 @@ describe("mpg123-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(3497472);
+      expect(result.samplesDecoded).toEqual(3498624);
       expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -249,9 +245,7 @@ describe("mpg123-decoder", () => {
 });
 
 describe("opus-decoder", () => {
-  let fileName,
-    frames = [],
-    framesLength = 0;
+  let fileName, frames, framesLength;
 
   beforeAll(async () => {
     fileName = "ogg.opus";
@@ -259,12 +253,11 @@ describe("opus-decoder", () => {
     const parser = new CodecParser("application/ogg");
     const inputData = await fs.readFile(getTestPaths(fileName).inputPath);
 
-    for (const { codecFrames } of parser.iterator(inputData)) {
-      for (const { data } of codecFrames) {
-        frames.push(data);
-        framesLength += data.length;
-      }
-    }
+    frames = parser
+      .parseAll(inputData)
+      .flatMap((frame) => frame.codecFrames)
+      .map((codecFrame) => codecFrame.data);
+    framesLength = frames.reduce((acc, data) => acc + data.length, 0);
   });
 
   it("should decode opus frames", async () => {
@@ -281,7 +274,7 @@ describe("opus-decoder", () => {
       fs.readFile(paths.expectedPath),
     ]);
 
-    expect(result.samplesDecoded).toEqual(3791040);
+    expect(result.samplesDecoded).toEqual(3807360);
     expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -301,7 +294,7 @@ describe("opus-decoder", () => {
       fs.readFile(paths.expectedPath),
     ]);
 
-    expect(result.samplesDecoded).toEqual(3791040);
+    expect(result.samplesDecoded).toEqual(3807360);
     expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
