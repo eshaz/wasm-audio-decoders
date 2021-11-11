@@ -7,7 +7,7 @@ const min = (a, b) => (a < b ? a : b);
 const floatToInt = (val) =>
   val > 0 ? min(val * 32767, 32767) : max(val * 32767, -32768);
 
-const getInterleavedInt16Array = (channelData, samples) => {
+export const getInterleavedInt16Array = (channelData, samples) => {
   const channels = channelData.length;
   const interleaved = new Int16Array(samples * channels);
 
@@ -19,7 +19,7 @@ const getInterleavedInt16Array = (channelData, samples) => {
   return interleaved;
 };
 
-const getWaveFileHeader = ({ bitDepth, sampleRate, length, channels }) =>
+export const getWaveFileHeader = ({ bitDepth, sampleRate, length, channels }) =>
   waveHeader.generateHeader(Int16Array.BYTES_PER_ELEMENT * length, {
     channels,
     bitDepth,
@@ -96,8 +96,7 @@ export const testDecoder_decodeFrames = async (
   const header = getWaveFileHeader({
     bitDepth: 16,
     sampleRate,
-    samplesDecoded,
-    length: interleaved.length,
+    length: samplesDecoded * 2,
     channels: 2,
   });
 
@@ -116,8 +115,10 @@ export const testDecoder_decode = async (
   inputPath,
   outputPath
 ) => {
-  const input = await fs.open(inputPath, "r+");
-  const output = await fs.open(outputPath, "w+");
+  const [input, output] = await Promise.all([
+    fs.open(inputPath, "r+"),
+    fs.open(outputPath, "w+"),
+  ]);
 
   let decodeStart, decodeEnd, inStart, inEnd, outStart, outEnd;
 
@@ -183,8 +184,7 @@ export const testDecoder_decode = async (
   const header = getWaveFileHeader({
     bitDepth: 16,
     sampleRate,
-    samplesDecoded: totalSamplesDecoded,
-    length: totalBytesWritten / 2,
+    length: totalSamplesDecoded * 2,
     channels: 2,
   });
 
