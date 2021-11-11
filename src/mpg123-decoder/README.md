@@ -236,6 +236,30 @@ Here's what the above reduce operation looks like as a hard coded sequence of `.
 
 ### Decoding multiple files using **multiple** instances of `MPEGDecoderWebWorker`
 
+This example shows how to decode multiple files using multiple instances of `MPEGDecoderWebWorker`. This code iterates over an array of input files (Array of Uint8Arrays) and spawns a new `MPEGDecoderWebWorker` instance for each file and decodes the file. If you want to take full advantage of multi-core devices, this is the approach you will want to take since it will parallelize the decoding
+
+For each input file, a new decoder is created, and the file is decoded using the `decode()` after  `decoder.ready` is resolved. The result of the `decode()` operation is returned, and a `finally()` function on the promise calls `decoder.free()` to free up the instance after the decode operations are completed.
+
+Finally, `Promise.all()` wraps this array of promises and resolves when all decode operations are complete.
+
+It's important to note that there is only one `await` operation in this example. Decoding can happen asynchronously and you only need to `await` when you need to use the results of the decode operation.
+
 ```javascript
-  
+  const inputFiles = [file1, file2, file3] // Array of Uint8Array file data
+
+  // loops through each Uint8Array in `inputFiles` and decodes the files in separate threads
+  const decodePromise = Promise.all(
+    inputFiles.map((file) => {
+      const decoder = new MPEGDecoderWebWorker();
+
+      return decoder.ready
+        .then(() => decoder.decode(file)) // decode the input file
+        .finally(() => decoder.free()); // free the decoder after resolving the decode result
+    })
+  );
+
+  // do sync operations here
+
+  // await when you need to have the all of the audio data decoded
+  const decodedFiles = await decodePromise;
 ```
