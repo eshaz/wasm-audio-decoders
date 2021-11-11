@@ -165,4 +165,77 @@ Each method call on a `MPEGDecoderWebWorker` instance will queue up an operation
     const decoded3 = await decoder.decodeFrame(frameData3); // blocks the main thread
     playAudio(decoded3);
     ```
-    
+
+## Examples
+
+### Decoding multiple files using a **single** instance of `MPEGDecoderWebWorker`
+
+This example shows how to decode multiple files using a single `MPEGDecoderWebWorker` instance. This code iterates over an array of input files (Array of Uint8Arrays) and builds a promise chain to decode each file one at a time.
+
+First, the reduce function is seeded by `decoder.ready` which is the first promise in this promise chain.
+
+For each iteration, `decode()` is called, it's result is pushed to the `decodedFiles` array, and `decoder.reset()` is called to prepare the decoder for a new file. These operations are appended to the promise passed into the first parameter of `reduce`, which is the return result of the previous iteration, and then this entire promise is returned.
+
+Finally, this promise chain is completed with a call to `decoder.free()` which cleans up the memory stored by the decoder.
+
+It's important to note that there is only one `await` operation in this example. Decoding can happen asynchronously and you only need to `await` when you need to use the results of the decode operation.
+
+```javascript
+  const inputFiles = [file1, file2, file3] // Array of Uint8Array file data
+
+  const decoder = new MPEGDecoderWebWorker();
+
+  const decodedFiles = [];
+
+  // creates a promise chain by reducing over the array of input files 
+  // and asynchronously waits for each operation to complete before moving on
+  const decodePromise = inputFiles.reduce(
+    (prevPromise, inputFile) =>
+      prevPromise
+        .then(() => decoder.decode(inputFile)) // sends the data to webworker to decode
+        .then((result) => decodedFiles.push(result)) // callback to save decoded results when finished decoding the file
+        .then(() => decoder.reset()), // resets the decoder for the next file
+    decoder.ready // first promise that will start off the chain (seed for reduce function)
+  ).then(() => decoder.free()); // free the decoder when done
+
+  // do sync operations here
+
+  // await when you need to have the all of the audio data decoded
+  await decodePromise;
+```
+
+Here's what the above reduce operation looks like as a hard coded sequence of `.then()` operations.
+
+```javascript
+  const inputFiles = [file1, file2, file3] // Array of Uint8Array file data
+
+  const decoder = new MPEGDecoderWebWorker();
+
+  const decodedFiles = [];
+
+  const decodePromise = 
+    // reduce seed value
+    decoder.ready
+    // first reduce iteration
+    .then(() => decoder.decode(file1))
+    .then((result) => decodedFiles.push(result))
+    .then(() => decoder.reset())
+    // second reduce iteration
+    .then(() => decoder.decode(file2))
+    .then((result) => decodedFiles.push(result))
+    .then(() => decoder.reset())
+    // third reduce iteration
+    .then(() => decoder.decode(file3))
+    .then((result) => decodedFiles.push(result))
+    .then(() => decoder.reset())
+    // final decoder.free() call after reduce is complete
+    .then(() => decoder.free());
+
+  await decodePromise;
+```
+
+### Decoding multiple files using **multiple** instances of `MPEGDecoderWebWorker`
+
+```javascript
+  
+```

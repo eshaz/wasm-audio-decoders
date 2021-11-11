@@ -2,7 +2,12 @@ import fs from "fs/promises";
 import path from "path";
 import CodecParser from "codec-parser";
 
-import { testDecoder_decode, testDecoder_decodeFrames } from "./utilities";
+import {
+  getInterleavedInt16Array,
+  getWaveFileHeader,
+  testDecoder_decode,
+  testDecoder_decodeFrames,
+} from "./utilities";
 
 import { MPEGDecoder, MPEGDecoderWebWorker } from "../src/mpg123-decoder/index";
 import { OpusDecoder, OpusDecoderWebWorker } from "../src/opus-decoder/index";
@@ -34,6 +39,64 @@ const test_decode = async (DecoderClass, testName, fileName) => {
   decoder.free();
 
   return { paths, result };
+};
+
+const test_decode_multipleFiles = async (DecoderClass, testParams) => {
+  const pathsArray = testParams.map(({ fileName }) => getTestPaths(fileName));
+  const inputFiles = await Promise.all(
+    pathsArray.map(({ inputPath }) => fs.readFile(inputPath))
+  );
+
+  const decoder = new DecoderClass();
+
+  const decodedFiles = [];
+
+  // creates a promise chain by reducing over the array of input files
+  // and asynchronously waits for each operation to complete before moving on
+  const decodePromise = inputFiles
+    .reduce(
+      (prevPromise, inputFile) =>
+        prevPromise
+          .then(() => decoder.decode(inputFile)) // sends the data to webworker to decode
+          .then((result) => decodedFiles.push(result)) // callback to save decoded results when finished decoding the file
+          .then(() => decoder.reset()), // resets the decoder for the next file
+      decoder.ready // first promise that will start off the chain (seed for reduce function)
+    )
+    .then(() => decoder.free()); // free the decoder when done
+
+  // do sync operations here
+
+  // await when you need to have the audio data decoded
+  await decodePromise;
+
+  let idx = 0;
+
+  return Promise.all(
+    decodedFiles.map(async ({ samplesDecoded, sampleRate, channelData }) => {
+      const paths = pathsArray[idx++];
+
+      const actual = Buffer.concat([
+        new Uint8Array(
+          getWaveFileHeader({
+            bitDepth: 16,
+            sampleRate,
+            length: samplesDecoded * 2,
+            channels: 2,
+          }).buffer
+        ),
+        new Uint8Array(
+          getInterleavedInt16Array(channelData, samplesDecoded).buffer
+        ),
+      ]);
+
+      await fs.writeFile(paths.actualPath, actual);
+
+      return {
+        paths,
+        result: { samplesDecoded, sampleRate },
+      };
+    })
+  );
 };
 
 const test_decodeFrames = async (
@@ -173,8 +236,69 @@ describe("mpg123-decoder", () => {
     });
   });
 
-  describe("sample rates", () => {
-    it("should return 44100 as the sample rate", async () => {
+  describe("decoding in sequence", () => {
+    it("should decode each file one at a time when decoding from the same instance", async () => {
+      const results = await test_decode_multipleFiles(MPEGDecoderWebWorker, [
+        {
+          testName: "should decode sequential.1.mp3 in sequence",
+          fileName: "sequential.1.mp3",
+        },
+        {
+          testName: "should decode sequential.2.mp3 in sequence",
+          fileName: "sequential.2.mp3",
+        },
+        {
+          testName: "should decode sequential.3.mp3 in sequence",
+          fileName: "sequential.3.mp3",
+        },
+        {
+          testName: "should decode sequential.4.mp3 in sequence",
+          fileName: "sequential.4.mp3",
+        },
+      ]);
+
+      const [
+        actual1,
+        expected1,
+        actual2,
+        expected2,
+        actual3,
+        expected3,
+        actual4,
+        expected4,
+      ] = await Promise.all([
+        fs.readFile(results[0].paths.actualPath),
+        fs.readFile(results[0].paths.expectedPath),
+        fs.readFile(results[1].paths.actualPath),
+        fs.readFile(results[1].paths.expectedPath),
+        fs.readFile(results[2].paths.actualPath),
+        fs.readFile(results[2].paths.expectedPath),
+        fs.readFile(results[3].paths.actualPath),
+        fs.readFile(results[3].paths.expectedPath),
+      ]);
+
+      expect(results[0].result.sampleRate).toEqual(44100);
+      expect(results[0].result.samplesDecoded).toEqual(21888);
+      expect(results[1].result.sampleRate).toEqual(44100);
+      expect(results[1].result.samplesDecoded).toEqual(21888);
+      expect(results[2].result.sampleRate).toEqual(44100);
+      expect(results[2].result.samplesDecoded).toEqual(21888);
+      expect(results[3].result.sampleRate).toEqual(44100);
+      expect(results[3].result.samplesDecoded).toEqual(21888);
+
+      expect(actual1.length).toEqual(expected1.length);
+      expect(actual2.length).toEqual(expected2.length);
+      expect(actual3.length).toEqual(expected3.length);
+      expect(actual4.length).toEqual(expected4.length);
+      expect(Buffer.compare(actual1, expected1)).toEqual(0);
+      expect(Buffer.compare(actual2, expected2)).toEqual(0);
+      expect(Buffer.compare(actual3, expected3)).toEqual(0);
+      expect(Buffer.compare(actual4, expected4)).toEqual(0);
+    });
+  });
+
+  describe("decoding in parallel", () => {
+    it("should decode each file in it's own thread", async () => {
       const [
         { paths: paths1, result: result1 },
         { paths: paths2, result: result2 },
@@ -183,23 +307,23 @@ describe("mpg123-decoder", () => {
       ] = await Promise.all([
         test_decode(
           MPEGDecoderWebWorker,
-          "should return 44100 as the sample rate",
-          "samplerate.1.mp3"
+          "should decode parallel.1.mp3 in it's own thread",
+          "parallel.1.mp3"
         ),
         test_decode(
           MPEGDecoderWebWorker,
-          "should return 44100 as the sample rate",
-          "samplerate.2.mp3"
+          "should decode parallel.2.mp3 in it's own thread",
+          "parallel.2.mp3"
         ),
         test_decode(
           MPEGDecoderWebWorker,
-          "should return 44100 as the sample rate",
-          "samplerate.3.mp3"
+          "should decode parallel.3.mp3 in it's own thread",
+          "parallel.3.mp3"
         ),
         test_decode(
           MPEGDecoderWebWorker,
-          "should return 44100 as the sample rate",
-          "samplerate.4.mp3"
+          "should decode parallel.4.mp3 in it's own thread",
+          "parallel.4.mp3"
         ),
       ]);
 
