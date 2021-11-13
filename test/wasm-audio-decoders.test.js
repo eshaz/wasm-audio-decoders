@@ -3,7 +3,7 @@ import path from "path";
 import CodecParser from "codec-parser";
 
 import {
-  getInterleavedInt16Array,
+  getInterleaved,
   getWaveFileHeader,
   testDecoder_decode,
   testDecoder_decodeFrames,
@@ -43,6 +43,7 @@ const test_decode = async (DecoderClass, testName, fileName) => {
 
 const test_decode_multipleFiles = async (DecoderClass, testParams) => {
   const pathsArray = testParams.map(({ fileName }) => getTestPaths(fileName));
+
   const inputFiles = await Promise.all(
     pathsArray.map(({ inputPath }) => fs.readFile(inputPath))
   );
@@ -51,23 +52,14 @@ const test_decode_multipleFiles = async (DecoderClass, testParams) => {
 
   const decodedFiles = [];
 
-  // creates a promise chain by reducing over the array of input files
-  // and asynchronously waits for each operation to complete before moving on
-  const decodePromise = inputFiles
-    .reduce(
-      (prevPromise, inputFile) =>
-        prevPromise
-          .then(() => decoder.decode(inputFile)) // sends the data to webworker to decode
-          .then((result) => decodedFiles.push(result)) // callback to save decoded results when finished decoding the file
-          .then(() => decoder.reset()), // resets the decoder for the next file
-      decoder.ready // first promise that will start off the chain (seed for reduce function)
-    )
-    .then(() => decoder.free()); // free the decoder when done
+  await decoder.ready;
 
-  // do sync operations here
+  for (const file of inputFiles) {
+    decoder.decode(file).then((result) => decodedFiles.push(result));
+    decoder.reset();
+  }
 
-  // await when you need to have the audio data decoded
-  await decodePromise;
+  await decoder.free();
 
   let idx = 0;
 
@@ -76,17 +68,14 @@ const test_decode_multipleFiles = async (DecoderClass, testParams) => {
       const paths = pathsArray[idx++];
 
       const actual = Buffer.concat([
-        new Uint8Array(
-          getWaveFileHeader({
-            bitDepth: 16,
-            sampleRate,
-            length: samplesDecoded * 2,
-            channels: 2,
-          }).buffer
-        ),
-        new Uint8Array(
-          getInterleavedInt16Array(channelData, samplesDecoded).buffer
-        ),
+        getWaveFileHeader({
+          bitDepth: 16,
+          sampleRate,
+          length:
+            samplesDecoded * Int16Array.BYTES_PER_ELEMENT * channelData.length,
+          channels: channelData.length,
+        }),
+        getInterleaved(channelData, samplesDecoded),
       ]);
 
       await fs.writeFile(paths.actualPath, actual);
