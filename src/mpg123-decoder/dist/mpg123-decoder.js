@@ -781,8 +781,6 @@
       this._api._free(this._decodedBytesPtr);
       this._api._free(this._leftPtr);
       this._api._free(this._rightPtr);
-
-      this._sampleRate = 0;
     }
 
     _decode(data, decodeInterval) {
