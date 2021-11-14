@@ -36,7 +36,7 @@
   "bugs": {
     "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
   },
-  "homepage": "https://github.com/eshaz/wasm-audio-decoders/src/opus-decoder#readme",
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder#readme",
   "dependencies": {
     "web-worker": "^1.1.0"
   }

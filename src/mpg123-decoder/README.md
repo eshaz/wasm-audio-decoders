@@ -23,7 +23,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
   ```html
   <script src="mpg123-decoder.min.js"></script>
   <script>
-    const decoder = new MPEGDecoder();
+    const decoder = new window["mpg123-decoder"].MPEGDecoder();
   </script>
   ```
 

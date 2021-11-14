@@ -11,7 +11,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 ## Installing
 * Install from [NPM](https://www.npmjs.com/package/ogg-opus-decoder).
 
-  Run `npm i mpg123-decoder`
+  Run `npm i ogg-opus-decoder`
 
   ```javascript
   import { OggOpusDecoder } from 'ogg-opus-decoder';
@@ -23,7 +23,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
   ```html
   <script src="ogg-opus-decoder.min.js"></script>
   <script>
-    const decoder = new OggOpusDecoder();
+    const decoder = new window["ogg-opus-decoder"].OggOpusDecoder();
   </script>
   ```
 

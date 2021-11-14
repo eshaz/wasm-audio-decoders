@@ -11,7 +11,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 ## Installing
 * Install from [NPM](https://www.npmjs.com/package/opus-decoder).
 
-  Run `npm i mpg123-decoder`
+  Run `npm i opus-decoder`
 
   ```javascript
   import { OpusDecoder } from 'opus-decoder';
@@ -23,7 +23,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
   ```html
   <script src="opus-decoder.min.js"></script>
   <script>
-    const decoder = new OpusDecoder();
+    const decoder = new window["opus-decoder"].OpusDecoder();
   </script>
   ```
 
