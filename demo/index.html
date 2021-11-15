@@ -563,7 +563,7 @@
     };
 
     // file selector
-    let fileList, totalLength;
+    let fileList, totalLength, mpegLength, opusLength;
 
     const fileSelector = document.getElementById("file-selector");
 
@@ -600,10 +600,13 @@
       filesToDecodeContainerEl.shadowRoot.getElementById("files-to-decode");
 
     const decodeButtonEl = document.getElementById("decode-button");
+    const numberOfDecodersEl = document.getElementById("threads");
 
     fileSelector.addEventListener("change", (e) => {
       fileList = e.target.files;
       totalLength = 0;
+      mpegLength = 0;
+      opusLength = 0;
 
       if (fileList.length > 0) decodeButtonEl.disabled = false;
       else decodeButtonEl.disabled = true;
@@ -614,8 +617,21 @@
 
       [...fileList].forEach(({ name, type, size }) => {
         totalLength += size;
+        if (type === "audio/mpeg") mpegLength += size;
+        if (type === "audio/ogg") opusLength += size;
         filesToDecodeEl.innerHTML += `<tr id="_row-${name}"><td id="_status-${name}">selected</td><td>${name}</td><td>${size}</td><td>${type}</td><td id="_decoder-${name}"></td></tr>`;
       });
+
+      if (decoderPool) {
+        decoderPool.destroy();
+        decoderPool = null;
+      }
+      if (mpegLength || opusLength)
+        decoderPool = new DecoderPool(
+          numberOfDecodersEl.value,
+          mpegLength,
+          opusLength
+        );
 
       updateDecodeStats();
       clearDecoderProgress();
@@ -628,49 +644,72 @@
       window["ogg-opus-decoder"];
 
     class DecoderPool {
-      constructor(numberOfDecoders) {
+      constructor(numberOfDecoders, bytesMPEG, bytesOpus) {
+        const totalBytes = bytesMPEG + bytesOpus;
+
         this._numberOfDecoders = numberOfDecoders;
+
+        this._mpegDecoderStats = {
+          maxDecoders:
+            Math.round((bytesMPEG / totalBytes) * numberOfDecoders) || 1,
+          numberDecoders: 0,
+        };
+        this._opusDecoderStats = {
+          maxDecoders:
+            Math.round((bytesOpus / totalBytes) * numberOfDecoders) || 1,
+          numberDecoders: 0,
+        };
+
         this._decoderPool = [];
       }
 
-      set decodePromise(promise) {
-        this._decodePromise = promise;
-      }
+      _getNextDecoder(DecoderClass) {
+        const decodersFilteredByClass = this._decoderPool.filter(
+          ({ decoder }) => decoder.constructor.name === DecoderClass.name
+        );
 
-      _getNextDecoder() {
-        return this._decoderPool.reduce((acc, decoderEntry) =>
-          decoderEntry.allocated < acc.allocated ? decoderEntry : acc
+        return (
+          decodersFilteredByClass.length &&
+          decodersFilteredByClass.reduce((acc, decoderEntry) =>
+            decoderEntry.allocated < acc.allocated ? decoderEntry : acc
+          )
         );
       }
 
       async getDecoder(mimeType, fileSize) {
-        let DecoderClass;
+        let DecoderClass, decoderStats;
 
         switch (mimeType) {
           case "audio/mpeg":
             DecoderClass = MPEGDecoderWebWorker;
+            decoderStats = this._mpegDecoderStats;
             break;
           case "audio/ogg":
             DecoderClass = OggOpusDecoderWebWorker;
+            decoderStats = this._opusDecoderStats;
             break;
+          default:
+            throw new Error(`Unsupported file type ${mimeType}`);
         }
 
-        let decoderEntry = this._decoderPool.length
-          ? this._getNextDecoder()
-          : {};
+        let decoderEntry = this._getNextDecoder(DecoderClass);
 
         if (
-          decoderEntry.allocated !== 0 &&
-          (this._numberOfDecoders === "max" ||
-            this._decoderPool.length < parseInt(this._numberOfDecoders))
+          !decoderEntry || // there are no decoders
+          (decoderEntry.allocated !== 0 && // the least used decoder is unallocated
+            (this._numberOfDecoders === "max" || // always create a new decoder when "max" is set
+              decoderStats.numberDecoders < decoderStats.maxDecoders)) // create a new decoder when the max hasn't been reached
         ) {
           decoderEntry = {
             decoder: new DecoderClass(),
             allocated: fileSize,
             index: this._decoderPool.length,
           };
+          decoderStats.numberDecoders++;
+
           this._decoderPool.push(decoderEntry);
         } else {
+          // use an existing decoder
           decoderEntry.allocated += fileSize;
         }
 
@@ -690,13 +729,15 @@
       }
     }
 
-    const numberOfDecodersEl = document.getElementById("threads");
-
     let decoderPool = new DecoderPool(numberOfDecodersEl.value);
 
     numberOfDecodersEl.addEventListener("change", (e) => {
-      if (decoderPool) decoderPool.destroy();
-      decoderPool = new DecoderPool(e.target.value);
+      if (decoderPool) {
+        decoderPool.destroy();
+        decoderPool = null;
+      }
+      if (mpegLength || opusLength)
+        decoderPool = new DecoderPool(e.target.value, mpegLength, opusLength);
 
       clearDecoderProgress(totalLength);
     });
