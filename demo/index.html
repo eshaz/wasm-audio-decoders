@@ -244,31 +244,96 @@
       </p>
     </header>
     <hr />
-    <strong>HTML Demo</strong>
-    <a
-      href="https://github.com/eshaz/wasm-audio-decoders/blob/master/src/demo/index.html"
-      >Source for this demo</a
-    >
     <p>
-      This is the demo page for the
+      This demo for
       <a href="https://github.com/eshaz/wasm-audio-decoders"
-        ><code>wasm-audio-decoders</code></a
+        >wasm-audio-decoders</a
       >
-      library. Checkout the
-      <a href="https://github.com/eshaz/wasm-audio-decoders#readme">README</a>
-      of this repository on GitHub for more information.
+      decodes MPEG and Ogg Opus files into raw PCM entirely client side.
+      Decoding is accomplished using Web Assembly and Web Workers for high
+      performance and concurrency. The below libraries are featured in this
+      demo:
     </p>
+    <ul>
+      <li>
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder#mpegdecoderwebworker"
+          ><b>MPEGDecoderWebWorker</b></a
+        >, from the
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder"
+          >mpg123-decoder</a
+        >
+        library, is used to decode MPEG data.
+        <ul>
+          <li>
+            Runs using a Web Assembly build of
+            <a href="https://www.mpg123.de/">mpg123</a>.
+          </li>
+          <li>Runs in a separate thread using the Web Worker api.</li>
+        </ul>
+      </li>
+      <li>
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder#oggopusdecoderwebworker"
+          ><b>OggOpusDecoderWebWorker</b></a
+        >, from the
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder"
+          >ogg-opus-decoder</a
+        >
+        library, is used to decode Ogg Opus data.
+        <ul>
+          <li>
+            Runs using a Web Assembly build of
+            <a href="https://github.com/xiph/opusfile">libopusfile</a>.
+          </li>
+          <li>Runs in a separate thread using the Web Worker api.</li>
+        </ul>
+      </li>
+    </ul>
+    <p>
+      Checkout the
+      <a href="https://github.com/eshaz/wasm-audio-decoders#readme">README</a>
+      on GitHub for more information.
+    </p>
+    <hr />
     <h3>How to use the demo</h3>
     <ol>
-      <li>Select a couple mp3 or ogg opus files to decode.</li>
+      <li>
+        Select a couple MPEG Layer I/II/III (MP3) or Ogg Opus files to decode.
+      </li>
       <li>
         If you want to download a WAVE file for each file that you decode, check
-        the Download Results box
+        the <b>"Download Results"</b> box.
+        <ul>
+          <li>
+            This option may download a lot of files all at once depending on how
+            many files and workers are selected.
+          </li>
+        </ul>
       </li>
-      <li>Select the number of workers you wish to use.</li>
-      <li>Click decode.</li>
+      <li>
+        Select the number of workers you wish to use.
+        <ul>
+          <li>
+            This controls how many decoding operations will run in parallel.
+          </li>
+          <li>
+            Usually, the number of CPU cores you have on your computer is a good
+            number to use.
+          </li>
+          <li>
+            <b
+              >Selecting to many workers with this demo may crash your
+              browser.</b
+            >
+          </li>
+        </ul>
+      </li>
+      <li>Click <b>"Decode"</b> to start decoding.</li>
     </ol>
-    <hr />
+    <br />
     <div class="sub-section">
       <div>
         <div class="row">
@@ -346,6 +411,7 @@
         <div class="row grow" id="files-to-decode-container"></div>
       </div>
     </div>
+    <br />
   </body>
   <script>
     // progress bars
