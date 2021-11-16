@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1300" />
+    <title>WASM Audio Decoders Demo</title>
+    <meta
+      name="description"
+      content="WASM Audio Decoders - Browser and NodeJS Web Assembly audio decoder libraries that are highly optimized for size and performance."
+    />
+    <meta name="theme-color" content="#000000" />
+    <meta name="title" content="WASM Audio Decoders" />
+    <script src="mpg123-decoder.js"></script>
+    <script src="opus-decoder.js"></script>
+    <script src="ogg-opus-decoder.js"></script>
+    <script>
+      // WAVE file helper functions
+      const max = (a, b) => (a > b ? a : b);
+      const min = (a, b) => (a < b ? a : b);
+      const floatToInt = (val) =>
+        val > 0 ? min(val * 32767, 32767) : max(val * 32767, -32768);
+
+      const getInterleaved = (channelData, samples) => {
+        const interleaved = new Int16Array(samples * channelData.length);
+
+        for (
+          let offset = 0, interleavedOffset = 0;
+          offset < samples;
+          offset++
+        ) {
+          interleaved[interleavedOffset++] = floatToInt(channelData[0][offset]);
+          interleaved[interleavedOffset++] = floatToInt(channelData[1][offset]);
+        }
+
+        return new Uint8Array(interleaved.buffer);
+      };
+
+      const stringToUint8Array = (string) => {
+        const buf = new Uint8Array(string.length);
+
+        for (let i = 0; i < string.length; i++) buf[i] = string.charCodeAt(i);
+
+        return buf;
+      };
+
+      const generateHeader = ({
+        dataLength = 4294967295 - 100,
+        channels = 2,
+        sampleRate = 44100,
+        bitDepth = 16,
+      }) => {
+        const RIFF = stringToUint8Array("RIFF");
+        const WAVE = stringToUint8Array("WAVE");
+        const fmt = stringToUint8Array("fmt ");
+        const data = stringToUint8Array("data");
+
+        const format = 1; // raw PCM
+
+        const headerLength = 44;
+        const fileSize = dataLength + headerLength;
+
+        const header = new Uint8Array(headerLength);
+        const headerView = new DataView(header.buffer);
+
+        let offset = 0;
+
+        header.set(RIFF, offset);
+        offset += RIFF.length;
+
+        headerView.setInt32(offset, fileSize - 8, true);
+        offset += 4;
+
+        header.set(WAVE, offset);
+        offset += WAVE.length;
+
+        header.set(fmt, offset);
+        offset += fmt.length;
+
+        // Write the size of the "fmt " chunk.
+        // Value of 16 is hard-coded for raw PCM format. other formats have different size.
+        headerView.setUint32(offset, 16, true);
+        offset += 4;
+
+        headerView.setUint16(offset, format, true);
+        offset += 2;
+
+        headerView.setUint16(offset, channels, true);
+        offset += 2;
+
+        headerView.setUint32(offset, sampleRate, true);
+        offset += 4;
+
+        const byteRate = (sampleRate * channels * bitDepth) / 8;
+        headerView.setUint32(offset, byteRate, true);
+        offset += 4;
+
+        const blockAlign = (channels * bitDepth) / 8;
+        headerView.setUint16(offset, blockAlign, true);
+        offset += 2;
+
+        headerView.setUint16(offset, bitDepth, true);
+        offset += 2;
+
+        header.set(data, offset);
+        offset += data.length;
+
+        headerView.setUint32(offset, dataLength, true);
+        offset += 4;
+
+        return header;
+      };
+
+      const downloadDecodeResult = (
+        { channelData, sampleRate, samplesDecoded },
+        fileName
+      ) => {
+        const downloadDecodedFilesEl = document.getElementById(
+          "download-decoded-file"
+        );
+
+        if (downloadDecodedFilesEl.checked) {
+          const interleaved = getInterleaved(channelData, samplesDecoded);
+          const waveHeader = generateHeader({
+            dataLength: interleaved.length * Int16Array.BYTES_PER_ELEMENT,
+            channels: channelData.length,
+            sampleRate,
+            bitDepth: 16,
+          });
+
+          const decoded = new Uint8Array(
+            waveHeader.length + interleaved.length
+          );
+          decoded.set(waveHeader);
+          decoded.set(interleaved, waveHeader.length);
+
+          const link = document.createElement("a");
+          const url = URL.createObjectURL(new Blob([decoded]));
+
+          link.setAttribute("href", url);
+          link.setAttribute("download", fileName + ".wav");
+          link.style.visibility = "hidden";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          return decoded.length;
+        } else {
+          return samplesDecoded * 2 * Int16Array.BYTES_PER_ELEMENT;
+        }
+      };
+
+      const formatTime = (seconds = 0) =>
+        new Date(seconds * 1000).toISOString().substr(11, 11);
+    </script>
+    <link
+      href="https://fonts.googleapis.com/css?family=Montserrat&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        text-size-adjust: none;
+      }
+      body {
+        background: linear-gradient(
+              217deg,
+              rgba(255, 0, 0, 0.3),
+              rgba(255, 0, 0, 0) 70.71%
+            )
+            fixed,
+          linear-gradient(
+              127deg,
+              rgba(0, 255, 0, 0.3),
+              rgba(0, 255, 0, 0) 70.71%
+            )
+            fixed,
+          linear-gradient(
+              336deg,
+              rgba(0, 0, 255, 0.3),
+              rgba(0, 0, 255, 0) 70.71%
+            )
+            fixed;
+        font-family: monospace;
+        margin: 0 10%;
+      }
+      header {
+        text-align: center;
+      }
+      .header-links {
+        font-size: 16px;
+        font-family: sans-serif;
+        text-decoration: none;
+        user-select: none;
+      }
+      .header-link {
+        text-decoration: none;
+      }
+      strong {
+        font-family: sans-serif;
+      }
+      input,
+      label,
+      button,
+      select {
+        margin: 5px;
+      }
+      pre {
+        margin: 0px;
+      }
+      label {
+        user-select: none;
+      }
+      button {
+        user-select: none;
+      }
+      hr {
+        margin: 20px 0;
+      }
+      .column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .row {
+        display: flex;
+        flex-direction: row;
+      }
+      .center {
+        align-items: center;
+        justify-content: center;
+      }
+      .grow {
+        display: flex;
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 style="margin-bottom: 0px">
+        <a href="https://github.com/eshaz/wasm-audio-decoders"
+          ><b>wasm-audio-decoders</b></a
+        >
+      </h1>
+      <h4>
+        Browser and NodeJS Web Assembly audio decoder libraries optimized for
+        size and performance.
+      </h4>
+    </header>
+    <hr />
+    <p>
+      This demo for
+      <a href="https://github.com/eshaz/wasm-audio-decoders"
+        >wasm-audio-decoders</a
+      >
+      decodes MPEG and Ogg Opus files into raw PCM entirely client side.
+      Decoding is accomplished using Web Assembly and Web Workers for high
+      performance and concurrency. The below libraries are featured in this
+      demo:
+    </p>
+    <ul>
+      <li>
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder#mpegdecoderwebworker"
+          ><b>MPEGDecoderWebWorker</b></a
+        >, from the
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder"
+          >mpg123-decoder</a
+        >
+        library, is used to decode MPEG data.
+        <ul>
+          <li>
+            Runs using a Web Assembly build of
+            <a href="https://www.mpg123.de/">mpg123</a>.
+          </li>
+          <li>Runs in a separate thread using the Web Worker api.</li>
+        </ul>
+      </li>
+      <li>
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder#oggopusdecoderwebworker"
+          ><b>OggOpusDecoderWebWorker</b></a
+        >, from the
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder"
+          >ogg-opus-decoder</a
+        >
+        library, is used to decode Ogg Opus data.
+        <ul>
+          <li>
+            Runs using a Web Assembly build of
+            <a href="https://github.com/xiph/opusfile">libopusfile</a>.
+          </li>
+          <li>Runs in a separate thread using the Web Worker api.</li>
+        </ul>
+      </li>
+    </ul>
+    <p>
+      Checkout the
+      <a href="https://github.com/eshaz/wasm-audio-decoders#readme">README</a>
+      on GitHub for more information.
+    </p>
+    <hr />
+    <h3>How to use the demo</h3>
+    <ol>
+      <li>
+        Select a couple MPEG Layer I/II/III (MP3) or Ogg Opus files to decode.
+      </li>
+      <li>
+        If you want to download a WAVE file for each file that you decode, check
+        the <b>"Download Results"</b> box.
+        <ul>
+          <li>
+            This option may download a lot of files all at once depending on how
+            many files and workers are selected.
+          </li>
+        </ul>
+      </li>
+      <li>
+        Select the number of workers you wish to use.
+        <ul>
+          <li>
+            This controls how many decoding operations will run in parallel.
+          </li>
+          <li>
+            Usually, the number of CPU cores you have on your computer is a good
+            number to use.
+          </li>
+          <li>
+            <b
+              >Selecting to many workers with this demo may crash your
+              browser.</b
+            >
+          </li>
+        </ul>
+      </li>
+      <li>Click <b>"Decode"</b> to start decoding.</li>
+    </ol>
+    <br />
+    <div class="sub-section">
+      <div>
+        <div class="row">
+          <div class="column" style="white-space: nowrap">
+            <div style="width: 100%">
+              <form name="playerForm" id="playerForm" onsubmit="return false;">
+                <fieldset name="file-upload" class="column">
+                  <legend>Select Files to Decode</legend>
+                  <div style="width: 100%" class="row center">
+                    <button
+                      class="center grow"
+                      onclick="document.getElementById('file-selector').click();"
+                    >
+                      Select Files
+                    </button>
+                    <input
+                      type="file"
+                      id="file-selector"
+                      accept=".mp3, .mp2, .mp1, .mpg, .ogg, .opus"
+                      multiple="true"
+                      style="display: none"
+                    />
+                    <div class="row center">
+                      <input id="download-decoded-file" type="checkbox" />
+                      <label for="download-decoded-file"
+                        >Download Results</label
+                      >
+                    </div>
+                  </div>
+                  <div style="width: 100%" class="row center">
+                    <button class="center grow" id="decode-button" disabled>
+                      Decode
+                    </button>
+                    <label for="threads">using</label>
+                    <select name="threads" id="threads">
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                      <option value="7">7</option>
+                      <option value="8">8</option>
+                      <option value="9">9</option>
+                      <option value="10">10</option>
+                      <option value="11">11</option>
+                      <option value="12">12</option>
+                      <option value="13">13</option>
+                      <option value="14">14</option>
+                      <option value="15">15</option>
+                      <option value="16">16</option>
+                      <option value="20">20</option>
+                      <option value="24">24</option>
+                      <option value="32">32</option>
+                      <option style="color: red" value="max">Max</option>
+                    </select>
+                    <label for="threads">worker(s)</label>
+                  </div>
+                </fieldset>
+              </form>
+            </div>
+            <div style="display: flex; width: 100%; height: 100%">
+              <fieldset class="grow">
+                <legend>Decode Stats</legend>
+                <div id="decode-stats-container"></div>
+              </fieldset>
+            </div>
+          </div>
+          <fieldset class="grow">
+            <legend>Decoder Progress</legend>
+            <div style="width: 100%" id="decode-progress-container"></div>
+          </fieldset>
+        </div>
+        <br />
+        <div class="row grow" id="files-to-decode-container"></div>
+      </div>
+    </div>
+    <br />
+  </body>
+  <script>
+    // progress bars
+    let decoderProgressIds;
+
+    const decodeProgressContainerEl = document.getElementById(
+      "decode-progress-container"
+    );
+    decodeProgressContainerEl.attachShadow({ mode: "open" });
+    decodeProgressContainerEl.shadowRoot.innerHTML = `
+    <style>
+      table {
+        width: 100%;
+      }
+      progress {
+        width: 100%;
+      }
+      .progress-td {
+        width: 100%;
+        text-align: center;
+      }
+      .stats-td {
+        text-align: right;
+      }
+    </style>
+    <table>
+      <thead id="progress-table-header"></thead>
+      <tbody id="total-progress-body"></tbody>
+      <tbody id="decoder-progress-body"></tbody>
+    </table>
+    `;
+
+    const progressTableHeaderEl =
+      decodeProgressContainerEl.shadowRoot.getElementById(
+        "progress-table-header"
+      );
+    const totalProgressBodyEl =
+      decodeProgressContainerEl.shadowRoot.getElementById(
+        "total-progress-body"
+      );
+    const decoderProgressBodyEl =
+      decodeProgressContainerEl.shadowRoot.getElementById(
+        "decoder-progress-body"
+      );
+
+    const clearDecoderProgress = () => {
+      decoderProgressIds = [];
+
+      progressTableHeaderEl.innerHTML = "";
+      totalProgressBodyEl.innerHTML = "";
+      decoderProgressBodyEl.innerHTML = "";
+    };
+
+    const resetDecoderProgress = (totalBytes) => {
+      progressTableHeaderEl.innerHTML =
+        "<tr><th>Instance</th><th>Progress</th><th>Bytes</th><th>Files</th></tr>";
+      totalProgressBodyEl.innerHTML =
+        "<tr>" +
+        `<td>Total</td>` +
+        `<td class="progress-td"><progress id="total-progress" value="0" max="${totalBytes}"></progress></td>` +
+        `<td class="stats-td" id="total-bytes">0</td>` +
+        `<td class="stats-td" id="total-files">0</td>` +
+        "</tr>";
+
+      decoderProgressIds.forEach((decoderId) => {
+        const decoderProgressId = `_progress-${decoderId}`;
+        const decoderTotalBytesId = `_total-bytes-${decoderId}`;
+        const decoderTotalFilesId = `_total-files-${decoderId}`;
+
+        decodeProgressContainerEl.shadowRoot.getElementById(
+          decoderProgressId
+        ).value = 0;
+        decodeProgressContainerEl.shadowRoot.getElementById(
+          decoderTotalBytesId
+        ).innerHTML = 0;
+        decodeProgressContainerEl.shadowRoot.getElementById(
+          decoderTotalFilesId
+        ).innerHTML = 0;
+      });
+    };
+
+    const updateDecoderProgress = (index, decoderName, value, total) => {
+      // update total progress bar
+      const totalProgressEl =
+        decodeProgressContainerEl.shadowRoot.getElementById("total-progress");
+      const totalBytesEl =
+        decodeProgressContainerEl.shadowRoot.getElementById("total-bytes");
+      const totalFilesEl =
+        decodeProgressContainerEl.shadowRoot.getElementById("total-files");
+
+      totalProgressEl.value += value;
+      totalBytesEl.innerHTML = (parseInt(totalBytesEl.innerHTML) || 0) + value;
+      totalFilesEl.innerHTML = (parseInt(totalFilesEl.innerHTML) || 0) + 1;
+
+      // update decoder progress bar
+      const decoderId = `${decoderName}-${index}`;
+      const decoderProgressId = `_progress-${decoderId}`;
+      const decoderTotalBytesId = `_total-bytes-${decoderId}`;
+      const decoderTotalFilesId = `_total-files-${decoderId}`;
+
+      const decoderProgressEl =
+        decodeProgressContainerEl.shadowRoot.getElementById(decoderProgressId);
+      const decoderTotalBytesEl =
+        decodeProgressContainerEl.shadowRoot.getElementById(
+          decoderTotalBytesId
+        );
+      const decoderTotalFilesEl =
+        decodeProgressContainerEl.shadowRoot.getElementById(
+          decoderTotalFilesId
+        );
+
+      if (decoderProgressEl === null) {
+        decoderProgressBodyEl.innerHTML +=
+          "<tr>" +
+          `<td>${decoderName}[${index}]</td>` +
+          `<td class="progress-td"><progress id="${decoderProgressId}" value="${value}" max="${total}"></progress></td>` +
+          `<td class="stats-td" id="${decoderTotalBytesId}">${value}</td>` +
+          `<td class="stats-td" id="${decoderTotalFilesId}">1</td>` +
+          "</tr>";
+        decoderProgressIds.push(decoderId);
+      } else {
+        decoderProgressEl.value += value;
+        decoderProgressEl.max = total;
+        decoderTotalBytesEl.innerHTML =
+          parseInt(decoderTotalBytesEl.innerHTML) + value;
+        decoderTotalFilesEl.innerHTML =
+          parseInt(decoderTotalFilesEl.innerHTML) + 1;
+      }
+    };
+
+    // decoder stats
+    const decodeStatsContainer = document.getElementById(
+      "decode-stats-container"
+    );
+    decodeStatsContainer.attachShadow({ mode: "open" });
+    decodeStatsContainer.shadowRoot.innerHTML = `
+    <table>
+      <tbody id="decode-stats-tbody">
+        <tr>
+          <td>files:</td>
+          <td id="decode-stats-files"></td>
+        </tr>
+        <tr>
+          <td>rate:</td>
+          <td id="decode-stats-rate"></td>
+        </tr>
+        <tr>
+          <td>decode time:</td>
+          <td id="decode-stats-decode-time"></td>
+        </tr>
+        <tr>
+          <td>duration:</td>
+          <td id="decode-stats-duration"></td>
+        </tr>
+        <tr>
+          <td>in:</td>
+          <td id="decode-stats-in"></td>
+        </tr>
+        <tr>
+          <td>out:</td>
+          <td id="decode-stats-out"></td>
+        </tr>
+      </tbody>
+    </table>
+    `;
+
+    const decodeStatsFiles =
+      decodeStatsContainer.shadowRoot.getElementById("decode-stats-files");
+    const decodeStatsRate =
+      decodeStatsContainer.shadowRoot.getElementById("decode-stats-rate");
+    const decodeStatsTime = decodeStatsContainer.shadowRoot.getElementById(
+      "decode-stats-decode-time"
+    );
+    const decodeStatsDuration = decodeStatsContainer.shadowRoot.getElementById(
+      "decode-stats-duration"
+    );
+    const decodeStatsIn =
+      decodeStatsContainer.shadowRoot.getElementById("decode-stats-in");
+    const decodeStatsOut =
+      decodeStatsContainer.shadowRoot.getElementById("decode-stats-out");
+
+    const updateDecodeStats = (stats) => {
+      if (stats) {
+        const decodeTime = (stats.decodeEnd - stats.decodeStart) / 1000;
+        const averageSampleRate =
+          stats.sampleRates.reduce((acc, rate) => acc + rate) /
+          stats.numberFilesDecoded;
+
+        decodeStatsFiles.innerHTML = stats.numberFilesDecoded;
+        decodeStatsRate.innerHTML =
+          (stats.samplesDecoded / averageSampleRate / decodeTime).toFixed(0) +
+          "x";
+        decodeStatsTime.innerHTML = formatTime(decodeTime);
+        decodeStatsDuration.innerHTML = formatTime(
+          stats.samplesDecoded / averageSampleRate
+        );
+        decodeStatsIn.innerHTML =
+          (stats.bytesIn / 1024 ** 2).toFixed(2) +
+          " MiB (" +
+          (stats.bytesIn / decodeTime / 1024 ** 2).toFixed(2) +
+          " MiB/s)";
+        decodeStatsOut.innerHTML =
+          (stats.bytesOut / 1024 ** 2).toFixed(2) +
+          " MiB (" +
+          (stats.bytesOut / decodeTime / 1024 ** 2).toFixed(2) +
+          " MiB/s)";
+      } else {
+        decodeStatsFiles.innerHTML = "";
+        decodeStatsRate.innerHTML = "";
+        decodeStatsTime.innerHTML = "";
+        decodeStatsDuration.innerHTML = "";
+        decodeStatsIn.innerHTML = "";
+        decodeStatsOut.innerHTML = "";
+      }
+    };
+
+    // file selector
+    let fileList, totalLength, mpegLength, opusLength;
+
+    const fileSelector = document.getElementById("file-selector");
+
+    const filesToDecodeContainerEl = document.getElementById(
+      "files-to-decode-container"
+    );
+    filesToDecodeContainerEl.attachShadow({ mode: "open" });
+    filesToDecodeContainerEl.shadowRoot.innerHTML = `
+      <style>
+        .file-status-table {
+          width: 100%;
+          border: 1px solid black;
+          border-collapse: collapse;
+        }
+        tr, td, th {
+          border: 1px solid black;
+          border-collapse: collapse;
+        }
+        td, th {
+          padding: 0 10px;
+        }
+      </style>
+      <table class="file-status-table">
+        <thead id="files-to-decode-header"></thead>
+        <tbody id="files-to-decode"></tbody>
+      </table>
+    `;
+
+    const filesToDecodeHeaderEl =
+      filesToDecodeContainerEl.shadowRoot.getElementById(
+        "files-to-decode-header"
+      );
+    const filesToDecodeEl =
+      filesToDecodeContainerEl.shadowRoot.getElementById("files-to-decode");
+
+    const decodeButtonEl = document.getElementById("decode-button");
+    const numberOfDecodersEl = document.getElementById("threads");
+
+    fileSelector.addEventListener("change", (e) => {
+      fileList = e.target.files;
+      totalLength = 0;
+      mpegLength = 0;
+      opusLength = 0;
+
+      if (fileList.length > 0) decodeButtonEl.disabled = false;
+      else decodeButtonEl.disabled = true;
+
+      filesToDecodeHeaderEl.innerHTML =
+        "<tr><th>Status</th><th>Name</th><th>Size</th><th>Type</th><th>Decoder</th></tr>";
+      filesToDecodeEl.innerHTML = "";
+
+      [...fileList].forEach(({ name, type, size }) => {
+        totalLength += size;
+        if (type === "audio/mpeg") mpegLength += size;
+        if (type === "audio/ogg") opusLength += size;
+        filesToDecodeEl.innerHTML += `<tr id="_row-${name}"><td id="_status-${name}">selected</td><td>${name}</td><td>${size}</td><td>${type}</td><td id="_decoder-${name}"></td></tr>`;
+      });
+
+      if (decoderPool) {
+        decoderPool.destroy();
+        decoderPool = null;
+      }
+      if (mpegLength || opusLength)
+        decoderPool = new DecoderPool(
+          numberOfDecodersEl.value,
+          mpegLength,
+          opusLength
+        );
+
+      updateDecodeStats();
+      clearDecoderProgress();
+    });
+  </script>
+  <script>
+    const { MPEGDecoderWebWorker, MPEGDecoder } = window["mpg123-decoder"];
+    const { OpusDecoderWebWorker, OpusDecoder } = window["opus-decoder"];
+    const { OggOpusDecoderWebWorker, OggOpusDecoder } =
+      window["ogg-opus-decoder"];
+
+    class DecoderPool {
+      constructor(numberOfDecoders, bytesMPEG, bytesOpus) {
+        const totalBytes = bytesMPEG + bytesOpus;
+
+        this._numberOfDecoders = numberOfDecoders;
+
+        this._mpegDecoderStats = {
+          maxDecoders:
+            Math.round((bytesMPEG / totalBytes) * numberOfDecoders) || 1,
+          numberDecoders: 0,
+        };
+        this._opusDecoderStats = {
+          maxDecoders:
+            Math.round((bytesOpus / totalBytes) * numberOfDecoders) || 1,
+          numberDecoders: 0,
+        };
+
+        this._decoderPool = [];
+      }
+
+      _getNextDecoder(DecoderClass) {
+        const decodersFilteredByClass = this._decoderPool.filter(
+          ({ decoder }) => decoder.constructor.name === DecoderClass.name
+        );
+
+        return (
+          decodersFilteredByClass.length &&
+          decodersFilteredByClass.reduce((acc, decoderEntry) =>
+            decoderEntry.allocated < acc.allocated ? decoderEntry : acc
+          )
+        );
+      }
+
+      async getDecoder(mimeType, fileSize) {
+        let DecoderClass, decoderStats;
+
+        switch (mimeType) {
+          case "audio/mpeg":
+            DecoderClass = MPEGDecoderWebWorker;
+            decoderStats = this._mpegDecoderStats;
+            break;
+          case "audio/ogg":
+            DecoderClass = OggOpusDecoderWebWorker;
+            decoderStats = this._opusDecoderStats;
+            break;
+          default:
+            throw new Error(`Unsupported file type ${mimeType}`);
+        }
+
+        let decoderEntry = this._getNextDecoder(DecoderClass);
+
+        if (
+          !decoderEntry || // there are no decoders
+          (decoderEntry.allocated !== 0 && // the least used decoder is unallocated
+            (this._numberOfDecoders === "max" || // always create a new decoder when "max" is set
+              decoderStats.numberDecoders < decoderStats.maxDecoders)) // create a new decoder when the max hasn't been reached
+        ) {
+          decoderEntry = {
+            decoder: new DecoderClass(),
+            allocated: fileSize,
+            index: this._decoderPool.length,
+          };
+          decoderStats.numberDecoders++;
+
+          this._decoderPool.push(decoderEntry);
+        } else {
+          // use an existing decoder
+          decoderEntry.allocated += fileSize;
+        }
+
+        await decoderEntry.decoder.ready;
+
+        return decoderEntry;
+      }
+
+      reset() {
+        this._decoderPool.forEach(
+          (decoderEntry) => (decoderEntry.allocated = 0)
+        );
+      }
+
+      destroy() {
+        this._decoderPool.forEach(({ decoder }) => decoder.free());
+      }
+    }
+
+    let decoderPool = new DecoderPool(numberOfDecodersEl.value);
+
+    numberOfDecodersEl.addEventListener("change", (e) => {
+      if (decoderPool) {
+        decoderPool.destroy();
+        decoderPool = null;
+      }
+      if (mpegLength || opusLength)
+        decoderPool = new DecoderPool(e.target.value, mpegLength, opusLength);
+
+      clearDecoderProgress(totalLength);
+    });
+
+    decodeButtonEl.addEventListener("click", async (e) => {
+      decodeButtonEl.disabled = true;
+      numberOfDecodersEl.disabled = true;
+      let totalBytes = 0;
+
+      const files = [...fileList].map((file) => {
+        totalBytes += file.size;
+
+        return {
+          buffer: file.arrayBuffer(),
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        };
+      });
+
+      const stats = {
+        numberFilesDecoded: 0,
+        decodeStart: performance.now(),
+        decodeEnd: 0,
+        samplesDecoded: 0,
+        sampleRates: [],
+        bytesIn: 0,
+        bytesOut: 0,
+      };
+
+      resetDecoderProgress(totalBytes);
+      updateDecodeStats();
+
+      decoderPool.reset();
+      const decodeOperations = [];
+
+      for (const { buffer, name, type, size } of files) {
+        const rowEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+          `_row-${name}`
+        );
+        const statusEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+          `_status-${name}`
+        );
+        const decoderEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+          `_decoder-${name}`
+        );
+
+        rowEl.style = "";
+        statusEl.innerHTML = "selected";
+        decoderEl.innerHTML = "";
+
+        decodeOperations.push(
+          buffer.then((data) =>
+            decoderPool
+              .getDecoder(type, size)
+              .then(({ decoder, index, allocated }) => {
+                rowEl.style = "background-color: rgba(255, 255, 0, .5)";
+                statusEl.innerHTML = `queued`;
+                decoderEl.innerHTML = `${decoder.constructor.name}[${index}]`;
+
+                return decoder
+                  .decode(new Uint8Array(data))
+                  .then(({ samplesDecoded, sampleRate, channelData }) => {
+                    stats.decodeEnd = performance.now();
+                    stats.sampleRates.push(sampleRate);
+                    stats.samplesDecoded += samplesDecoded;
+                    stats.numberFilesDecoded++;
+                    stats.bytesIn += size;
+                    stats.bytesOut += downloadDecodeResult(
+                      { samplesDecoded, sampleRate, channelData },
+                      name,
+                      size
+                    );
+
+                    rowEl.style = "background-color: rgba(0, 255, 0, .5)";
+                    statusEl.innerHTML = "done";
+
+                    updateDecodeStats(stats);
+                    updateDecoderProgress(
+                      index,
+                      decoder.constructor.name,
+                      size,
+                      allocated
+                    );
+
+                    decoder.reset();
+                  });
+              })
+          )
+        );
+      }
+
+      Promise.all(decodeOperations).then(() => {
+        decodeButtonEl.disabled = false;
+        numberOfDecodersEl.disabled = false;
+      });
+    });
+  </script>
+</html>

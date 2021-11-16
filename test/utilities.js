@@ -7,20 +7,19 @@ const min = (a, b) => (a < b ? a : b);
 const floatToInt = (val) =>
   val > 0 ? min(val * 32767, 32767) : max(val * 32767, -32768);
 
-export const getInterleavedInt16Array = (channelData, samples) => {
-  const channels = channelData.length;
-  const interleaved = new Int16Array(samples * channels);
+export const getInterleaved = (channelData, samples) => {
+  const interleaved = new Int16Array(samples * channelData.length);
 
-  for (let offset = 0; offset - channels < samples; offset++) {
-    interleaved[offset * channels] = floatToInt(channelData[0][offset]);
-    interleaved[offset * channels + 1] = floatToInt(channelData[1][offset]);
+  for (let offset = 0, interleavedOffset = 0; offset < samples; offset++) {
+    interleaved[interleavedOffset++] = floatToInt(channelData[0][offset]);
+    interleaved[interleavedOffset++] = floatToInt(channelData[1][offset]);
   }
 
-  return interleaved;
+  return new Uint8Array(interleaved.buffer);
 };
 
 export const getWaveFileHeader = ({ bitDepth, sampleRate, length, channels }) =>
-  waveHeader.generateHeader(Int16Array.BYTES_PER_ELEMENT * length, {
+  waveHeader.generateHeader(length, {
     channels,
     bitDepth,
     sampleRate,
@@ -76,7 +75,7 @@ export const testDecoder_decodeFrames = async (
     await decoder.decodeFrames(frames);
   const decodeEnd = performance.now();
 
-  const interleaved = getInterleavedInt16Array(channelData, samplesDecoded);
+  const interleaved = getInterleaved(channelData, samplesDecoded);
 
   await output.writeFile(interleaved);
 
@@ -89,14 +88,14 @@ export const testDecoder_decodeFrames = async (
     totalSamplesDecoded: samplesDecoded,
     bytesRead: framesLength,
     totalBytesRead: framesLength,
-    bytesWritten: interleaved.length * 2,
-    totalBytesWritten: interleaved.length * 2,
+    bytesWritten: interleaved.length,
+    totalBytesWritten: interleaved.length,
   });
 
   const header = getWaveFileHeader({
     bitDepth: 16,
     sampleRate,
-    length: samplesDecoded * 2,
+    length: interleaved.length,
     channels: 2,
   });
 
@@ -153,14 +152,14 @@ export const testDecoder_decode = async (
     } = await decoder.decode(buffer.subarray(0, bytesRead));
     decodeEnd = performance.now();
 
-    const interleaved = getInterleavedInt16Array(channelData, samplesDecoded);
+    const interleaved = getInterleaved(channelData, samplesDecoded);
 
     outStart = performance.now();
     await output.writeFile(interleaved);
     outEnd = performance.now();
 
     sampleRate = rate;
-    bytesWritten = interleaved.length * 2;
+    bytesWritten = interleaved.length;
     totalBytesWritten += bytesWritten;
     totalSamplesDecoded += samplesDecoded;
     totalBytesRead += bytesRead;
@@ -184,7 +183,7 @@ export const testDecoder_decode = async (
   const header = getWaveFileHeader({
     bitDepth: 16,
     sampleRate,
-    length: totalSamplesDecoded * 2,
+    length: totalBytesWritten,
     channels: 2,
   });
 

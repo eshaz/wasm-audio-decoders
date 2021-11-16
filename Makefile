@@ -2,14 +2,18 @@ default: dist
 
 clean: dist-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
+DEMO_PATH=demo
+
 dist: opus-decoder ogg-opus-decoder mpg123-decoder
 dist-clean:
+	rm -rf $(DEMO_PATH)/*.js
 	rm -rf src/opus-decoder/dist/*
 	rm -rf src/ogg-opus-decoder/dist/*
 	rm -rf src/mpg123-decoder/dist/*
 	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
+
 
 # ogg-opus-decoder
 OGG_OPUS_DECODER_EMSCRIPTEN_BUILD=src/ogg-opus-decoder/src/EmscriptenWasm.js
@@ -21,6 +25,7 @@ ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	node build/compress.js ${OGG_OPUS_DECODER_EMSCRIPTEN_BUILD}
 	node_modules/.bin/rollup src/ogg-opus-decoder/index.js --file $(OGG_OPUS_DECODER_MODULE) --config src/ogg-opus-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
+	cp $(OGG_OPUS_DECODER_MODULE) $(DEMO_PATH)
 
 # opus-decoder
 OPUS_DECODER_EMSCRIPTEN_BUILD=src/opus-decoder/src/EmscriptenWasm.js
@@ -32,6 +37,7 @@ opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	node build/compress.js $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	node_modules/.bin/rollup src/opus-decoder/index.js --file $(OPUS_DECODER_MODULE) --config src/opus-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/opus-decoder/terser.json $(OPUS_DECODER_MODULE) -o $(OPUS_DECODER_MODULE_MIN)
+	cp $(OPUS_DECODER_MODULE) $(DEMO_PATH)
 
 # libopus
 OPUS_WASM_LIB=tmp/opus.bc
@@ -51,6 +57,8 @@ mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 	node build/compress.js $(MPG123_EMSCRIPTEN_BUILD)
 	node_modules/.bin/rollup src/mpg123-decoder/index.js --file $(MPG123_MODULE) --config src/mpg123-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/mpg123-decoder/terser.json $(MPG123_MODULE) -o $(MPG123_MODULE_MIN)
+	cp $(MPG123_MODULE) $(DEMO_PATH)
+
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
