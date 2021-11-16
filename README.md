@@ -4,6 +4,8 @@ WASM Audio Decoders is a collection of Web Assembly audio decoder libraries that
 
 Web Assembly is a binary instruction format for a stack-based virtual machine that allows for near native code execution speed inside of a web browser. In practice, these decoders are just as fast, and in some cases faster, than the browser implementation.
 
+### [Checkout the demo here](https://eshaz.github.io/wasm-audio-decoders/)
+
 ## Decoders
 
 Each decoder is built with inline WASM to reduce bundling complexity with transpilers like Webpack. The inlined WASM is encoded using yEnc for efficient binary encoding and is gzip compressed for reduced file size.

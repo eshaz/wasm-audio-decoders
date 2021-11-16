@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "deploy": "gh-pages -d demo",
     "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*'",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%"
   },
@@ -9,6 +10,7 @@
     "@wpdas/wave-header": "^1.0.1",
     "codec-parser": "^1.5.0",
     "fflate": "^0.7.1",
+    "gh-pages": "^3.2.3",
     "jest": "^27.3.1",
     "prettier": "^2.4.1",
     "rollup": "^2.58.3",

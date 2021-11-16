@@ -8,6 +8,8 @@
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
+### [Checkout the demo here](https://eshaz.github.io/wasm-audio-decoders/)
+
 ## Installing
 * Install from [NPM](https://www.npmjs.com/package/mpg123-decoder).
   

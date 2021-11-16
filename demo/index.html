@@ -235,21 +235,8 @@
         flex: 1;
       }
     </style>
-    <script>
-      let playerFormData;
-
-      const bodyLoad = async () => {
-        document.playerForm.reset();
-
-        document.playerForm.addEventListener("change", () => {
-          playerFormData = Object.fromEntries(
-            new FormData(playerForm).entries()
-          );
-        });
-      };
-    </script>
   </head>
-  <body onload="bodyLoad();">
+  <body>
     <header>
       <h1 style="margin-bottom: 0px">
         <a href="https://github.com/eshaz/wasm-audio-decoders"
