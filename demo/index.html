@@ -162,6 +162,24 @@
         text-size-adjust: none;
       }
       body {
+        background: linear-gradient(
+              217deg,
+              rgba(255, 0, 0, 0.3),
+              rgba(255, 0, 0, 0) 70.71%
+            )
+            fixed,
+          linear-gradient(
+              127deg,
+              rgba(0, 255, 0, 0.3),
+              rgba(0, 255, 0, 0) 70.71%
+            )
+            fixed,
+          linear-gradient(
+              336deg,
+              rgba(0, 0, 255, 0.3),
+              rgba(0, 0, 255, 0) 70.71%
+            )
+            fixed;
         font-family: monospace;
         margin: 0 10%;
       }
@@ -238,10 +256,10 @@
           ><b>wasm-audio-decoders</b></a
         >
       </h1>
-      <p>
-        Browser and NodeJS Web Assembly audio decoder libraries that are highly
-        optimized for size and performance.
-      </p>
+      <h4>
+        Browser and NodeJS Web Assembly audio decoder libraries optimized for
+        size and performance.
+      </h4>
     </header>
     <hr />
     <p>
@@ -860,7 +878,7 @@
             decoderPool
               .getDecoder(type, size)
               .then(({ decoder, index, allocated }) => {
-                rowEl.style = "background-color: yellow";
+                rowEl.style = "background-color: rgba(255, 255, 0, .5)";
                 statusEl.innerHTML = `queued`;
                 decoderEl.innerHTML = `${decoder.constructor.name}[${index}]`;
 
@@ -878,7 +896,7 @@
                       size
                     );
 
-                    rowEl.style = "background-color: green";
+                    rowEl.style = "background-color: rgba(0, 255, 0, .5)";
                     statusEl.innerHTML = "done";
 
                     updateDecodeStats(stats);
