@@ -875,6 +875,8 @@
     }
   }
 
+  let sourceURL;
+
   class MPEGDecoderWebWorker extends Worker__default["default"] {
     constructor() {
       const webworkerSourceCode =
@@ -936,19 +938,19 @@
         };
       }).toString()})(${MPEGDecoder}, ${MPEGDecodedAudio}, ${EmscriptenWASM})`;
 
-      const type = "text/javascript";
-      let sourceURL;
-
-      try {
-        // browser
-        sourceURL = URL.createObjectURL(
-          new Blob([webworkerSourceCode], { type })
-        );
-      } catch {
-        // nodejs
-        sourceURL = `data:${type};base64,${Buffer.from(
-        webworkerSourceCode
-      ).toString("base64")}`;
+      if (!sourceURL) {
+        const type = "text/javascript";
+        try {
+          // browser
+          sourceURL = URL.createObjectURL(
+            new Blob([webworkerSourceCode], { type })
+          );
+        } catch {
+          // nodejs
+          sourceURL = `data:${type};base64,${Buffer.from(
+          webworkerSourceCode
+        ).toString("base64")}`;
+        }
       }
 
       super(sourceURL);
