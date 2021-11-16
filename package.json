@@ -13,9 +13,9 @@
     "gh-pages": "^3.2.3",
     "jest": "^27.3.1",
     "prettier": "^2.4.1",
-    "rollup": "^2.58.3",
+    "rollup": "^2.60.0",
     "simple-yenc": "0.0.2",
-    "terser": "^5.9.0",
+    "terser": "^5.10.0",
     "web-worker": "^1.1.0"
   }
 }
