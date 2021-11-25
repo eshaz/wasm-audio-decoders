@@ -8,66 +8,68 @@ let sourceURL;
 
 export default class MPEGDecoderWebWorker extends Worker {
   constructor() {
-    const webworkerSourceCode =
-      "'use strict';" +
-      // dependencies need to be manually resolved when stringifying this function
-      `(${((_MPEGDecoder, _MPEGDecodedAudio, _EmscriptenWASM) => {
-        // We're in a Web Worker
-        const decoder = new _MPEGDecoder(_MPEGDecodedAudio, _EmscriptenWASM);
-
-        const detachBuffers = (buffer) =>
-          Array.isArray(buffer)
-            ? buffer.map((buffer) => new Uint8Array(buffer))
-            : new Uint8Array(buffer);
-
-        self.onmessage = ({ data: { id, command, mpegData } }) => {
-          switch (command) {
-            case "ready":
-              decoder.ready.then(() => {
-                self.postMessage({
-                  id,
-                });
-              });
-              break;
-            case "free":
-              decoder.free();
-              self.postMessage({
-                id,
-              });
-              break;
-            case "reset":
-              decoder.reset().then(() => {
-                self.postMessage({
-                  id,
-                });
-              });
-              break;
-            case "decode":
-            case "decodeFrame":
-            case "decodeFrames":
-              const { channelData, samplesDecoded, sampleRate } = decoder[
-                command
-              ](detachBuffers(mpegData));
-
-              self.postMessage(
-                {
-                  id,
-                  channelData,
-                  samplesDecoded,
-                  sampleRate,
-                },
-                // The "transferList" parameter transfers ownership of channel data to main thread,
-                // which avoids copying memory.
-                channelData.map((channel) => channel.buffer)
-              );
-              break;
-            default:
-              this.console.error("Unknown command sent to worker: " + command);
-          }
-        };
-      }).toString()})(${MPEGDecoder}, ${MPEGDecodedAudio}, ${EmscriptenWASM})`;
-
     if (!sourceURL) {
+      const webworkerSourceCode =
+        "'use strict';" +
+        // dependencies need to be manually resolved when stringifying this function
+        `(${((_MPEGDecoder, _MPEGDecodedAudio, _EmscriptenWASM) => {
+          // We're in a Web Worker
+          const decoder = new _MPEGDecoder(_MPEGDecodedAudio, _EmscriptenWASM);
+
+          const detachBuffers = (buffer) =>
+            Array.isArray(buffer)
+              ? buffer.map((buffer) => new Uint8Array(buffer))
+              : new Uint8Array(buffer);
+
+          self.onmessage = ({ data: { id, command, mpegData } }) => {
+            switch (command) {
+              case "ready":
+                decoder.ready.then(() => {
+                  self.postMessage({
+                    id,
+                  });
+                });
+                break;
+              case "free":
+                decoder.free();
+                self.postMessage({
+                  id,
+                });
+                break;
+              case "reset":
+                decoder.reset().then(() => {
+                  self.postMessage({
+                    id,
+                  });
+                });
+                break;
+              case "decode":
+              case "decodeFrame":
+              case "decodeFrames":
+                const { channelData, samplesDecoded, sampleRate } = decoder[
+                  command
+                ](detachBuffers(mpegData));
+
+                self.postMessage(
+                  {
+                    id,
+                    channelData,
+                    samplesDecoded,
+                    sampleRate,
+                  },
+                  // The "transferList" parameter transfers ownership of channel data to main thread,
+                  // which avoids copying memory.
+                  channelData.map((channel) => channel.buffer)
+                );
+                break;
+              default:
+                this.console.error(
+                  "Unknown command sent to worker: " + command
+                );
+            }
+          };
+        }).toString()})(${MPEGDecoder}, ${MPEGDecodedAudio}, ${EmscriptenWASM})`;
+
       const type = "text/javascript";
       try {
         // browser

@@ -22,9 +22,9 @@ export default class MPEGDecoder {
     return ret;
   }
 
-  _createOutputArray(length) {
-    const pointer = this._api._malloc(Float32Array.BYTES_PER_ELEMENT * length);
-    const array = new Float32Array(this._api.HEAPF32.buffer, pointer, length);
+  _allocateTypedArray(length, TypedArray) {
+    const pointer = this._api._malloc(TypedArray.BYTES_PER_ELEMENT * length);
+    const array = new TypedArray(this._api.HEAP, pointer, length);
     return [pointer, array];
   }
 
@@ -55,25 +55,34 @@ export default class MPEGDecoder {
 
     this._sampleRate = 0;
 
-    // output buffer
-    this._outputLength = 1152 * 512;
-    [this._leftPtr, this._leftArr] = this._createOutputArray(
-      this._outputLength
-    );
-    [this._rightPtr, this._rightArr] = this._createOutputArray(
-      this._outputLength
-    );
-
     // input buffer
     this._inDataPtrSize = 2 ** 18;
-    this._inDataPtr = this._api._malloc(this._inDataPtrSize);
+    [this._inDataPtr, this._inData] = this._allocateTypedArray(
+      this._inDataPtrSize,
+      Uint8Array
+    );
+
+    // output buffer
+    this._outputLength = 1152 * 512;
+    [this._leftPtr, this._leftArr] = this._allocateTypedArray(
+      this._outputLength,
+      Float32Array
+    );
+    [this._rightPtr, this._rightArr] = this._allocateTypedArray(
+      this._outputLength,
+      Float32Array
+    );
 
     // input decoded bytes pointer
-    this._decodedBytesPtr = this._api._malloc(Uint32Array.BYTES_PER_ELEMENT);
-    this._decodedBytes = new Uint32Array(
-      this._api.HEAPU32.buffer,
-      this._decodedBytesPtr,
-      1
+    [this._decodedBytesPtr, this._decodedBytes] = this._allocateTypedArray(
+      1,
+      Uint32Array
+    );
+
+    // sample rate
+    [this._sampleRateBytePtr, this._sampleRateByte] = this._allocateTypedArray(
+      1,
+      Uint32Array
     );
 
     this._decoder = this._api._mpeg_frame_decoder_create();
@@ -91,10 +100,12 @@ export default class MPEGDecoder {
   free() {
     this._api._mpeg_frame_decoder_destroy(this._decoder);
 
+    this._api._free(this._decoder);
     this._api._free(this._inDataPtr);
     this._api._free(this._decodedBytesPtr);
     this._api._free(this._leftPtr);
     this._api._free(this._rightPtr);
+    this._api._free(this._sampleRateBytePtr);
   }
 
   _decode(data, decodeInterval) {
@@ -103,8 +114,7 @@ export default class MPEGDecoder {
         `Data to decode must be Uint8Array. Instead got ${typeof data}`
       );
 
-    this._api.HEAPU8.set(data, this._inDataPtr);
-
+    this._inData.set(data);
     this._decodedBytes[0] = 0;
 
     const samplesDecoded = this._api._mpeg_decode_interleaved(
@@ -115,11 +125,11 @@ export default class MPEGDecoder {
       decodeInterval,
       this._leftPtr,
       this._rightPtr,
-      this._outputLength
+      this._outputLength,
+      this._sampleRateBytePtr
     );
 
-    if (!this._sampleRate)
-      this._sampleRate = this._api._mpeg_get_sample_rate(this._decoder);
+    this._sampleRate = this._sampleRateByte[0];
 
     return new this._MPEGDecodedAudio(
       [

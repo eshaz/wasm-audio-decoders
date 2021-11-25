@@ -22,9 +22,9 @@ export default class OpusDecoder {
     return ret;
   }
 
-  _createOutputArray(length) {
-    const pointer = this._api._malloc(Float32Array.BYTES_PER_ELEMENT * length);
-    const array = new Float32Array(this._api.HEAPF32.buffer, pointer, length);
+  _allocateTypedArray(length, TypedArray) {
+    const pointer = this._api._malloc(TypedArray.BYTES_PER_ELEMENT * length);
+    const array = new TypedArray(this._api.HEAP, pointer, length);
     return [pointer, array];
   }
 
@@ -56,10 +56,20 @@ export default class OpusDecoder {
     this._decoder = this._api._opus_frame_decoder_create();
 
     // max size of stereo Opus packet 120ms @ 510kbs
-    this._dataPtr = this._api._malloc((0.12 * 510000) / 8);
+    [this._inputPtr, this._input] = this._allocateTypedArray(
+      (0.12 * 510000) / 8,
+      Uint8Array
+    );
+
     // max audio output of Opus packet 120ms @ 48000Hz
-    [this._leftPtr, this._leftArr] = this._createOutputArray(120 * 48);
-    [this._rightPtr, this._rightArr] = this._createOutputArray(120 * 48);
+    [this._leftPtr, this._leftArr] = this._allocateTypedArray(
+      120 * 48,
+      Float32Array
+    );
+    [this._rightPtr, this._rightArr] = this._allocateTypedArray(
+      120 * 48,
+      Float32Array
+    );
   }
 
   get ready() {
@@ -74,7 +84,7 @@ export default class OpusDecoder {
   free() {
     this._api._opus_frame_decoder_destroy(this._decoder);
 
-    this._api._free(this._dataPtr);
+    this._api._free(this._inputPtr);
     this._api._free(this._leftPtr);
     this._api._free(this._rightPtr);
   }
@@ -85,11 +95,11 @@ export default class OpusDecoder {
         `Data to decode must be Uint8Array. Instead got ${typeof opusFrame}`
       );
 
-    this._api.HEAPU8.set(opusFrame, this._dataPtr);
+    this._input.set(opusFrame);
 
     const samplesDecoded = this._api._opus_frame_decode_float_deinterleaved(
       this._decoder,
-      this._dataPtr,
+      this._inputPtr,
       opusFrame.length,
       this._leftPtr,
       this._rightPtr

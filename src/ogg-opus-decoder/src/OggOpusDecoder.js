@@ -30,9 +30,9 @@ export default class OggOpusDecoder {
 
   // creates Float32Array on Wasm heap and returns it and its pointer
   // returns [pointer, array]
-  _getOutputArray(length) {
-    const pointer = this._api._malloc(Float32Array.BYTES_PER_ELEMENT * length);
-    const array = new Float32Array(this._api.HEAPF32.buffer, pointer, length);
+  _allocateTypedArray(length, TypedArray) {
+    const pointer = this._api._malloc(TypedArray.BYTES_PER_ELEMENT * length);
+    const array = new TypedArray(this._api.HEAP, pointer, length);
     return [pointer, array];
   }
 
@@ -63,11 +63,21 @@ export default class OggOpusDecoder {
 
     this._decoder = this._api._ogg_opus_decoder_create();
 
-    this._inputPtr = this._api._malloc(this._inputArrSize);
+    // input data
+    [this._inputPtr, this._input] = this._allocateTypedArray(
+      this._inputArrSize,
+      Uint8Array
+    );
 
     // output data
-    [this._leftPtr, this._leftArr] = this._getOutputArray(this._outSize);
-    [this._rightPtr, this._rightArr] = this._getOutputArray(this._outSize);
+    [this._leftPtr, this._leftArr] = this._allocateTypedArray(
+      this._outSize,
+      Float32Array
+    );
+    [this._rightPtr, this._rightArr] = this._allocateTypedArray(
+      this._outSize,
+      Float32Array
+    );
   }
 
   get ready() {
@@ -110,7 +120,7 @@ export default class OggOpusDecoder {
 
       offset += dataToSend.length;
 
-      this._api.HEAPU8.set(dataToSend, this._inputPtr);
+      this._input.set(dataToSend);
 
       // enqueue bytes to decode. Fail on error
       if (
@@ -121,7 +131,7 @@ export default class OggOpusDecoder {
         )
       )
         throw Error(
-          "Could not enqueue bytes for decoding.  You may also have invalid Ogg Opus file."
+          "Could not enqueue bytes for decoding. You may also have invalid Ogg Opus file."
         );
 
       // continue to decode until no more bytes are left to decode

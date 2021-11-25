@@ -1,6 +1,6 @@
 {
   "name": "opus-decoder",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Web Assembly streaming Opus decoder",
   "main": "dist/opus-decoder.min.js",
   "module": "index.js",

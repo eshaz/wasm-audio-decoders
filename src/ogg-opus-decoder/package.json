@@ -1,6 +1,6 @@
 {
   "name": "ogg-opus-decoder",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Web Assembly streaming Ogg Opus decoder",
   "main": "dist/ogg-opus-decoder.min.js",
   "module": "index.js",
