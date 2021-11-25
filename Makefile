@@ -248,7 +248,6 @@ define MPG123_EMCC_OPTS
   ,	'_mpeg_frame_decoder_create' \
   ,	'_mpeg_frame_decoder_destroy' \
   ,	'_mpeg_decode_interleaved' \
-  ,	'_mpeg_get_sample_rate' \
 ]" \
 --pre-js 'src/mpg123-decoder/src/emscripten-pre.js' \
 --post-js 'src/mpg123-decoder/src/emscripten-post.js' \

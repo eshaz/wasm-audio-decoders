@@ -18,7 +18,8 @@ int mpeg_decode_interleaved(
     size_t in_read_chunk_size, // interval of bytes to read from input data
     float *left, // left output audio
     float *right, // right output audio
-    size_t out_size // output audio buffer size
+    size_t out_size, // output audio buffer size
+    unsigned int *sample_rate // pointer to save the sample rate
 );
 
 void mpeg_frame_decoder_destroy(MPEGFrameDecoder *st);

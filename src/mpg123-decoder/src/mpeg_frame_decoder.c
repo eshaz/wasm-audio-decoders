@@ -23,7 +23,8 @@ int mpeg_decode_interleaved(
     size_t in_read_chunk_size, // interval of bytes to read from input data
     float *left, // pointer to save the left output audio
     float *right, // pointer to save the right output audio
-    size_t decode_buffer_size // output audio buffer size
+    size_t decode_buffer_size, // output audio buffer size
+    unsigned int *sample_rate // pointer to save the sample rate
 ) {
     in_read_chunk_size = in_size > in_read_chunk_size ? in_read_chunk_size : in_size;
     int samples_decoded = 0;
@@ -65,13 +66,10 @@ int mpeg_decode_interleaved(
     // printf("in_read_pos %u, in_size %zu, total_bytes_decoded %u, decode_buffer_size %zu\n", 
     //        *in_read_pos,    in_size,     samples_decoded * 8,    decode_buffer_size * 8);
 
-    return samples_decoded;
-}
-
-long mpeg_get_sample_rate(MPEGFrameDecoder *decoder) {
     mpg123_info(decoder->mh, &decoder->fr);
-    
-    return decoder->fr.rate;
+    *sample_rate = (int) decoder->fr.rate;
+
+    return samples_decoded;
 }
 
 void mpeg_frame_decoder_destroy(MPEGFrameDecoder *decoder) {
