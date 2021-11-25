@@ -8,58 +8,63 @@ let sourceURL;
 
 export default class OggOpusDecoderWebWorker extends Worker {
   constructor() {
-    const webworkerSourceCode =
-      "'use strict';" +
-      // dependencies need to be manually resolved when stringifying this function
-      `(${((_OggOpusDecoder, _OpusDecodedAudio, _EmscriptenWASM) => {
-        // We're in a Web Worker
-        const decoder = new _OggOpusDecoder(_OpusDecodedAudio, _EmscriptenWASM);
-
-        self.onmessage = ({ data: { id, command, oggOpusData } }) => {
-          switch (command) {
-            case "ready":
-              decoder.ready.then(() => {
-                self.postMessage({
-                  id,
-                });
-              });
-              break;
-            case "free":
-              decoder.free();
-              self.postMessage({
-                id,
-              });
-              break;
-            case "reset":
-              decoder.reset().then(() => {
-                self.postMessage({
-                  id,
-                });
-              });
-              break;
-            case "decode":
-              const { channelData, samplesDecoded, sampleRate } =
-                decoder.decode(new Uint8Array(oggOpusData));
-
-              self.postMessage(
-                {
-                  id,
-                  channelData,
-                  samplesDecoded,
-                  sampleRate,
-                },
-                // The "transferList" parameter transfers ownership of channel data to main thread,
-                // which avoids copying memory.
-                channelData.map((channel) => channel.buffer)
-              );
-              break;
-            default:
-              this.console.error("Unknown command sent to worker: " + command);
-          }
-        };
-      }).toString()})(${OggOpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
-
     if (!sourceURL) {
+      const webworkerSourceCode =
+        "'use strict';" +
+        // dependencies need to be manually resolved when stringifying this function
+        `(${((_OggOpusDecoder, _OpusDecodedAudio, _EmscriptenWASM) => {
+          // We're in a Web Worker
+          const decoder = new _OggOpusDecoder(
+            _OpusDecodedAudio,
+            _EmscriptenWASM
+          );
+
+          self.onmessage = ({ data: { id, command, oggOpusData } }) => {
+            switch (command) {
+              case "ready":
+                decoder.ready.then(() => {
+                  self.postMessage({
+                    id,
+                  });
+                });
+                break;
+              case "free":
+                decoder.free();
+                self.postMessage({
+                  id,
+                });
+                break;
+              case "reset":
+                decoder.reset().then(() => {
+                  self.postMessage({
+                    id,
+                  });
+                });
+                break;
+              case "decode":
+                const { channelData, samplesDecoded, sampleRate } =
+                  decoder.decode(new Uint8Array(oggOpusData));
+
+                self.postMessage(
+                  {
+                    id,
+                    channelData,
+                    samplesDecoded,
+                    sampleRate,
+                  },
+                  // The "transferList" parameter transfers ownership of channel data to main thread,
+                  // which avoids copying memory.
+                  channelData.map((channel) => channel.buffer)
+                );
+                break;
+              default:
+                this.console.error(
+                  "Unknown command sent to worker: " + command
+                );
+            }
+          };
+        }).toString()})(${OggOpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
+
       const type = "text/javascript";
       try {
         // browser
