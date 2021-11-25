@@ -666,7 +666,7 @@ WebAssembly.instantiate(Module["wasm"], imports).then(function(output) {
 this.ready = new Promise(resolve => {
  ready = resolve;
 }).then(() => {
- this.buffer = buffer;
+ this.HEAP = buffer;
  this._malloc = _malloc;
  this._free = _free;
  this._mpeg_frame_decoder_create = _mpeg_frame_decoder_create;

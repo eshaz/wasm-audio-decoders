@@ -665,7 +665,7 @@
   this.ready = new Promise(resolve => {
    ready = resolve;
   }).then(() => {
-   this.buffer = buffer;
+   this.HEAP = buffer;
    this._malloc = _malloc;
    this._free = _free;
    this._mpeg_frame_decoder_create = _mpeg_frame_decoder_create;
@@ -697,7 +697,7 @@
 
     _allocateTypedArray(length, TypedArray) {
       const pointer = this._api._malloc(TypedArray.BYTES_PER_ELEMENT * length);
-      const array = new TypedArray(this._api.buffer, pointer, length);
+      const array = new TypedArray(this._api.HEAP, pointer, length);
       return [pointer, array];
     }
 
