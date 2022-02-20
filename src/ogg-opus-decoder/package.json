@@ -43,7 +43,6 @@
   },
   "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder",
   "dependencies": {
-    "@wasm-audio-decoders/common": "file:../common",
-    "web-worker": "^1.1.0"
+    "@wasm-audio-decoders/common": "file:../common"
   }
 }

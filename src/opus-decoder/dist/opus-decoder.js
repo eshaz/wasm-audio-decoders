@@ -8,7 +8,7 @@
 
   var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
-  class WASMAudioDecodersCommon {
+  class WASMAudioDecoderCommon {
     constructor(wasm) {
       this._wasm = wasm;
 
@@ -38,6 +38,143 @@
     free() {
       this._pointers.forEach((ptr) => this._wasm._free(ptr));
       this._pointers = [];
+    }
+  }
+
+  // statically store web worker source code
+  const sources = new WeakMap();
+
+  class WASMAudioDecoderWorker extends Worker__default["default"] {
+    constructor(Decoder, DecodedAudio, EmscriptenWASM) {
+      let source = sources.get(Decoder);
+
+      if (!source) {
+        const webworkerSourceCode =
+          "'use strict';" +
+          // dependencies need to be manually resolved when stringifying this function
+          `(${((
+          _WASMAudioDecoderCommon,
+          _Decoder,
+          _DecodedAudio,
+          _EmscriptenWASM
+        ) => {
+          // We're in a Web Worker
+          const decoder = new _Decoder(
+            _WASMAudioDecoderCommon,
+            _DecodedAudio,
+            _EmscriptenWASM
+          );
+
+          const detachBuffers = (buffer) =>
+            Array.isArray(buffer)
+              ? buffer.map((buffer) => new Uint8Array(buffer))
+              : new Uint8Array(buffer);
+
+          self.onmessage = ({ data: { id, command, data } }) => {
+            switch (command) {
+              case "ready":
+                decoder.ready.then(() => {
+                  self.postMessage({
+                    id,
+                  });
+                });
+                break;
+              case "free":
+                decoder.free();
+                self.postMessage({
+                  id,
+                });
+                break;
+              case "reset":
+                decoder.reset().then(() => {
+                  self.postMessage({
+                    id,
+                  });
+                });
+                break;
+              case "decode":
+              case "decodeFrame":
+              case "decodeFrames":
+                const { channelData, samplesDecoded, sampleRate } = decoder[
+                  command
+                ](detachBuffers(data));
+
+                self.postMessage(
+                  {
+                    id,
+                    channelData,
+                    samplesDecoded,
+                    sampleRate,
+                  },
+                  // The "transferList" parameter transfers ownership of channel data to main thread,
+                  // which avoids copying memory.
+                  channelData.map((channel) => channel.buffer)
+                );
+                break;
+              default:
+                this.console.error(
+                  "Unknown command sent to worker: " + command
+                );
+            }
+          };
+        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${DecodedAudio}, ${EmscriptenWASM})`;
+
+        const type = "text/javascript";
+
+        try {
+          // browser
+          source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
+        } catch {
+          // nodejs
+          source = `data:${type};base64,${Buffer.from(
+          webworkerSourceCode
+        ).toString("base64")}`;
+        }
+
+        sources.set(Decoder, source);
+      }
+
+      super(source);
+
+      this._DecodedAudio = DecodedAudio;
+
+      this._id = Number.MIN_SAFE_INTEGER;
+      this._enqueuedOperations = new Map();
+
+      this.onmessage = ({ data }) => {
+        this._enqueuedOperations.get(data.id)(data);
+        this._enqueuedOperations.delete(data.id);
+      };
+    }
+
+    _getDecodedAudio({ channelData, samplesDecoded, sampleRate }) {
+      return new this._DecodedAudio(channelData, samplesDecoded, sampleRate);
+    }
+
+    async _postToDecoder(command, data) {
+      return new Promise((resolve) => {
+        this.postMessage({
+          command,
+          id: this._id,
+          data,
+        });
+
+        this._enqueuedOperations.set(this._id++, resolve);
+      });
+    }
+
+    get ready() {
+      return this._postToDecoder("ready");
+    }
+
+    async free() {
+      await this._postToDecoder("free").finally(() => {
+        this.terminate();
+      });
+    }
+
+    async reset() {
+      await this._postToDecoder("reset");
     }
   }
 
@@ -548,10 +685,10 @@
   let wasm;
 
   class OpusDecoder {
-    constructor(_WASMAudioDecodersCommon, _OpusDecodedAudio, _EmscriptenWASM) {
+    constructor(_WASMAudioDecoderCommon, _OpusDecodedAudio, _EmscriptenWASM) {
       this._ready = new Promise((resolve) =>
         this._init(
-          _WASMAudioDecodersCommon,
+          _WASMAudioDecoderCommon,
           _OpusDecodedAudio,
           _EmscriptenWASM
         ).then(resolve)
@@ -559,14 +696,14 @@
     }
 
     // injects dependencies when running as a web worker
-    async _init(_WASMAudioDecodersCommon, _OpusDecodedAudio, _EmscriptenWASM) {
+    async _init(_WASMAudioDecoderCommon, _OpusDecodedAudio, _EmscriptenWASM) {
       if (!this._api) {
         const isWebWorker =
-          _WASMAudioDecodersCommon && _OpusDecodedAudio && _EmscriptenWASM;
+          _WASMAudioDecoderCommon && _OpusDecodedAudio && _EmscriptenWASM;
 
         if (isWebWorker) {
           // use classes injected into constructor parameters
-          this._WASMAudioDecodersCommon = _WASMAudioDecodersCommon;
+          this._WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
           this._OpusDecodedAudio = _OpusDecodedAudio;
           this._EmscriptenWASM = _EmscriptenWASM;
 
@@ -574,7 +711,7 @@
           this._api = new this._EmscriptenWASM();
         } else {
           // use classes from es6 imports
-          this._WASMAudioDecodersCommon = WASMAudioDecodersCommon;
+          this._WASMAudioDecoderCommon = WASMAudioDecoderCommon;
           this._OpusDecodedAudio = OpusDecodedAudio;
           this._EmscriptenWASM = EmscriptenWASM;
 
@@ -583,7 +720,7 @@
           this._api = wasm;
         }
 
-        this._common = new this._WASMAudioDecodersCommon(this._api);
+        this._common = new this._WASMAudioDecoderCommon(this._api);
       }
 
       await this._api.ready;
@@ -662,152 +799,28 @@
 
       return new this._OpusDecodedAudio(
         [
-          this._WASMAudioDecodersCommon.concatFloat32(left, samples),
-          this._WASMAudioDecodersCommon.concatFloat32(right, samples),
+          this._WASMAudioDecoderCommon.concatFloat32(left, samples),
+          this._WASMAudioDecoderCommon.concatFloat32(right, samples),
         ],
         samples
       );
     }
   }
 
-  let sourceURL;
-
-  class OpusDecoderWebWorker extends Worker__default["default"] {
+  class OpusDecoderWebWorker extends WASMAudioDecoderWorker {
     constructor() {
-      if (!sourceURL) {
-        const webworkerSourceCode =
-          "'use strict';" +
-          // dependencies need to be manually resolved when stringifying this function
-          `(${((
-          _WASMAudioDecodersCommon,
-          _OpusDecoder,
-          _OpusDecodedAudio,
-          _EmscriptenWASM
-        ) => {
-          // We're in a Web Worker
-          const decoder = new _OpusDecoder(
-            _WASMAudioDecodersCommon,
-            _OpusDecodedAudio,
-            _EmscriptenWASM
-          );
-
-          const detachBuffers = (buffer) =>
-            Array.isArray(buffer)
-              ? buffer.map((buffer) => new Uint8Array(buffer))
-              : new Uint8Array(buffer);
-
-          self.onmessage = ({ data: { id, command, opusData } }) => {
-            switch (command) {
-              case "ready":
-                decoder.ready.then(() => {
-                  self.postMessage({
-                    id,
-                  });
-                });
-                break;
-              case "free":
-                decoder.free();
-                self.postMessage({
-                  id,
-                });
-                break;
-              case "reset":
-                decoder.reset().then(() => {
-                  self.postMessage({
-                    id,
-                  });
-                });
-                break;
-              case "decodeFrame":
-              case "decodeFrames":
-                const { channelData, samplesDecoded, sampleRate } = decoder[
-                  command
-                ](detachBuffers(opusData));
-
-                self.postMessage(
-                  {
-                    id,
-                    channelData,
-                    samplesDecoded,
-                    sampleRate,
-                  },
-                  // The "transferList" parameter transfers ownership of channel data to main thread,
-                  // which avoids copying memory.
-                  channelData.map((channel) => channel.buffer)
-                );
-                break;
-              default:
-                this.console.error(
-                  "Unknown command sent to worker: " + command
-                );
-            }
-          };
-        }).toString()})(${WASMAudioDecodersCommon}, ${OpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
-
-        const type = "text/javascript";
-        try {
-          // browser
-          sourceURL = URL.createObjectURL(
-            new Blob([webworkerSourceCode], { type })
-          );
-        } catch {
-          // nodejs
-          sourceURL = `data:${type};base64,${Buffer.from(
-          webworkerSourceCode
-        ).toString("base64")}`;
-        }
-      }
-
-      super(sourceURL);
-
-      this._id = Number.MIN_SAFE_INTEGER;
-      this._enqueuedOperations = new Map();
-
-      this.onmessage = ({ data }) => {
-        this._enqueuedOperations.get(data.id)(data);
-        this._enqueuedOperations.delete(data.id);
-      };
-    }
-
-    static _getOpusDecodedAudio({ channelData, samplesDecoded }) {
-      return new OpusDecodedAudio(channelData, samplesDecoded);
-    }
-
-    async _postToDecoder(command, opusData) {
-      return new Promise((resolve) => {
-        this.postMessage({
-          command,
-          id: this._id,
-          opusData,
-        });
-
-        this._enqueuedOperations.set(this._id++, resolve);
-      });
-    }
-
-    get ready() {
-      return this._postToDecoder("ready");
-    }
-
-    async free() {
-      await this._postToDecoder("free").finally(() => {
-        this.terminate();
-      });
-    }
-
-    async reset() {
-      await this._postToDecoder("reset");
+      super(OpusDecoder, OpusDecodedAudio, EmscriptenWASM);
     }
 
     async decodeFrame(data) {
-      return this._postToDecoder("decodeFrame", data).then(
-        OpusDecoderWebWorker._getOpusDecodedAudio
+      return this._postToDecoder("decodeFrame", data).then((a) =>
+        this._getDecodedAudio(a)
       );
     }
 
     async decodeFrames(data) {
-      return this._postToDecoder("decodeFrames", data).then(
-        OpusDecoderWebWorker._getOpusDecodedAudio
+      return this._postToDecoder("decodeFrames", data).then((a) =>
+        this._getDecodedAudio(a)
       );
     }
   }

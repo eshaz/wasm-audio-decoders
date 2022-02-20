@@ -1,4 +1,4 @@
-import WASMAudioDecodersCommon from "@wasm-audio-decoders/common";
+import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 
 import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
 import EmscriptenWASM from "./EmscriptenWasm.js";
@@ -6,10 +6,10 @@ import EmscriptenWASM from "./EmscriptenWasm.js";
 let wasm;
 
 export default class MPEGDecoder {
-  constructor(_WASMAudioDecodersCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
+  constructor(_WASMAudioDecoderCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
     this._ready = new Promise((resolve) =>
       this._init(
-        _WASMAudioDecodersCommon,
+        _WASMAudioDecoderCommon,
         _MPEGDecodedAudio,
         _EmscriptenWASM
       ).then(resolve)
@@ -17,14 +17,14 @@ export default class MPEGDecoder {
   }
 
   // injects dependencies when running as a web worker
-  async _init(_WASMAudioDecodersCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
+  async _init(_WASMAudioDecoderCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
     if (!this._api) {
       const isWebWorker =
-        _WASMAudioDecodersCommon && _MPEGDecodedAudio && _EmscriptenWASM;
+        _WASMAudioDecoderCommon && _MPEGDecodedAudio && _EmscriptenWASM;
 
       if (isWebWorker) {
         // use classes injected into constructor parameters
-        this._WASMAudioDecodersCommon = _WASMAudioDecodersCommon;
+        this._WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
         this._MPEGDecodedAudio = _MPEGDecodedAudio;
         this._EmscriptenWASM = _EmscriptenWASM;
 
@@ -32,7 +32,7 @@ export default class MPEGDecoder {
         this._api = new this._EmscriptenWASM();
       } else {
         // use classes from es6 imports
-        this._WASMAudioDecodersCommon = WASMAudioDecodersCommon;
+        this._WASMAudioDecoderCommon = WASMAudioDecoderCommon;
         this._MPEGDecodedAudio = MPEGDecodedAudio;
         this._EmscriptenWASM = EmscriptenWASM;
 
@@ -41,7 +41,7 @@ export default class MPEGDecoder {
         this._api = wasm;
       }
 
-      this._common = new this._WASMAudioDecodersCommon(this._api);
+      this._common = new this._WASMAudioDecoderCommon(this._api);
     }
 
     await this._api.ready;
@@ -148,8 +148,8 @@ export default class MPEGDecoder {
 
     return new this._MPEGDecodedAudio(
       [
-        this._WASMAudioDecodersCommon.concatFloat32(left, samples),
-        this._WASMAudioDecodersCommon.concatFloat32(right, samples),
+        this._WASMAudioDecoderCommon.concatFloat32(left, samples),
+        this._WASMAudioDecoderCommon.concatFloat32(right, samples),
       ],
       samples,
       this._sampleRate
@@ -175,8 +175,8 @@ export default class MPEGDecoder {
 
     return new this._MPEGDecodedAudio(
       [
-        this._WASMAudioDecodersCommon.concatFloat32(left, samples),
-        this._WASMAudioDecodersCommon.concatFloat32(right, samples),
+        this._WASMAudioDecoderCommon.concatFloat32(left, samples),
+        this._WASMAudioDecoderCommon.concatFloat32(right, samples),
       ],
       samples,
       this._sampleRate

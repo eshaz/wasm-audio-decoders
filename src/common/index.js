@@ -1,3 +1,4 @@
-import WASMAudioDecodersCommon from "./WASMAudioDecodersCommon.js";
+import WASMAudioDecoderCommon from "./WASMAudioDecoderCommon.js";
+import WASMAudioDecoderWorker from "./WASMAudioDecoderWorker.js";
 
-export default WASMAudioDecodersCommon;
+export { WASMAudioDecoderCommon, WASMAudioDecoderWorker };

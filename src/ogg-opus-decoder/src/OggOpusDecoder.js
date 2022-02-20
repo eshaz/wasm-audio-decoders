@@ -1,4 +1,4 @@
-import WASMAudioDecodersCommon from "@wasm-audio-decoders/common";
+import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 
 import OpusDecodedAudio from "./OpusDecodedAudio.js";
 import EmscriptenWASM from "./EmscriptenWasm.js";
@@ -6,7 +6,7 @@ import EmscriptenWASM from "./EmscriptenWasm.js";
 let wasm;
 
 export default class OggOpusDecoder {
-  constructor(_WASMAudioDecodersCommon, _OpusDecodedAudio, _EmscriptenWASM) {
+  constructor(_WASMAudioDecoderCommon, _OpusDecodedAudio, _EmscriptenWASM) {
     // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
     this._outSize = 120 * 48; // 120ms @ 48 khz.
 
@@ -15,7 +15,7 @@ export default class OggOpusDecoder {
 
     this._ready = new Promise((resolve) =>
       this._init(
-        _WASMAudioDecodersCommon,
+        _WASMAudioDecoderCommon,
         _OpusDecodedAudio,
         _EmscriptenWASM
       ).then(resolve)
@@ -23,14 +23,14 @@ export default class OggOpusDecoder {
   }
 
   // injects dependencies when running as a web worker
-  async _init(_WASMAudioDecodersCommon, _OpusDecodedAudio, _EmscriptenWASM) {
+  async _init(_WASMAudioDecoderCommon, _OpusDecodedAudio, _EmscriptenWASM) {
     if (!this._api) {
       const isWebWorker =
-        _WASMAudioDecodersCommon && _OpusDecodedAudio && _EmscriptenWASM;
+        _WASMAudioDecoderCommon && _OpusDecodedAudio && _EmscriptenWASM;
 
       if (isWebWorker) {
         // use classes injected into constructor parameters
-        this._WASMAudioDecodersCommon = _WASMAudioDecodersCommon;
+        this._WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
         this._OpusDecodedAudio = _OpusDecodedAudio;
         this._EmscriptenWASM = _EmscriptenWASM;
 
@@ -38,7 +38,7 @@ export default class OggOpusDecoder {
         this._api = new this._EmscriptenWASM();
       } else {
         // use classes from es6 imports
-        this._WASMAudioDecodersCommon = WASMAudioDecodersCommon;
+        this._WASMAudioDecoderCommon = WASMAudioDecoderCommon;
         this._OpusDecodedAudio = OpusDecodedAudio;
         this._EmscriptenWASM = EmscriptenWASM;
 
@@ -47,7 +47,7 @@ export default class OggOpusDecoder {
         this._api = wasm;
       }
 
-      this._common = new this._WASMAudioDecodersCommon(this._api);
+      this._common = new this._WASMAudioDecoderCommon(this._api);
     }
 
     await this._api.ready;
@@ -165,11 +165,8 @@ export default class OggOpusDecoder {
 
     return new this._OpusDecodedAudio(
       [
-        this._WASMAudioDecodersCommon.concatFloat32(
-          decodedLeft,
-          decodedSamples
-        ),
-        this._WASMAudioDecodersCommon.concatFloat32(
+        this._WASMAudioDecoderCommon.concatFloat32(decodedLeft, decodedSamples),
+        this._WASMAudioDecoderCommon.concatFloat32(
           decodedRight,
           decodedSamples
         ),

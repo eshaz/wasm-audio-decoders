@@ -1,4 +1,4 @@
-export default class WASMAudioDecodersCommon {
+export default class WASMAudioDecoderCommon {
   constructor(wasm) {
     this._wasm = wasm;
 
