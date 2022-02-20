@@ -1,50 +1,54 @@
-var TINF_OK = 0;
-var TINF_DATA_ERROR = -3;
+const TINF_OK = 0;
+const TINF_DATA_ERROR = -3;
 
 const uint8Array = Uint8Array;
 const uint16Array = Uint16Array;
 
-function Tree() {
-  this.t = new uint16Array(16); /* table of code length counts */
-  this.trans = new uint16Array(288); /* code -> symbol translation table */
+class Tree {
+  constructor() {
+    this.t = new uint16Array(16); /* table of code length counts */
+    this.trans = new uint16Array(288); /* code -> symbol translation table */
+  }
 }
 
-function Data(source, dest) {
-  this.s = source;
-  this.i = 0;
-  this.t = 0;
-  this.bitcount = 0;
-
-  this.dest = dest;
-  this.destLen = 0;
-
-  this.ltree = new Tree(); /* dynamic length/symbol tree */
-  this.dtree = new Tree(); /* dynamic distance tree */
+class Data {
+  constructor(source, dest) {
+    this.s = source;
+    this.i = 0;
+    this.t = 0;
+    this.bitcount = 0;
+  
+    this.dest = dest;
+    this.destLen = 0;
+  
+    this.ltree = new Tree(); /* dynamic length/symbol tree */
+    this.dtree = new Tree(); /* dynamic distance tree */
+  }
 }
 
 /* --------------------------------------------------- *
  * -- uninitialized global data (static structures) -- *
  * --------------------------------------------------- */
 
-var sltree = new Tree();
-var sdtree = new Tree();
+const sltree = new Tree();
+const sdtree = new Tree();
 
 /* extra bits and base tables for length codes */
-var length_bits = new uint8Array(30);
-var length_base = new uint16Array(30);
+const length_bits = new uint8Array(30);
+const length_base = new uint16Array(30);
 
 /* extra bits and base tables for distance codes */
-var dist_bits = new uint8Array(30);
-var dist_base = new uint16Array(30);
+const dist_bits = new uint8Array(30);
+const dist_base = new uint16Array(30);
 
 /* special ordering of code length codes */
-var clcidx = new uint8Array([
+const clcidx = new uint8Array([
   16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
 ]);
 
 /* used by tinf_decode_trees, avoids allocations every call */
-var code_tree = new Tree();
-var lengths = new uint8Array(288 + 32);
+const code_tree = new Tree();
+const lengths = new uint8Array(288 + 32);
 
 /* ----------------------- *
  * -- utility functions -- *
@@ -52,7 +56,7 @@ var lengths = new uint8Array(288 + 32);
 
 /* build extra bits and base tables */
 const tinf_build_bits_base = (bits, base, delta, first) => {
-  var i, sum;
+  let i, sum;
 
   /* build bits table */
   for (i = 0; i < delta; ++i) bits[i] = 0;
@@ -67,7 +71,7 @@ const tinf_build_bits_base = (bits, base, delta, first) => {
 
 /* build the fixed huffman trees */
 const tinf_build_fixed_trees = (lt, dt) => {
-  var i;
+  let i;
 
   /* build fixed length tree */
   for (i = 0; i < 7; ++i) lt.t[i] = 0;
@@ -90,10 +94,10 @@ const tinf_build_fixed_trees = (lt, dt) => {
 };
 
 /* given an array of code lengths, build a tree */
-var offs = new uint16Array(16);
+const offs = new uint16Array(16);
 
 const tinf_build_tree = (t, lengths, off, num) => {
-  var i, sum;
+  let i, sum;
 
   /* clear code length count table */
   for (i = 0; i < 16; ++i) t.t[i] = 0;
@@ -129,7 +133,7 @@ const tinf_getbit = (d) => {
   }
 
   /* shift bit out of tag */
-  var bit = d.t & 1;
+  const bit = d.t & 1;
   d.t >>>= 1;
 
   return bit;
@@ -144,7 +148,7 @@ const tinf_read_bits = (d, num, base) => {
     d.bitcount += 8;
   }
 
-  var val = d.t & (0xffff >>> (16 - num));
+  const val = d.t & (0xffff >>> (16 - num));
   d.t >>>= num;
   d.bitcount -= num;
   return val + base;
@@ -157,10 +161,10 @@ const tinf_decode_symbol = (d, t) => {
     d.bitcount += 8;
   }
 
-  var sum = 0,
+  let sum = 0,
     cur = 0,
-    len = 0;
-  var tag = d.t;
+    len = 0,
+    tag = d.t;
 
   /* get more bits while code value is above sum */
   do {
@@ -180,24 +184,23 @@ const tinf_decode_symbol = (d, t) => {
 
 /* given a data stream, decode dynamic trees from it */
 const tinf_decode_trees = (d, lt, dt) => {
-  var hlit, hdist, hclen;
-  var i, num, length;
+  let i, length;
 
   /* get 5 bits HLIT (257-286) */
-  hlit = tinf_read_bits(d, 5, 257);
+  const hlit = tinf_read_bits(d, 5, 257);
 
   /* get 5 bits HDIST (1-32) */
-  hdist = tinf_read_bits(d, 5, 1);
+  const hdist = tinf_read_bits(d, 5, 1);
 
   /* get 4 bits HCLEN (4-19) */
-  hclen = tinf_read_bits(d, 4, 4);
+  const hclen = tinf_read_bits(d, 4, 4);
 
   for (i = 0; i < 19; ++i) lengths[i] = 0;
 
   /* read code lengths for code length alphabet */
   for (i = 0; i < hclen; ++i) {
     /* get 3 bits code length (0-7) */
-    var clen = tinf_read_bits(d, 3, 0);
+    const clen = tinf_read_bits(d, 3, 0);
     lengths[clcidx[i]] = clen;
   }
 
@@ -205,13 +208,13 @@ const tinf_decode_trees = (d, lt, dt) => {
   tinf_build_tree(code_tree, lengths, 0, 19);
 
   /* decode code lengths for the dynamic trees */
-  for (num = 0; num < hlit + hdist; ) {
-    var sym = tinf_decode_symbol(d, code_tree);
+  for (let num = 0; num < hlit + hdist; ) {
+    const sym = tinf_decode_symbol(d, code_tree);
 
     switch (sym) {
       case 16:
         /* copy previous code length 3-6 times (read 2 bits) */
-        var prev = lengths[num - 1];
+        const prev = lengths[num - 1];
         for (length = tinf_read_bits(d, 2, 3); length; --length) {
           lengths[num++] = prev;
         }
@@ -247,7 +250,7 @@ const tinf_decode_trees = (d, lt, dt) => {
 /* given a stream and two trees, inflate a block of data */
 const tinf_inflate_block_data = (d, lt, dt) => {
   while (1) {
-    var sym = tinf_decode_symbol(d, lt);
+    let sym = tinf_decode_symbol(d, lt);
 
     /* check for end of block */
     if (sym === 256) {
@@ -257,8 +260,7 @@ const tinf_inflate_block_data = (d, lt, dt) => {
     if (sym < 256) {
       d.dest[d.destLen++] = sym;
     } else {
-      var length, dist, offs;
-      var i;
+      let length, dist, offs;
 
       sym -= 257;
 
@@ -271,7 +273,7 @@ const tinf_inflate_block_data = (d, lt, dt) => {
       offs = d.destLen - tinf_read_bits(d, dist_bits[dist], dist_base[dist]);
 
       /* copy match */
-      for (i = offs; i < offs + length; ++i) {
+      for (let i = offs; i < offs + length; ++i) {
         d.dest[d.destLen++] = d.dest[i];
       }
     }
@@ -280,8 +282,7 @@ const tinf_inflate_block_data = (d, lt, dt) => {
 
 /* inflate an uncompressed block of data */
 const tinf_inflate_uncompressed_block = (d) => {
-  var length, invlength;
-  var i;
+  let length, invlength;
 
   /* unread from bitbuffer */
   while (d.bitcount > 8) {
@@ -303,7 +304,7 @@ const tinf_inflate_uncompressed_block = (d) => {
   d.i += 4;
 
   /* copy block */
-  for (i = length; i; --i) d.dest[d.destLen++] = d.s[d.i++];
+  for (let i = length; i; --i) d.dest[d.destLen++] = d.s[d.i++];
 
   /* make sure we start next block on a byte boundary */
   d.bitcount = 0;
@@ -313,8 +314,8 @@ const tinf_inflate_uncompressed_block = (d) => {
 
 /* inflate stream from source to dest */
 const tinf_uncompress = (source, dest) => {
-  var d = new Data(source, dest);
-  var bfinal, btype, res;
+  const d = new Data(source, dest);
+  let bfinal, btype, res;
 
   do {
     /* read final block flag */
