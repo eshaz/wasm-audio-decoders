@@ -1,4 +1,6 @@
 import Worker from "web-worker";
+
+import WASMAudioDecodersCommon from "@wasm-audio-decoders/common";
 import EmscriptenWASM from "./EmscriptenWasm.js";
 import OpusDecodedAudio from "./OpusDecodedAudio.js";
 import OpusDecoder from "./OpusDecoder.js";
@@ -11,9 +13,18 @@ export default class OpusDecoderWebWorker extends Worker {
       const webworkerSourceCode =
         "'use strict';" +
         // dependencies need to be manually resolved when stringifying this function
-        `(${((_OpusDecoder, _OpusDecodedAudio, _EmscriptenWASM) => {
+        `(${((
+          _WASMAudioDecodersCommon,
+          _OpusDecoder,
+          _OpusDecodedAudio,
+          _EmscriptenWASM
+        ) => {
           // We're in a Web Worker
-          const decoder = new _OpusDecoder(_OpusDecodedAudio, _EmscriptenWASM);
+          const decoder = new _OpusDecoder(
+            _WASMAudioDecodersCommon,
+            _OpusDecodedAudio,
+            _EmscriptenWASM
+          );
 
           const detachBuffers = (buffer) =>
             Array.isArray(buffer)
@@ -66,7 +77,7 @@ export default class OpusDecoderWebWorker extends Worker {
                 );
             }
           };
-        }).toString()})(${OpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
+        }).toString()})(${WASMAudioDecodersCommon}, ${OpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
 
       const type = "text/javascript";
       try {

@@ -8,6 +8,39 @@
 
   var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
+  class WASMAudioDecodersCommon {
+    constructor(wasm) {
+      this._wasm = wasm;
+
+      this._pointers = [];
+    }
+
+    static concatFloat32(buffers, length) {
+      const ret = new Float32Array(length);
+
+      let offset = 0;
+      for (const buf of buffers) {
+        ret.set(buf, offset);
+        offset += buf.length;
+      }
+
+      return ret;
+    }
+
+    allocateTypedArray(length, TypedArray) {
+      const pointer = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * length);
+      const array = new TypedArray(this._wasm.HEAP, pointer, length);
+
+      this._pointers.push(pointer);
+      return [pointer, array];
+    }
+
+    free() {
+      this._pointers.forEach((ptr) => this._wasm._free(ptr));
+      this._pointers = [];
+    }
+  }
+
   class OpusDecodedAudio {
     constructor(channelData, samplesDecoded) {
       this.channelData = channelData;
@@ -515,37 +548,25 @@
   let wasm;
 
   class OpusDecoder {
-    constructor(_OpusDecodedAudio, _EmscriptenWASM) {
+    constructor(_WASMAudioDecodersCommon, _OpusDecodedAudio, _EmscriptenWASM) {
       this._ready = new Promise((resolve) =>
-        this._init(_OpusDecodedAudio, _EmscriptenWASM).then(resolve)
+        this._init(
+          _WASMAudioDecodersCommon,
+          _OpusDecodedAudio,
+          _EmscriptenWASM
+        ).then(resolve)
       );
     }
 
-    static concatFloat32(buffers, length) {
-      const ret = new Float32Array(length);
-
-      let offset = 0;
-      for (const buf of buffers) {
-        ret.set(buf, offset);
-        offset += buf.length;
-      }
-
-      return ret;
-    }
-
-    _allocateTypedArray(length, TypedArray) {
-      const pointer = this._api._malloc(TypedArray.BYTES_PER_ELEMENT * length);
-      const array = new TypedArray(this._api.HEAP, pointer, length);
-      return [pointer, array];
-    }
-
     // injects dependencies when running as a web worker
-    async _init(_OpusDecodedAudio, _EmscriptenWASM) {
+    async _init(_WASMAudioDecodersCommon, _OpusDecodedAudio, _EmscriptenWASM) {
       if (!this._api) {
-        const isWebWorker = _OpusDecodedAudio && _EmscriptenWASM;
+        const isWebWorker =
+          _WASMAudioDecodersCommon && _OpusDecodedAudio && _EmscriptenWASM;
 
         if (isWebWorker) {
           // use classes injected into constructor parameters
+          this._WASMAudioDecodersCommon = _WASMAudioDecodersCommon;
           this._OpusDecodedAudio = _OpusDecodedAudio;
           this._EmscriptenWASM = _EmscriptenWASM;
 
@@ -553,6 +574,7 @@
           this._api = new this._EmscriptenWASM();
         } else {
           // use classes from es6 imports
+          this._WASMAudioDecodersCommon = WASMAudioDecodersCommon;
           this._OpusDecodedAudio = OpusDecodedAudio;
           this._EmscriptenWASM = EmscriptenWASM;
 
@@ -560,6 +582,8 @@
           if (!wasm) wasm = new this._EmscriptenWASM();
           this._api = wasm;
         }
+
+        this._common = new this._WASMAudioDecodersCommon(this._api);
       }
 
       await this._api.ready;
@@ -567,17 +591,17 @@
       this._decoder = this._api._opus_frame_decoder_create();
 
       // max size of stereo Opus packet 120ms @ 510kbs
-      [this._inputPtr, this._input] = this._allocateTypedArray(
+      [this._inputPtr, this._input] = this._common.allocateTypedArray(
         (0.12 * 510000) / 8,
         Uint8Array
       );
 
       // max audio output of Opus packet 120ms @ 48000Hz
-      [this._leftPtr, this._leftArr] = this._allocateTypedArray(
+      [this._leftPtr, this._leftArr] = this._common.allocateTypedArray(
         120 * 48,
         Float32Array
       );
-      [this._rightPtr, this._rightArr] = this._allocateTypedArray(
+      [this._rightPtr, this._rightArr] = this._common.allocateTypedArray(
         120 * 48,
         Float32Array
       );
@@ -595,9 +619,7 @@
     free() {
       this._api._opus_frame_decoder_destroy(this._decoder);
 
-      this._api._free(this._inputPtr);
-      this._api._free(this._leftPtr);
-      this._api._free(this._rightPtr);
+      this._common.free();
     }
 
     decodeFrame(opusFrame) {
@@ -640,8 +662,8 @@
 
       return new this._OpusDecodedAudio(
         [
-          OpusDecoder.concatFloat32(left, samples),
-          OpusDecoder.concatFloat32(right, samples),
+          this._WASMAudioDecodersCommon.concatFloat32(left, samples),
+          this._WASMAudioDecodersCommon.concatFloat32(right, samples),
         ],
         samples
       );
@@ -656,9 +678,18 @@
         const webworkerSourceCode =
           "'use strict';" +
           // dependencies need to be manually resolved when stringifying this function
-          `(${((_OpusDecoder, _OpusDecodedAudio, _EmscriptenWASM) => {
+          `(${((
+          _WASMAudioDecodersCommon,
+          _OpusDecoder,
+          _OpusDecodedAudio,
+          _EmscriptenWASM
+        ) => {
           // We're in a Web Worker
-          const decoder = new _OpusDecoder(_OpusDecodedAudio, _EmscriptenWASM);
+          const decoder = new _OpusDecoder(
+            _WASMAudioDecodersCommon,
+            _OpusDecodedAudio,
+            _EmscriptenWASM
+          );
 
           const detachBuffers = (buffer) =>
             Array.isArray(buffer)
@@ -711,7 +742,7 @@
                 );
             }
           };
-        }).toString()})(${OpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
+        }).toString()})(${WASMAudioDecodersCommon}, ${OpusDecoder}, ${OpusDecodedAudio}, ${EmscriptenWASM})`;
 
         const type = "text/javascript";
         try {
