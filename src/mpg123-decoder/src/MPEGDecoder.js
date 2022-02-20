@@ -1,40 +1,30 @@
+import WASMAudioDecodersCommon from "@wasm-audio-decoders/common";
+
 import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
 let wasm;
 
 export default class MPEGDecoder {
-  constructor(_MPEGDecodedAudio, _EmscriptenWASM) {
+  constructor(_WASMAudioDecodersCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
     this._ready = new Promise((resolve) =>
-      this._init(_MPEGDecodedAudio, _EmscriptenWASM).then(resolve)
+      this._init(
+        _WASMAudioDecodersCommon,
+        _MPEGDecodedAudio,
+        _EmscriptenWASM
+      ).then(resolve)
     );
   }
 
-  static concatFloat32(buffers, length) {
-    const ret = new Float32Array(length);
-
-    let offset = 0;
-    for (const buf of buffers) {
-      ret.set(buf, offset);
-      offset += buf.length;
-    }
-
-    return ret;
-  }
-
-  _allocateTypedArray(length, TypedArray) {
-    const pointer = this._api._malloc(TypedArray.BYTES_PER_ELEMENT * length);
-    const array = new TypedArray(this._api.HEAP, pointer, length);
-    return [pointer, array];
-  }
-
   // injects dependencies when running as a web worker
-  async _init(_MPEGDecodedAudio, _EmscriptenWASM) {
+  async _init(_WASMAudioDecodersCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
     if (!this._api) {
-      const isWebWorker = _MPEGDecodedAudio && _EmscriptenWASM;
+      const isWebWorker =
+        _WASMAudioDecodersCommon && _MPEGDecodedAudio && _EmscriptenWASM;
 
       if (isWebWorker) {
         // use classes injected into constructor parameters
+        this._WASMAudioDecodersCommon = _WASMAudioDecodersCommon;
         this._MPEGDecodedAudio = _MPEGDecodedAudio;
         this._EmscriptenWASM = _EmscriptenWASM;
 
@@ -42,6 +32,7 @@ export default class MPEGDecoder {
         this._api = new this._EmscriptenWASM();
       } else {
         // use classes from es6 imports
+        this._WASMAudioDecodersCommon = WASMAudioDecodersCommon;
         this._MPEGDecodedAudio = MPEGDecodedAudio;
         this._EmscriptenWASM = EmscriptenWASM;
 
@@ -49,6 +40,8 @@ export default class MPEGDecoder {
         if (!wasm) wasm = new this._EmscriptenWASM();
         this._api = wasm;
       }
+
+      this._common = new this._WASMAudioDecodersCommon(this._api);
     }
 
     await this._api.ready;
@@ -57,33 +50,29 @@ export default class MPEGDecoder {
 
     // input buffer
     this._inDataPtrSize = 2 ** 18;
-    [this._inDataPtr, this._inData] = this._allocateTypedArray(
+    [this._inDataPtr, this._inData] = this._common.allocateTypedArray(
       this._inDataPtrSize,
       Uint8Array
     );
 
     // output buffer
     this._outputLength = 1152 * 512;
-    [this._leftPtr, this._leftArr] = this._allocateTypedArray(
+    [this._leftPtr, this._leftArr] = this._common.allocateTypedArray(
       this._outputLength,
       Float32Array
     );
-    [this._rightPtr, this._rightArr] = this._allocateTypedArray(
+    [this._rightPtr, this._rightArr] = this._common.allocateTypedArray(
       this._outputLength,
       Float32Array
     );
 
     // input decoded bytes pointer
-    [this._decodedBytesPtr, this._decodedBytes] = this._allocateTypedArray(
-      1,
-      Uint32Array
-    );
+    [this._decodedBytesPtr, this._decodedBytes] =
+      this._common.allocateTypedArray(1, Uint32Array);
 
     // sample rate
-    [this._sampleRateBytePtr, this._sampleRateByte] = this._allocateTypedArray(
-      1,
-      Uint32Array
-    );
+    [this._sampleRateBytePtr, this._sampleRateByte] =
+      this._common.allocateTypedArray(1, Uint32Array);
 
     this._decoder = this._api._mpeg_frame_decoder_create();
   }
@@ -99,13 +88,9 @@ export default class MPEGDecoder {
 
   free() {
     this._api._mpeg_frame_decoder_destroy(this._decoder);
-
     this._api._free(this._decoder);
-    this._api._free(this._inDataPtr);
-    this._api._free(this._decodedBytesPtr);
-    this._api._free(this._leftPtr);
-    this._api._free(this._rightPtr);
-    this._api._free(this._sampleRateBytePtr);
+
+    this._common.free();
   }
 
   _decode(data, decodeInterval) {
@@ -163,8 +148,8 @@ export default class MPEGDecoder {
 
     return new this._MPEGDecodedAudio(
       [
-        MPEGDecoder.concatFloat32(left, samples),
-        MPEGDecoder.concatFloat32(right, samples),
+        this._WASMAudioDecodersCommon.concatFloat32(left, samples),
+        this._WASMAudioDecodersCommon.concatFloat32(right, samples),
       ],
       samples,
       this._sampleRate
@@ -190,8 +175,8 @@ export default class MPEGDecoder {
 
     return new this._MPEGDecodedAudio(
       [
-        MPEGDecoder.concatFloat32(left, samples),
-        MPEGDecoder.concatFloat32(right, samples),
+        this._WASMAudioDecodersCommon.concatFloat32(left, samples),
+        this._WASMAudioDecodersCommon.concatFloat32(right, samples),
       ],
       samples,
       this._sampleRate

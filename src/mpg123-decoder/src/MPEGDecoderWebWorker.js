@@ -1,5 +1,6 @@
 import Worker from "web-worker";
 
+import WASMAudioDecodersCommon from "@wasm-audio-decoders/common";
 import EmscriptenWASM from "./EmscriptenWasm.js";
 import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
 import MPEGDecoder from "./MPEGDecoder.js";
@@ -12,9 +13,18 @@ export default class MPEGDecoderWebWorker extends Worker {
       const webworkerSourceCode =
         "'use strict';" +
         // dependencies need to be manually resolved when stringifying this function
-        `(${((_MPEGDecoder, _MPEGDecodedAudio, _EmscriptenWASM) => {
+        `(${((
+          _WASMAudioDecodersCommon,
+          _MPEGDecoder,
+          _MPEGDecodedAudio,
+          _EmscriptenWASM
+        ) => {
           // We're in a Web Worker
-          const decoder = new _MPEGDecoder(_MPEGDecodedAudio, _EmscriptenWASM);
+          const decoder = new _MPEGDecoder(
+            _WASMAudioDecodersCommon,
+            _MPEGDecodedAudio,
+            _EmscriptenWASM
+          );
 
           const detachBuffers = (buffer) =>
             Array.isArray(buffer)
@@ -68,7 +78,7 @@ export default class MPEGDecoderWebWorker extends Worker {
                 );
             }
           };
-        }).toString()})(${MPEGDecoder}, ${MPEGDecodedAudio}, ${EmscriptenWASM})`;
+        }).toString()})(${WASMAudioDecodersCommon}, ${MPEGDecoder}, ${MPEGDecodedAudio}, ${EmscriptenWASM})`;
 
       const type = "text/javascript";
       try {

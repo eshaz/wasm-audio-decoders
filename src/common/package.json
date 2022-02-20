@@ -1,0 +1,26 @@
+{
+  "name": "@wasm-audio-decoders/common",
+  "version": "0.0.1",
+  "description": "Web Assembly Audio Decoders Common",
+  "module": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git"
+  },
+  "type": "module",
+  "author": {
+    "name": "Ethan Halsall",
+    "email": "ethanhalsall@pm.me"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
+  },
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/common",
+  "dependencies": {
+    "web-worker": "^1.1.0"
+  }
+}
