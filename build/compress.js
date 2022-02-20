@@ -3,9 +3,7 @@ import yenc from "simple-yenc";
 import { deflateSync } from "fflate";
 
 const distPath = process.argv[2];
-const tinyInflatePath = new URL("tiny-inflate.js", import.meta.url).pathname;
 const decoder = fs.readFileSync(distPath, { encoding: "ascii" });
-const tinyInflate = fs.readFileSync(tinyInflatePath, { encoding: "ascii" });
 
 const wasmBase64ContentMatcher =
   /Module\["wasm"\] = base64Decode\("(?<wasm>(.+))"\)/;
@@ -16,7 +14,7 @@ const startIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
 let start = decoder.substring(0, startIdx);
 
 // add the yenc decode function and inline decoding
-start += 'Module["wasm"] = tinf_uncompress((' + yenc.decode.toString() + ")(`";
+start += 'Module["wasm"] = WASMAudioDecoderCommon.inflate((' + yenc.decode.toString() + ")(`";
 
 // original wasm
 const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
@@ -48,8 +46,7 @@ let finalString = Buffer.concat(
   [
     banner,
     "export default class EmscriptenWASM {\n",
-    "constructor() {\n",
-    tinyInflate,
+    "constructor(WASMAudioDecoderCommon) {\n",
     start,
     yencStringifiedWasm,
     end,

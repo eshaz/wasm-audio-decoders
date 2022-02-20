@@ -29,7 +29,7 @@ export default class MPEGDecoder {
         this._EmscriptenWASM = _EmscriptenWASM;
 
         // running as a webworker, use class level singleton for wasm compilation
-        this._api = new this._EmscriptenWASM();
+        this._api = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
       } else {
         // use classes from es6 imports
         this._WASMAudioDecoderCommon = WASMAudioDecoderCommon;
@@ -37,7 +37,7 @@ export default class MPEGDecoder {
         this._EmscriptenWASM = EmscriptenWASM;
 
         // use a global scope singleton so wasm compilation happens once only if class is instantiated
-        if (!wasm) wasm = new this._EmscriptenWASM();
+        if (!wasm) wasm = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
         this._api = wasm;
       }
 
