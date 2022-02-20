@@ -121,21 +121,6 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_DECODER_MODULE_ESM): $(OPUS_DECODER_EMSCRIPTEN_BUILD)
-	@ echo "Building Emscripten WebAssembly ES Module $(OPUS_DECODER_MODULE_ESM)..."
-	@ emcc \
-		-o "$(OPUS_DECODER_MODULE_ESM)" \
-		-s EXPORT_ES6=1 \
-		-s MODULARIZE=1 \
-	  ${EMCC_OPTS} \
-	  $(OPUS_DECODER_EMCC_OPTS) \
-	  $(OPUS_WASM_LIB)
-	@ echo "+-------------------------------------------------------------------------------"
-	@ echo "|"
-	@ echo "|  Successfully built ES Module: $(OPUS_DECODER_MODULE_ESM)"
-	@ echo "|"
-	@ echo "+-------------------------------------------------------------------------------"
-
 # ------------
 # ogg-opus-decoder
 # ------------
@@ -167,21 +152,6 @@ $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built JS Module: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)"
-	@ echo "|"
-	@ echo "+-------------------------------------------------------------------------------"
-
-$(OGG_OPUS_DECODER_MODULE_ESM): $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
-	@ echo "Building Emscripten WebAssembly ES Module $(OGG_OPUS_DECODER_MODULE_ESM)..."
-	@ emcc \
-		-o "$(OGG_OPUS_DECODER_MODULE_ESM)" \
-		-s EXPORT_ES6=1 \
-		-s MODULARIZE=1 \
-	  ${EMCC_OPTS} \
-	  $(OGG_OPUS_DECODER_EMCC_OPTS) \
-	  $(OPUS_WASM_LIB)
-	@ echo "+-------------------------------------------------------------------------------"
-	@ echo "|"
-	@ echo "|  Successfully built ES Module: $(OGG_OPUS_DECODER_MODULE_ESM)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
