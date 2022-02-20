@@ -36,6 +36,34 @@ export default class WASMAudioDecoderCommon {
    ******************
    */
 
+  static inflateYencString(source, dest) {
+    const output = new Uint8Array(source.length);
+
+    let continued = false,
+      byteIndex = 0,
+      byte;
+
+    for (let i = 0; i < source.length; i++) {
+      byte = source.charCodeAt(i);
+
+      if (byte === 13 || byte === 10) continue;
+
+      if (byte === 61 && !continued) {
+        continued = true;
+        continue;
+      }
+
+      if (continued) {
+        continued = false;
+        byte -= 64;
+      }
+
+      output[byteIndex++] = byte < 42 && byte > 0 ? byte + 214 : byte - 42;
+    }
+
+    return WASMAudioDecoderCommon.inflate(output.subarray(0, byteIndex), dest);
+  }
+
   static inflate(source, dest) {
     const TINF_OK = 0;
     const TINF_DATA_ERROR = -3;

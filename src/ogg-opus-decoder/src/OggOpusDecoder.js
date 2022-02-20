@@ -43,7 +43,8 @@ export default class OggOpusDecoder {
         this._EmscriptenWASM = EmscriptenWASM;
 
         // use a global scope singleton so wasm compilation happens once only if class is instantiated
-        if (!wasm) wasm = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
+        if (!wasm)
+          wasm = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
         this._api = wasm;
       }
 

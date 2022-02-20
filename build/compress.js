@@ -14,7 +14,7 @@ const startIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
 let start = decoder.substring(0, startIdx);
 
 // add the yenc decode function and inline decoding
-start += 'Module["wasm"] = WASMAudioDecoderCommon.inflate((' + yenc.decode.toString() + ")(`";
+start += 'Module["wasm"] = WASMAudioDecoderCommon.inflateYencString(`';
 
 // original wasm
 const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
@@ -31,7 +31,7 @@ const yencStringifiedWasm = yenc.stringify(yencEncodedWasm);
 // code after the wasm
 const endIdx =
   startIdx + wasmBase64DeclarationMatcher.length + wasmContent.length + 2;
-let end = `\`), new Uint8Array(${wasmBuffer.length}))`;
+let end = `\`, new Uint8Array(${wasmBuffer.length}))`;
 end += decoder.substring(endIdx);
 
 const banner =
