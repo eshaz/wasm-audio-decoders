@@ -81,6 +81,10 @@ define EMCC_OPTS
 -flto \
 -s BINARYEN_EXTRA_PASSES="-O4" \
 -s MINIMAL_RUNTIME=2 \
+-s TEXTDECODER=2 \
+-s EMBIND_STD_STRING_IS_UTF8=0 \
+-s SUPPORT_ERRNO=0 \
+-s POLYFILL=0 \
 -s SINGLE_FILE=1 \
 -s SUPPORT_LONGJMP=0 \
 -s MALLOC="emmalloc" \
@@ -277,7 +281,7 @@ configure-mpg123:
 	  --enable-layer2 \
 	  --enable-layer3 \
 	  --disable-largefile \
-	  --disable-feature_report \
+	  --disable-feature-report \
 	  --enable-runtime-tables
 	cd $(MPG123_SRC); rm a.wasm 
 
