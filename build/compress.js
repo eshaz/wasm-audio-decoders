@@ -9,13 +9,6 @@ const wasmBase64ContentMatcher =
   /Module\["wasm"\] = base64Decode\("(?<wasm>(.+))"\)/;
 const wasmBase64DeclarationMatcher = 'Module["wasm"] = base64Decode("';
 
-// code before the wasm
-const startIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
-let start = decoder.substring(0, startIdx);
-
-// add the yenc decode function and inline decoding
-start += 'Module["wasm"] = WASMAudioDecoderCommon.inflateYencString(`';
-
 // original wasm
 const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
 // compressed buffer
@@ -28,11 +21,12 @@ const wasmBufferCompressed = deflateSync(wasmBuffer, {
 const yencEncodedWasm = yenc.encode(wasmBufferCompressed);
 const yencStringifiedWasm = yenc.stringify(yencEncodedWasm);
 
+// code before the wasm
+const startIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
+
 // code after the wasm
 const endIdx =
   startIdx + wasmBase64DeclarationMatcher.length + wasmContent.length + 2;
-let end = `\`, new Uint8Array(${wasmBuffer.length}))`;
-end += decoder.substring(endIdx);
 
 const banner =
   "/* **************************************************\n" +
@@ -42,14 +36,16 @@ const banner =
   "\n\n";
 
 // Concatenate the strings as buffers to preserve extended ascii
-let finalString = Buffer.concat(
+const finalString = Buffer.concat(
   [
     banner,
     "export default class EmscriptenWASM {\n",
     "constructor(WASMAudioDecoderCommon) {\n",
-    start,
+    decoder.substring(0, startIdx),
+    'Module["wasm"] = WASMAudioDecoderCommon.inflateYencString(`',
     yencStringifiedWasm,
-    end,
+    `\`, new Uint8Array(${wasmBuffer.length}))`,
+    decoder.substring(endIdx),
     "}",
     "}",
   ].map(Buffer.from)

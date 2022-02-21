@@ -8,11 +8,34 @@
 
   var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
+  const compiledWasm = new WeakMap();
+
   class WASMAudioDecoderCommon {
     constructor(wasm) {
       this._wasm = wasm;
 
       this._pointers = [];
+    }
+
+    get wasm() {
+      return this._wasm;
+    }
+
+    static async initWASMAudioDecoder(isWebWorker, EmscriptenWASM) {
+      let wasm;
+
+      if (isWebWorker) {
+        wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
+      } else if (compiledWasm.has(EmscriptenWASM)) {
+        wasm = compiledWasm.get(EmscriptenWASM);
+      } else {
+        wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
+        compiledWasm.set(EmscriptenWASM, wasm);
+      }
+
+      await wasm.ready;
+
+      return new WASMAudioDecoderCommon(wasm);
     }
 
     static concatFloat32(buffers, length) {
@@ -25,6 +48,24 @@
       }
 
       return ret;
+    }
+
+    getDecodedAudio(channelData, samplesDecoded, sampleRate) {
+      return {
+        channelData,
+        samplesDecoded,
+        sampleRate,
+      };
+    }
+
+    getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
+      return {
+        channelData: channelData.map((data) =>
+          WASMAudioDecoderCommon.concatFloat32(data, samplesDecoded)
+        ),
+        samplesDecoded,
+        sampleRate,
+      };
     }
 
     allocateTypedArray(length, TypedArray) {
@@ -452,23 +493,17 @@
   const sources = new WeakMap();
 
   class WASMAudioDecoderWorker extends Worker__default["default"] {
-    constructor(Decoder, DecodedAudio, EmscriptenWASM) {
+    constructor(Decoder, EmscriptenWASM) {
       let source = sources.get(Decoder);
 
       if (!source) {
         const webworkerSourceCode =
           "'use strict';" +
           // dependencies need to be manually resolved when stringifying this function
-          `(${((
-          _WASMAudioDecoderCommon,
-          _Decoder,
-          _DecodedAudio,
-          _EmscriptenWASM
-        ) => {
+          `(${((_WASMAudioDecoderCommon, _Decoder, _EmscriptenWASM) => {
           // We're in a Web Worker
           const decoder = new _Decoder(
             _WASMAudioDecoderCommon,
-            _DecodedAudio,
             _EmscriptenWASM
           );
 
@@ -524,7 +559,7 @@
                 );
             }
           };
-        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${DecodedAudio}, ${EmscriptenWASM})`;
+        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${EmscriptenWASM})`;
 
         const type = "text/javascript";
 
@@ -543,19 +578,14 @@
 
       super(source);
 
-      this._DecodedAudio = DecodedAudio;
-
       this._id = Number.MIN_SAFE_INTEGER;
       this._enqueuedOperations = new Map();
 
       this.onmessage = ({ data }) => {
-        this._enqueuedOperations.get(data.id)(data);
-        this._enqueuedOperations.delete(data.id);
+        const { id, ...rest } = data;
+        this._enqueuedOperations.get(id)(rest);
+        this._enqueuedOperations.delete(id);
       };
-    }
-
-    _getDecodedAudio({ channelData, samplesDecoded, sampleRate }) {
-      return new this._DecodedAudio(channelData, samplesDecoded, sampleRate);
     }
 
     async _postToDecoder(command, data) {
@@ -582,14 +612,6 @@
 
     async reset() {
       await this._postToDecoder("reset");
-    }
-  }
-
-  class OpusDecodedAudio {
-    constructor(channelData, samplesDecoded) {
-      this.channelData = channelData;
-      this.samplesDecoded = samplesDecoded;
-      this.sampleRate = 48000;
     }
   }
 
@@ -694,51 +716,35 @@
   });
   }}
 
-  let wasm;
-
   class OpusDecoder {
-    constructor(_WASMAudioDecoderCommon, _OpusDecodedAudio, _EmscriptenWASM) {
+    constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
       this._ready = new Promise((resolve) =>
-        this._init(
-          _WASMAudioDecoderCommon,
-          _OpusDecodedAudio,
-          _EmscriptenWASM
-        ).then(resolve)
+        this._init(_WASMAudioDecoderCommon, _EmscriptenWASM).then(resolve)
       );
     }
 
     // injects dependencies when running as a web worker
-    async _init(_WASMAudioDecoderCommon, _OpusDecodedAudio, _EmscriptenWASM) {
-      if (!this._api) {
-        const isWebWorker =
-          _WASMAudioDecoderCommon && _OpusDecodedAudio && _EmscriptenWASM;
+    async _init(_WASMAudioDecoderCommon, _EmscriptenWASM) {
+      if (!this._common) {
+        const isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
 
         if (isWebWorker) {
           // use classes injected into constructor parameters
           this._WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
-          this._OpusDecodedAudio = _OpusDecodedAudio;
           this._EmscriptenWASM = _EmscriptenWASM;
-
-          // running as a webworker, use class level singleton for wasm compilation
-          this._api = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
         } else {
           // use classes from es6 imports
           this._WASMAudioDecoderCommon = WASMAudioDecoderCommon;
-          this._OpusDecodedAudio = OpusDecodedAudio;
           this._EmscriptenWASM = EmscriptenWASM;
-
-          // use a global scope singleton so wasm compilation happens once only if class is instantiated
-          if (!wasm)
-            wasm = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
-          this._api = wasm;
         }
 
-        this._common = new this._WASMAudioDecoderCommon(this._api);
+        this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder(
+          isWebWorker,
+          this._EmscriptenWASM
+        );
       }
 
-      await this._api.ready;
-
-      this._decoder = this._api._opus_frame_decoder_create();
+      this._decoder = this._common.wasm._opus_frame_decoder_create();
 
       // max size of stereo Opus packet 120ms @ 510kbs
       [this._inputPtr, this._input] = this._common.allocateTypedArray(
@@ -767,7 +773,7 @@
     }
 
     free() {
-      this._api._opus_frame_decoder_destroy(this._decoder);
+      this._common.wasm._opus_frame_decoder_destroy(this._decoder);
 
       this._common.free();
     }
@@ -780,20 +786,22 @@
 
       this._input.set(opusFrame);
 
-      const samplesDecoded = this._api._opus_frame_decode_float_deinterleaved(
-        this._decoder,
-        this._inputPtr,
-        opusFrame.length,
-        this._leftPtr,
-        this._rightPtr
-      );
+      const samplesDecoded =
+        this._common.wasm._opus_frame_decode_float_deinterleaved(
+          this._decoder,
+          this._inputPtr,
+          opusFrame.length,
+          this._leftPtr,
+          this._rightPtr
+        );
 
-      return new this._OpusDecodedAudio(
+      return this._common.getDecodedAudio(
         [
           this._leftArr.slice(0, samplesDecoded),
           this._rightArr.slice(0, samplesDecoded),
         ],
-        samplesDecoded
+        samplesDecoded,
+        48000
       );
     }
 
@@ -810,31 +818,21 @@
         samples += samplesDecoded;
       });
 
-      return new this._OpusDecodedAudio(
-        [
-          this._WASMAudioDecoderCommon.concatFloat32(left, samples),
-          this._WASMAudioDecoderCommon.concatFloat32(right, samples),
-        ],
-        samples
-      );
+      return this._common.getDecodedAudioConcat([left, right], samples, 48000);
     }
   }
 
   class OpusDecoderWebWorker extends WASMAudioDecoderWorker {
     constructor() {
-      super(OpusDecoder, OpusDecodedAudio, EmscriptenWASM);
+      super(OpusDecoder, EmscriptenWASM);
     }
 
     async decodeFrame(data) {
-      return this._postToDecoder("decodeFrame", data).then((out) =>
-        this._getDecodedAudio(out)
-      );
+      return this._postToDecoder("decodeFrame", data);
     }
 
     async decodeFrames(data) {
-      return this._postToDecoder("decodeFrames", data).then((out) =>
-        this._getDecodedAudio(out)
-      );
+      return this._postToDecoder("decodeFrames", data);
     }
   }
 

@@ -5,23 +5,17 @@ import WASMAudioDecoderCommon from "./WASMAudioDecoderCommon.js";
 const sources = new WeakMap();
 
 export default class WASMAudioDecoderWorker extends Worker {
-  constructor(Decoder, DecodedAudio, EmscriptenWASM) {
+  constructor(Decoder, EmscriptenWASM) {
     let source = sources.get(Decoder);
 
     if (!source) {
       const webworkerSourceCode =
         "'use strict';" +
         // dependencies need to be manually resolved when stringifying this function
-        `(${((
-          _WASMAudioDecoderCommon,
-          _Decoder,
-          _DecodedAudio,
-          _EmscriptenWASM
-        ) => {
+        `(${((_WASMAudioDecoderCommon, _Decoder, _EmscriptenWASM) => {
           // We're in a Web Worker
           const decoder = new _Decoder(
             _WASMAudioDecoderCommon,
-            _DecodedAudio,
             _EmscriptenWASM
           );
 
@@ -77,7 +71,7 @@ export default class WASMAudioDecoderWorker extends Worker {
                 );
             }
           };
-        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${DecodedAudio}, ${EmscriptenWASM})`;
+        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${EmscriptenWASM})`;
 
       const type = "text/javascript";
 
@@ -96,19 +90,14 @@ export default class WASMAudioDecoderWorker extends Worker {
 
     super(source);
 
-    this._DecodedAudio = DecodedAudio;
-
     this._id = Number.MIN_SAFE_INTEGER;
     this._enqueuedOperations = new Map();
 
     this.onmessage = ({ data }) => {
-      this._enqueuedOperations.get(data.id)(data);
-      this._enqueuedOperations.delete(data.id);
+      const { id, ...rest } = data;
+      this._enqueuedOperations.get(id)(rest);
+      this._enqueuedOperations.delete(id);
     };
-  }
-
-  _getDecodedAudio({ channelData, samplesDecoded, sampleRate }) {
-    return new this._DecodedAudio(channelData, samplesDecoded, sampleRate);
   }
 
   async _postToDecoder(command, data) {

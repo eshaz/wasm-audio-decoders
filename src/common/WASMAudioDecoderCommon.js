@@ -1,8 +1,31 @@
+const compiledWasm = new WeakMap();
+
 export default class WASMAudioDecoderCommon {
   constructor(wasm) {
     this._wasm = wasm;
 
     this._pointers = [];
+  }
+
+  get wasm() {
+    return this._wasm;
+  }
+
+  static async initWASMAudioDecoder(isWebWorker, EmscriptenWASM) {
+    let wasm;
+
+    if (isWebWorker) {
+      wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
+    } else if (compiledWasm.has(EmscriptenWASM)) {
+      wasm = compiledWasm.get(EmscriptenWASM);
+    } else {
+      wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
+      compiledWasm.set(EmscriptenWASM, wasm);
+    }
+
+    await wasm.ready;
+
+    return new WASMAudioDecoderCommon(wasm);
   }
 
   static concatFloat32(buffers, length) {
@@ -15,6 +38,24 @@ export default class WASMAudioDecoderCommon {
     }
 
     return ret;
+  }
+
+  getDecodedAudio(channelData, samplesDecoded, sampleRate) {
+    return {
+      channelData,
+      samplesDecoded,
+      sampleRate,
+    };
+  }
+
+  getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
+    return {
+      channelData: channelData.map((data) =>
+        WASMAudioDecoderCommon.concatFloat32(data, samplesDecoded)
+      ),
+      samplesDecoded,
+      sampleRate,
+    };
   }
 
   allocateTypedArray(length, TypedArray) {

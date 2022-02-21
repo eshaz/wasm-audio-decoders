@@ -1,51 +1,34 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 
-import MPEGDecodedAudio from "./MPEGDecodedAudio.js";
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
-let wasm;
-
 export default class MPEGDecoder {
-  constructor(_WASMAudioDecoderCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
+  constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
     this._ready = new Promise((resolve) =>
-      this._init(
-        _WASMAudioDecoderCommon,
-        _MPEGDecodedAudio,
-        _EmscriptenWASM
-      ).then(resolve)
+      this._init(_WASMAudioDecoderCommon, _EmscriptenWASM).then(resolve)
     );
   }
 
   // injects dependencies when running as a web worker
-  async _init(_WASMAudioDecoderCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
-    if (!this._api) {
-      const isWebWorker =
-        _WASMAudioDecoderCommon && _MPEGDecodedAudio && _EmscriptenWASM;
+  async _init(_WASMAudioDecoderCommon, _EmscriptenWASM) {
+    if (!this._common) {
+      const isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
 
       if (isWebWorker) {
         // use classes injected into constructor parameters
         this._WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
-        this._MPEGDecodedAudio = _MPEGDecodedAudio;
         this._EmscriptenWASM = _EmscriptenWASM;
-
-        // running as a webworker, use class level singleton for wasm compilation
-        this._api = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
       } else {
         // use classes from es6 imports
         this._WASMAudioDecoderCommon = WASMAudioDecoderCommon;
-        this._MPEGDecodedAudio = MPEGDecodedAudio;
         this._EmscriptenWASM = EmscriptenWASM;
-
-        // use a global scope singleton so wasm compilation happens once only if class is instantiated
-        if (!wasm)
-          wasm = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
-        this._api = wasm;
       }
 
-      this._common = new this._WASMAudioDecoderCommon(this._api);
+      this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder(
+        isWebWorker,
+        this._EmscriptenWASM
+      );
     }
-
-    await this._api.ready;
 
     this._sampleRate = 0;
 
@@ -75,7 +58,7 @@ export default class MPEGDecoder {
     [this._sampleRateBytePtr, this._sampleRateByte] =
       this._common.allocateTypedArray(1, Uint32Array);
 
-    this._decoder = this._api._mpeg_frame_decoder_create();
+    this._decoder = this._common.wasm._mpeg_frame_decoder_create();
   }
 
   get ready() {
@@ -88,8 +71,8 @@ export default class MPEGDecoder {
   }
 
   free() {
-    this._api._mpeg_frame_decoder_destroy(this._decoder);
-    this._api._free(this._decoder);
+    this._common.wasm._mpeg_frame_decoder_destroy(this._decoder);
+    this._common.wasm._free(this._decoder);
 
     this._common.free();
   }
@@ -103,7 +86,7 @@ export default class MPEGDecoder {
     this._inData.set(data);
     this._decodedBytes[0] = 0;
 
-    const samplesDecoded = this._api._mpeg_decode_interleaved(
+    const samplesDecoded = this._common.wasm._mpeg_decode_interleaved(
       this._decoder,
       this._inDataPtr,
       data.length,
@@ -117,7 +100,7 @@ export default class MPEGDecoder {
 
     this._sampleRate = this._sampleRateByte[0];
 
-    return new this._MPEGDecodedAudio(
+    return this._common.getDecodedAudio(
       [
         this._leftArr.slice(0, samplesDecoded),
         this._rightArr.slice(0, samplesDecoded),
@@ -147,11 +130,8 @@ export default class MPEGDecoder {
       samples += samplesDecoded;
     }
 
-    return new this._MPEGDecodedAudio(
-      [
-        this._WASMAudioDecoderCommon.concatFloat32(left, samples),
-        this._WASMAudioDecoderCommon.concatFloat32(right, samples),
-      ],
+    return this._common.getDecodedAudioConcat(
+      [left, right],
       samples,
       this._sampleRate
     );
@@ -174,11 +154,8 @@ export default class MPEGDecoder {
       samples += samplesDecoded;
     }
 
-    return new this._MPEGDecodedAudio(
-      [
-        this._WASMAudioDecoderCommon.concatFloat32(left, samples),
-        this._WASMAudioDecoderCommon.concatFloat32(right, samples),
-      ],
+    return this._common.getDecodedAudioConcat(
+      [left, right],
       samples,
       this._sampleRate
     );

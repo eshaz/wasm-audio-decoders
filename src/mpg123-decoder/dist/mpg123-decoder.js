@@ -8,11 +8,34 @@
 
   var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
+  const compiledWasm = new WeakMap();
+
   class WASMAudioDecoderCommon {
     constructor(wasm) {
       this._wasm = wasm;
 
       this._pointers = [];
+    }
+
+    get wasm() {
+      return this._wasm;
+    }
+
+    static async initWASMAudioDecoder(isWebWorker, EmscriptenWASM) {
+      let wasm;
+
+      if (isWebWorker) {
+        wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
+      } else if (compiledWasm.has(EmscriptenWASM)) {
+        wasm = compiledWasm.get(EmscriptenWASM);
+      } else {
+        wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
+        compiledWasm.set(EmscriptenWASM, wasm);
+      }
+
+      await wasm.ready;
+
+      return new WASMAudioDecoderCommon(wasm);
     }
 
     static concatFloat32(buffers, length) {
@@ -25,6 +48,24 @@
       }
 
       return ret;
+    }
+
+    getDecodedAudio(channelData, samplesDecoded, sampleRate) {
+      return {
+        channelData,
+        samplesDecoded,
+        sampleRate,
+      };
+    }
+
+    getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
+      return {
+        channelData: channelData.map((data) =>
+          WASMAudioDecoderCommon.concatFloat32(data, samplesDecoded)
+        ),
+        samplesDecoded,
+        sampleRate,
+      };
     }
 
     allocateTypedArray(length, TypedArray) {
@@ -452,23 +493,17 @@
   const sources = new WeakMap();
 
   class WASMAudioDecoderWorker extends Worker__default["default"] {
-    constructor(Decoder, DecodedAudio, EmscriptenWASM) {
+    constructor(Decoder, EmscriptenWASM) {
       let source = sources.get(Decoder);
 
       if (!source) {
         const webworkerSourceCode =
           "'use strict';" +
           // dependencies need to be manually resolved when stringifying this function
-          `(${((
-          _WASMAudioDecoderCommon,
-          _Decoder,
-          _DecodedAudio,
-          _EmscriptenWASM
-        ) => {
+          `(${((_WASMAudioDecoderCommon, _Decoder, _EmscriptenWASM) => {
           // We're in a Web Worker
           const decoder = new _Decoder(
             _WASMAudioDecoderCommon,
-            _DecodedAudio,
             _EmscriptenWASM
           );
 
@@ -524,7 +559,7 @@
                 );
             }
           };
-        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${DecodedAudio}, ${EmscriptenWASM})`;
+        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${EmscriptenWASM})`;
 
         const type = "text/javascript";
 
@@ -543,19 +578,14 @@
 
       super(source);
 
-      this._DecodedAudio = DecodedAudio;
-
       this._id = Number.MIN_SAFE_INTEGER;
       this._enqueuedOperations = new Map();
 
       this.onmessage = ({ data }) => {
-        this._enqueuedOperations.get(data.id)(data);
-        this._enqueuedOperations.delete(data.id);
+        const { id, ...rest } = data;
+        this._enqueuedOperations.get(id)(rest);
+        this._enqueuedOperations.delete(id);
       };
-    }
-
-    _getDecodedAudio({ channelData, samplesDecoded, sampleRate }) {
-      return new this._DecodedAudio(channelData, samplesDecoded, sampleRate);
     }
 
     async _postToDecoder(command, data) {
@@ -582,14 +612,6 @@
 
     async reset() {
       await this._postToDecoder("reset");
-    }
-  }
-
-  class MPEGDecodedAudio {
-    constructor(channelData, samplesDecoded, sampleRate) {
-      this.channelData = channelData;
-      this.samplesDecoded = samplesDecoded;
-      this.sampleRate = sampleRate;
     }
   }
 
@@ -855,49 +877,33 @@
   });
   }}
 
-  let wasm;
-
   class MPEGDecoder {
-    constructor(_WASMAudioDecoderCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
+    constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
       this._ready = new Promise((resolve) =>
-        this._init(
-          _WASMAudioDecoderCommon,
-          _MPEGDecodedAudio,
-          _EmscriptenWASM
-        ).then(resolve)
+        this._init(_WASMAudioDecoderCommon, _EmscriptenWASM).then(resolve)
       );
     }
 
     // injects dependencies when running as a web worker
-    async _init(_WASMAudioDecoderCommon, _MPEGDecodedAudio, _EmscriptenWASM) {
-      if (!this._api) {
-        const isWebWorker =
-          _WASMAudioDecoderCommon && _MPEGDecodedAudio && _EmscriptenWASM;
+    async _init(_WASMAudioDecoderCommon, _EmscriptenWASM) {
+      if (!this._common) {
+        const isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
 
         if (isWebWorker) {
           // use classes injected into constructor parameters
           this._WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
-          this._MPEGDecodedAudio = _MPEGDecodedAudio;
           this._EmscriptenWASM = _EmscriptenWASM;
-
-          // running as a webworker, use class level singleton for wasm compilation
-          this._api = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
         } else {
           // use classes from es6 imports
           this._WASMAudioDecoderCommon = WASMAudioDecoderCommon;
-          this._MPEGDecodedAudio = MPEGDecodedAudio;
           this._EmscriptenWASM = EmscriptenWASM;
-
-          // use a global scope singleton so wasm compilation happens once only if class is instantiated
-          if (!wasm)
-            wasm = new this._EmscriptenWASM(this._WASMAudioDecoderCommon);
-          this._api = wasm;
         }
 
-        this._common = new this._WASMAudioDecoderCommon(this._api);
+        this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder(
+          isWebWorker,
+          this._EmscriptenWASM
+        );
       }
-
-      await this._api.ready;
 
       this._sampleRate = 0;
 
@@ -927,7 +933,7 @@
       [this._sampleRateBytePtr, this._sampleRateByte] =
         this._common.allocateTypedArray(1, Uint32Array);
 
-      this._decoder = this._api._mpeg_frame_decoder_create();
+      this._decoder = this._common.wasm._mpeg_frame_decoder_create();
     }
 
     get ready() {
@@ -940,8 +946,8 @@
     }
 
     free() {
-      this._api._mpeg_frame_decoder_destroy(this._decoder);
-      this._api._free(this._decoder);
+      this._common.wasm._mpeg_frame_decoder_destroy(this._decoder);
+      this._common.wasm._free(this._decoder);
 
       this._common.free();
     }
@@ -955,7 +961,7 @@
       this._inData.set(data);
       this._decodedBytes[0] = 0;
 
-      const samplesDecoded = this._api._mpeg_decode_interleaved(
+      const samplesDecoded = this._common.wasm._mpeg_decode_interleaved(
         this._decoder,
         this._inDataPtr,
         data.length,
@@ -969,7 +975,7 @@
 
       this._sampleRate = this._sampleRateByte[0];
 
-      return new this._MPEGDecodedAudio(
+      return this._common.getDecodedAudio(
         [
           this._leftArr.slice(0, samplesDecoded),
           this._rightArr.slice(0, samplesDecoded),
@@ -999,11 +1005,8 @@
         samples += samplesDecoded;
       }
 
-      return new this._MPEGDecodedAudio(
-        [
-          this._WASMAudioDecoderCommon.concatFloat32(left, samples),
-          this._WASMAudioDecoderCommon.concatFloat32(right, samples),
-        ],
+      return this._common.getDecodedAudioConcat(
+        [left, right],
         samples,
         this._sampleRate
       );
@@ -1026,11 +1029,8 @@
         samples += samplesDecoded;
       }
 
-      return new this._MPEGDecodedAudio(
-        [
-          this._WASMAudioDecoderCommon.concatFloat32(left, samples),
-          this._WASMAudioDecoderCommon.concatFloat32(right, samples),
-        ],
+      return this._common.getDecodedAudioConcat(
+        [left, right],
         samples,
         this._sampleRate
       );
@@ -1039,25 +1039,19 @@
 
   class MPEGDecoderWebWorker extends WASMAudioDecoderWorker {
     constructor() {
-      super(MPEGDecoder, MPEGDecodedAudio, EmscriptenWASM);
+      super(MPEGDecoder, EmscriptenWASM);
     }
 
     async decode(data) {
-      return this._postToDecoder("decode", data).then((out) =>
-        this._getDecodedAudio(out)
-      );
+      return this._postToDecoder("decode", data);
     }
 
     async decodeFrame(data) {
-      return this._postToDecoder("decodeFrame", data).then((out) =>
-        this._getDecodedAudio(out)
-      );
+      return this._postToDecoder("decodeFrame", data);
     }
 
     async decodeFrames(data) {
-      return this._postToDecoder("decodeFrames", data).then((out) =>
-        this._getDecodedAudio(out)
-      );
+      return this._postToDecoder("decodeFrames", data);
     }
   }
 
