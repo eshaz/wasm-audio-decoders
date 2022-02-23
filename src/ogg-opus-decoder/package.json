@@ -9,7 +9,7 @@
     "index.js",
     "types.d.ts",
     "src/EmscriptenWasm.js",
-    "src/OggOpusDecodedAudio.js",
+    "src/OpusDecodedAudio.js",
     "src/OggOpusDecoder.js",
     "src/OggOpusDecoderWebWorker.js",
     "dist/ogg-opus-decoder.min.js",
