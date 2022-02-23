@@ -11,21 +11,46 @@ export default class WASMAudioDecoderCommon {
     return this._wasm;
   }
 
-  static async initWASMAudioDecoder(isWebWorker, EmscriptenWASM) {
-    let wasm;
-
-    if (isWebWorker) {
-      wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
-    } else if (compiledWasm.has(EmscriptenWASM)) {
-      wasm = compiledWasm.get(EmscriptenWASM);
-    } else {
-      wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
-      compiledWasm.set(EmscriptenWASM, wasm);
+  static async initWASMAudioDecoder() {
+    // instantiate wasm code as singleton
+    if (!this._wasm) {
+      // new decoder instance
+      if (this._isWebWorker) {
+        // web worker
+        this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
+      } else {
+        // main thread
+        if (compiledWasm.has(this._EmscriptenWASM)) {
+          // reuse existing compilation
+          this._wasm = compiledWasm.get(this._EmscriptenWASM);
+        } else {
+          // first compilation
+          this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
+          compiledWasm.set(this._EmscriptenWASM, this._wasm);
+        }
+      }
     }
 
-    await wasm.ready;
+    await this._wasm.ready;
 
-    return new WASMAudioDecoderCommon(wasm);
+    const common = new WASMAudioDecoderCommon(this._wasm);
+
+    [this._inputPtr, this._input] = common.allocateTypedArray(
+      this._inputPtrSize,
+      Uint8Array
+    );
+
+    // output buffer
+    [this._leftPtr, this._leftArr] = common.allocateTypedArray(
+      this._outputPtrSize,
+      Float32Array
+    );
+    [this._rightPtr, this._rightArr] = common.allocateTypedArray(
+      this._outputPtrSize,
+      Float32Array
+    );
+
+    return common;
   }
 
   static concatFloat32(buffers, length) {
@@ -40,7 +65,7 @@ export default class WASMAudioDecoderCommon {
     return ret;
   }
 
-  getDecodedAudio(channelData, samplesDecoded, sampleRate) {
+  static getDecodedAudio(channelData, samplesDecoded, sampleRate) {
     return {
       channelData,
       samplesDecoded,
@@ -48,14 +73,14 @@ export default class WASMAudioDecoderCommon {
     };
   }
 
-  getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
-    return {
-      channelData: channelData.map((data) =>
+  static getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
+    return WASMAudioDecoderCommon.getDecodedAudio(
+      channelData.map((data) =>
         WASMAudioDecoderCommon.concatFloat32(data, samplesDecoded)
       ),
       samplesDecoded,
-      sampleRate,
-    };
+      sampleRate
+    );
   }
 
   allocateTypedArray(length, TypedArray) {

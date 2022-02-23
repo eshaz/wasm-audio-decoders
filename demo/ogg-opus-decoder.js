@@ -21,21 +21,46 @@
       return this._wasm;
     }
 
-    static async initWASMAudioDecoder(isWebWorker, EmscriptenWASM) {
-      let wasm;
-
-      if (isWebWorker) {
-        wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
-      } else if (compiledWasm.has(EmscriptenWASM)) {
-        wasm = compiledWasm.get(EmscriptenWASM);
-      } else {
-        wasm = new EmscriptenWASM(WASMAudioDecoderCommon);
-        compiledWasm.set(EmscriptenWASM, wasm);
+    static async initWASMAudioDecoder() {
+      // instantiate wasm code as singleton
+      if (!this._wasm) {
+        // new decoder instance
+        if (this._isWebWorker) {
+          // web worker
+          this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
+        } else {
+          // main thread
+          if (compiledWasm.has(this._EmscriptenWASM)) {
+            // reuse existing compilation
+            this._wasm = compiledWasm.get(this._EmscriptenWASM);
+          } else {
+            // first compilation
+            this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
+            compiledWasm.set(this._EmscriptenWASM, this._wasm);
+          }
+        }
       }
 
-      await wasm.ready;
+      await this._wasm.ready;
 
-      return new WASMAudioDecoderCommon(wasm);
+      const common = new WASMAudioDecoderCommon(this._wasm);
+
+      [this._inputPtr, this._input] = common.allocateTypedArray(
+        this._inputPtrSize,
+        Uint8Array
+      );
+
+      // output buffer
+      [this._leftPtr, this._leftArr] = common.allocateTypedArray(
+        this._outputPtrSize,
+        Float32Array
+      );
+      [this._rightPtr, this._rightArr] = common.allocateTypedArray(
+        this._outputPtrSize,
+        Float32Array
+      );
+
+      return common;
     }
 
     static concatFloat32(buffers, length) {
@@ -50,7 +75,7 @@
       return ret;
     }
 
-    getDecodedAudio(channelData, samplesDecoded, sampleRate) {
+    static getDecodedAudio(channelData, samplesDecoded, sampleRate) {
       return {
         channelData,
         samplesDecoded,
@@ -58,14 +83,14 @@
       };
     }
 
-    getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
-      return {
-        channelData: channelData.map((data) =>
+    static getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
+      return WASMAudioDecoderCommon.getDecodedAudio(
+        channelData.map((data) =>
           WASMAudioDecoderCommon.concatFloat32(data, samplesDecoded)
         ),
         samplesDecoded,
-        sampleRate,
-      };
+        sampleRate
+      );
     }
 
     allocateTypedArray(length, TypedArray) {
@@ -720,55 +745,27 @@
 
   class OggOpusDecoder {
     constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
-      // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
-      this._outSize = 120 * 48; // 120ms @ 48 khz.
+      // injects dependencies when running as a web worker
+      this._isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
+      this._WASMAudioDecoderCommon =
+        _WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+      this._EmscriptenWASM = _EmscriptenWASM || EmscriptenWASM;
 
       //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
-      this._inputArrSize = 64 * 1024;
+      this._inputPtrSize = 64 * 1024;
+      // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
+      this._outputPtrSize = 120 * 48; // 120ms @ 48 khz.
+      this._channelsOut = 2;
 
-      this._ready = new Promise((resolve) =>
-        this._init(_WASMAudioDecoderCommon, _EmscriptenWASM).then(resolve)
-      );
+      this._ready = this._init();
     }
 
-    // injects dependencies when running as a web worker
-    async _init(_WASMAudioDecoderCommon, _EmscriptenWASM) {
-      if (!this._common) {
-        const isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
-
-        if (isWebWorker) {
-          // use classes injected into constructor parameters
-          this._WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
-          this._EmscriptenWASM = _EmscriptenWASM;
-        } else {
-          // use classes from es6 imports
-          this._WASMAudioDecoderCommon = WASMAudioDecoderCommon;
-          this._EmscriptenWASM = EmscriptenWASM;
-        }
-
-        this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder(
-          isWebWorker,
-          this._EmscriptenWASM
-        );
-      }
+    async _init() {
+      this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder.bind(
+        this
+      )();
 
       this._decoder = this._common.wasm._ogg_opus_decoder_create();
-
-      // input data
-      [this._inputPtr, this._input] = this._common.allocateTypedArray(
-        this._inputArrSize,
-        Uint8Array
-      );
-
-      // output data
-      [this._leftPtr, this._leftArr] = this._common.allocateTypedArray(
-        this._outSize,
-        Float32Array
-      );
-      [this._rightPtr, this._rightArr] = this._common.allocateTypedArray(
-        this._outSize,
-        Float32Array
-      );
     }
 
     get ready() {
@@ -803,7 +800,7 @@
       while (offset < data.length) {
         const dataToSend = data.subarray(
           offset,
-          offset + Math.min(this._inputArrSize, data.length - offset)
+          offset + Math.min(this._inputPtrSize, data.length - offset)
         );
 
         offset += dataToSend.length;
@@ -863,7 +860,7 @@
         }
       }
 
-      return this._common.getDecodedAudioConcat(
+      return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
         [decodedLeft, decodedRight],
         decodedSamples,
         48000
