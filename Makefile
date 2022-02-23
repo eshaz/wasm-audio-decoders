@@ -22,7 +22,7 @@ OGG_OPUS_DECODER_MODULE_MIN=src/ogg-opus-decoder/dist/ogg-opus-decoder.min.js
 
 ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
-	node build/compress.js ${OGG_OPUS_DECODER_EMSCRIPTEN_BUILD}
+	node build.js ${OGG_OPUS_DECODER_EMSCRIPTEN_BUILD}
 	node_modules/.bin/rollup src/ogg-opus-decoder/index.js --file $(OGG_OPUS_DECODER_MODULE) --config src/ogg-opus-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/ogg-opus-decoder/terser.json ${OGG_OPUS_DECODER_MODULE} -o ${OGG_OPUS_DECODER_MODULE_MIN}
 	cp $(OGG_OPUS_DECODER_MODULE) $(DEMO_PATH)
@@ -34,7 +34,7 @@ OPUS_DECODER_MODULE_MIN=src/opus-decoder/dist/opus-decoder.min.js
 
 opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
-	node build/compress.js $(OPUS_DECODER_EMSCRIPTEN_BUILD)
+	node build.js $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	node_modules/.bin/rollup src/opus-decoder/index.js --file $(OPUS_DECODER_MODULE) --config src/opus-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/opus-decoder/terser.json $(OPUS_DECODER_MODULE) -o $(OPUS_DECODER_MODULE_MIN)
 	cp $(OPUS_DECODER_MODULE) $(DEMO_PATH)
@@ -54,7 +54,7 @@ MPG123_MODULE_MIN=src/mpg123-decoder/dist/mpg123-decoder.min.js
 
 mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
 mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
-	node build/compress.js $(MPG123_EMSCRIPTEN_BUILD)
+	node build.js $(MPG123_EMSCRIPTEN_BUILD)
 	node_modules/.bin/rollup src/mpg123-decoder/index.js --file $(MPG123_MODULE) --config src/mpg123-decoder/rollup.config.js
 	node_modules/.bin/terser --config-file src/mpg123-decoder/terser.json $(MPG123_MODULE) -o $(MPG123_MODULE_MIN)
 	cp $(MPG123_MODULE) $(DEMO_PATH)

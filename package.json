@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "build": "make clean && make -j8",
     "deploy": "gh-pages -d demo",
     "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*'",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%"
