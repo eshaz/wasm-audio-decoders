@@ -41,7 +41,7 @@ Decodes raw Opus audio frames into PCM
 
 ### Prerequisites
 1. Install Emscripten by following these [instructions](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions).
-   * This repository has been tested with Emscripten 3.1.5.
+   * This repository has been tested with Emscripten 2.0.34.
 
 ### Building
 1. Make sure to `source` the Emscripten path in the terminal you want build in.
