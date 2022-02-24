@@ -1,83 +1,30 @@
-import OpusDecodedAudio from "./OpusDecodedAudio.js";
+import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
+
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
-let wasm;
-
 export default class OggOpusDecoder {
-  constructor(_OpusDecodedAudio, _EmscriptenWASM) {
-    // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
-    this._outSize = 120 * 48; // 120ms @ 48 khz.
+  constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
+    // injects dependencies when running as a web worker
+    this._isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
+    this._WASMAudioDecoderCommon =
+      _WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+    this._EmscriptenWASM = _EmscriptenWASM || EmscriptenWASM;
 
     //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
-    this._inputArrSize = 64 * 1024;
+    this._inputPtrSize = 64 * 1024;
+    // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
+    this._outputPtrSize = 120 * 48; // 120ms @ 48 khz.
+    this._channelsOut = 2;
 
-    this._ready = new Promise((resolve) =>
-      this._init(_OpusDecodedAudio, _EmscriptenWASM).then(resolve)
-    );
+    this._ready = this._init();
   }
 
-  static concatFloat32(buffers, length) {
-    const ret = new Float32Array(length);
+  async _init() {
+    this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder.bind(
+      this
+    )();
 
-    let offset = 0;
-    for (const buf of buffers) {
-      ret.set(buf, offset);
-      offset += buf.length;
-    }
-
-    return ret;
-  }
-
-  // creates Float32Array on Wasm heap and returns it and its pointer
-  // returns [pointer, array]
-  _allocateTypedArray(length, TypedArray) {
-    const pointer = this._api._malloc(TypedArray.BYTES_PER_ELEMENT * length);
-    const array = new TypedArray(this._api.HEAP, pointer, length);
-    return [pointer, array];
-  }
-
-  // injects dependencies when running as a web worker
-  async _init(_OpusDecodedAudio, _EmscriptenWASM) {
-    if (!this._api) {
-      const isWebWorker = _OpusDecodedAudio && _EmscriptenWASM;
-
-      if (isWebWorker) {
-        // use classes injected into constructor parameters
-        this._OpusDecodedAudio = _OpusDecodedAudio;
-        this._EmscriptenWASM = _EmscriptenWASM;
-
-        // running as a webworker, use class level singleton for wasm compilation
-        this._api = new this._EmscriptenWASM();
-      } else {
-        // use classes from es6 imports
-        this._OpusDecodedAudio = OpusDecodedAudio;
-        this._EmscriptenWASM = EmscriptenWASM;
-
-        // use a global scope singleton so wasm compilation happens once only if class is instantiated
-        if (!wasm) wasm = new this._EmscriptenWASM();
-        this._api = wasm;
-      }
-    }
-
-    await this._api.ready;
-
-    this._decoder = this._api._ogg_opus_decoder_create();
-
-    // input data
-    [this._inputPtr, this._input] = this._allocateTypedArray(
-      this._inputArrSize,
-      Uint8Array
-    );
-
-    // output data
-    [this._leftPtr, this._leftArr] = this._allocateTypedArray(
-      this._outSize,
-      Float32Array
-    );
-    [this._rightPtr, this._rightArr] = this._allocateTypedArray(
-      this._outSize,
-      Float32Array
-    );
+    this._decoder = this._common.wasm._ogg_opus_decoder_create();
   }
 
   get ready() {
@@ -90,11 +37,8 @@ export default class OggOpusDecoder {
   }
 
   free() {
-    this._api._ogg_opus_decoder_free(this._decoder);
-
-    this._api._free(this._inputPtr);
-    this._api._free(this._leftPtr);
-    this._api._free(this._rightPtr);
+    this._common.wasm._ogg_opus_decoder_free(this._decoder);
+    this._common.free();
   }
 
   /*  WARNING: When decoding chained Ogg files (i.e. streaming) the first two Ogg packets
@@ -115,7 +59,7 @@ export default class OggOpusDecoder {
     while (offset < data.length) {
       const dataToSend = data.subarray(
         offset,
-        offset + Math.min(this._inputArrSize, data.length - offset)
+        offset + Math.min(this._inputPtrSize, data.length - offset)
       );
 
       offset += dataToSend.length;
@@ -124,7 +68,7 @@ export default class OggOpusDecoder {
 
       // enqueue bytes to decode. Fail on error
       if (
-        !this._api._ogg_opus_decoder_enqueue(
+        !this._common.wasm._ogg_opus_decoder_enqueue(
           this._decoder,
           this._inputPtr,
           dataToSend.length
@@ -137,11 +81,12 @@ export default class OggOpusDecoder {
       // continue to decode until no more bytes are left to decode
       let samplesDecoded;
       while (
-        (samplesDecoded = this._api._ogg_opus_decode_float_stereo_deinterleaved(
-          this._decoder,
-          this._leftPtr, // left channel
-          this._rightPtr // right channel
-        )) > 0
+        (samplesDecoded =
+          this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved(
+            this._decoder,
+            this._leftPtr, // left channel
+            this._rightPtr // right channel
+          )) > 0
       ) {
         decodedLeft.push(this._leftArr.slice(0, samplesDecoded));
         decodedRight.push(this._rightArr.slice(0, samplesDecoded));
@@ -174,12 +119,10 @@ export default class OggOpusDecoder {
       }
     }
 
-    return new this._OpusDecodedAudio(
-      [
-        OggOpusDecoder.concatFloat32(decodedLeft, decodedSamples),
-        OggOpusDecoder.concatFloat32(decodedRight, decodedSamples),
-      ],
-      decodedSamples
+    return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
+      [decodedLeft, decodedRight],
+      decodedSamples,
+      48000
     );
   }
 }

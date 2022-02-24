@@ -1,75 +1,28 @@
-import OpusDecodedAudio from "./OpusDecodedAudio.js";
+import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
+
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
-let wasm;
-
 export default class OpusDecoder {
-  constructor(_OpusDecodedAudio, _EmscriptenWASM) {
-    this._ready = new Promise((resolve) =>
-      this._init(_OpusDecodedAudio, _EmscriptenWASM).then(resolve)
-    );
-  }
+  constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
+    this._isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
+    this._WASMAudioDecoderCommon =
+      _WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+    this._EmscriptenWASM = _EmscriptenWASM || EmscriptenWASM;
 
-  static concatFloat32(buffers, length) {
-    const ret = new Float32Array(length);
+    this._inputPtrSize = (0.12 * 510000) / 8;
+    this._outputPtrSize = 120 * 48;
+    this._channelsOut = 2;
 
-    let offset = 0;
-    for (const buf of buffers) {
-      ret.set(buf, offset);
-      offset += buf.length;
-    }
-
-    return ret;
-  }
-
-  _allocateTypedArray(length, TypedArray) {
-    const pointer = this._api._malloc(TypedArray.BYTES_PER_ELEMENT * length);
-    const array = new TypedArray(this._api.HEAP, pointer, length);
-    return [pointer, array];
+    this._ready = this._init();
   }
 
   // injects dependencies when running as a web worker
-  async _init(_OpusDecodedAudio, _EmscriptenWASM) {
-    if (!this._api) {
-      const isWebWorker = _OpusDecodedAudio && _EmscriptenWASM;
+  async _init() {
+    this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder.bind(
+      this
+    )();
 
-      if (isWebWorker) {
-        // use classes injected into constructor parameters
-        this._OpusDecodedAudio = _OpusDecodedAudio;
-        this._EmscriptenWASM = _EmscriptenWASM;
-
-        // running as a webworker, use class level singleton for wasm compilation
-        this._api = new this._EmscriptenWASM();
-      } else {
-        // use classes from es6 imports
-        this._OpusDecodedAudio = OpusDecodedAudio;
-        this._EmscriptenWASM = EmscriptenWASM;
-
-        // use a global scope singleton so wasm compilation happens once only if class is instantiated
-        if (!wasm) wasm = new this._EmscriptenWASM();
-        this._api = wasm;
-      }
-    }
-
-    await this._api.ready;
-
-    this._decoder = this._api._opus_frame_decoder_create();
-
-    // max size of stereo Opus packet 120ms @ 510kbs
-    [this._inputPtr, this._input] = this._allocateTypedArray(
-      (0.12 * 510000) / 8,
-      Uint8Array
-    );
-
-    // max audio output of Opus packet 120ms @ 48000Hz
-    [this._leftPtr, this._leftArr] = this._allocateTypedArray(
-      120 * 48,
-      Float32Array
-    );
-    [this._rightPtr, this._rightArr] = this._allocateTypedArray(
-      120 * 48,
-      Float32Array
-    );
+    this._decoder = this._common.wasm._opus_frame_decoder_create();
   }
 
   get ready() {
@@ -82,11 +35,9 @@ export default class OpusDecoder {
   }
 
   free() {
-    this._api._opus_frame_decoder_destroy(this._decoder);
+    this._common.wasm._opus_frame_decoder_destroy(this._decoder);
 
-    this._api._free(this._inputPtr);
-    this._api._free(this._leftPtr);
-    this._api._free(this._rightPtr);
+    this._common.free();
   }
 
   decodeFrame(opusFrame) {
@@ -97,20 +48,22 @@ export default class OpusDecoder {
 
     this._input.set(opusFrame);
 
-    const samplesDecoded = this._api._opus_frame_decode_float_deinterleaved(
-      this._decoder,
-      this._inputPtr,
-      opusFrame.length,
-      this._leftPtr,
-      this._rightPtr
-    );
+    const samplesDecoded =
+      this._common.wasm._opus_frame_decode_float_deinterleaved(
+        this._decoder,
+        this._inputPtr,
+        opusFrame.length,
+        this._leftPtr,
+        this._rightPtr
+      );
 
-    return new this._OpusDecodedAudio(
+    return this._WASMAudioDecoderCommon.getDecodedAudio(
       [
         this._leftArr.slice(0, samplesDecoded),
         this._rightArr.slice(0, samplesDecoded),
       ],
-      samplesDecoded
+      samplesDecoded,
+      48000
     );
   }
 
@@ -127,12 +80,10 @@ export default class OpusDecoder {
       samples += samplesDecoded;
     });
 
-    return new this._OpusDecodedAudio(
-      [
-        OpusDecoder.concatFloat32(left, samples),
-        OpusDecoder.concatFloat32(right, samples),
-      ],
-      samples
+    return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
+      [left, right],
+      samples,
+      48000
     );
   }
 }

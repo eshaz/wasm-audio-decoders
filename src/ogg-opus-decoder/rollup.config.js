@@ -1,3 +1,5 @@
+import { nodeResolve } from "@rollup/plugin-node-resolve";
+
 export default {
   external: ["web-worker"],
   output: {
@@ -7,4 +9,5 @@ export default {
       "web-worker": "Worker",
     },
   },
+  plugins: [nodeResolve()],
 };
