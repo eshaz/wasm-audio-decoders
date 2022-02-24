@@ -1,6 +1,6 @@
 # `mpg123-decoder`
 
-`mpg123-decoder` is a Web Assembly MPEG Layer (I/II/II) audio decoder.
+`mpg123-decoder` is a Web Assembly MPEG Layer (I/II/III) audio decoder.
   * 85.4 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
