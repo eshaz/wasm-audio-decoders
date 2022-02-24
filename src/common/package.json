@@ -4,7 +4,8 @@
   "description": "Web Assembly Audio Decoders Common",
   "module": "index.js",
   "files": [
-    "index.js"
+    "index.js",
+    "src/*"
   ],
   "repository": {
     "type": "git",
