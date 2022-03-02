@@ -374,28 +374,29 @@
                     </button>
                     <label for="threads">using</label>
                     <select name="threads" id="threads">
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                      <option value="4">4</option>
-                      <option value="5">5</option>
-                      <option value="6">6</option>
-                      <option value="7">7</option>
-                      <option value="8">8</option>
-                      <option value="9">9</option>
-                      <option value="10">10</option>
-                      <option value="11">11</option>
-                      <option value="12">12</option>
-                      <option value="13">13</option>
-                      <option value="14">14</option>
-                      <option value="15">15</option>
-                      <option value="16">16</option>
-                      <option value="20">20</option>
-                      <option value="24">24</option>
-                      <option value="32">32</option>
-                      <option style="color: red" value="max">Max</option>
+                      <option value="main">main thread</option>
+                      <option value="1">1 worker</option>
+                      <option value="2">2 workers</option>
+                      <option value="3">3 workers</option>
+                      <option value="4">4 workers</option>
+                      <option value="5">5 workers</option>
+                      <option value="6">6 workers</option>
+                      <option value="7">7 workers</option>
+                      <option value="8">8 workers</option>
+                      <option value="9">9 workers</option>
+                      <option value="10">10 workers</option>
+                      <option value="11">11 workers</option>
+                      <option value="12">12 workers</option>
+                      <option value="13">13 workers</option>
+                      <option value="14">14 workers</option>
+                      <option value="15">15 workers</option>
+                      <option value="16">16 workers</option>
+                      <option value="20">20 workers</option>
+                      <option value="32">32 workers</option>
+                      <option style="color: red" value="max">
+                        Max workers
+                      </option>
                     </select>
-                    <label for="threads">worker(s)</label>
                   </div>
                 </fieldset>
               </form>
@@ -718,6 +719,7 @@
       constructor(numberOfDecoders, bytesMPEG, bytesOpus) {
         const totalBytes = bytesMPEG + bytesOpus;
 
+        this._useMainThread = numberOfDecoders === "main";
         this._numberOfDecoders = numberOfDecoders;
 
         this._mpegDecoderStats = {
@@ -752,11 +754,15 @@
 
         switch (mimeType) {
           case "audio/mpeg":
-            DecoderClass = MPEGDecoderWebWorker;
+            DecoderClass = this._useMainThread
+              ? MPEGDecoder
+              : MPEGDecoderWebWorker;
             decoderStats = this._mpegDecoderStats;
             break;
           case "audio/ogg":
-            DecoderClass = OggOpusDecoderWebWorker;
+            DecoderClass = this._useMainThread
+              ? OggOpusDecoder
+              : OggOpusDecoderWebWorker;
             decoderStats = this._opusDecoderStats;
             break;
           default:
@@ -864,38 +870,37 @@
           buffer.then((data) =>
             decoderPool
               .getDecoder(type, size)
-              .then(({ decoder, index, allocated }) => {
+              .then(async ({ decoder, index, allocated }) => {
                 rowEl.style = "background-color: rgba(255, 255, 0, .5)";
                 statusEl.innerHTML = `queued`;
                 decoderEl.innerHTML = `${decoder.constructor.name}[${index}]`;
 
-                return decoder
-                  .decode(new Uint8Array(data))
-                  .then(({ samplesDecoded, sampleRate, channelData }) => {
-                    stats.decodeEnd = performance.now();
-                    stats.sampleRates.push(sampleRate);
-                    stats.samplesDecoded += samplesDecoded;
-                    stats.numberFilesDecoded++;
-                    stats.bytesIn += size;
-                    stats.bytesOut += downloadDecodeResult(
-                      { samplesDecoded, sampleRate, channelData },
-                      name,
-                      size
-                    );
+                const { samplesDecoded, sampleRate, channelData } =
+                  await decoder.decode(new Uint8Array(data));
 
-                    rowEl.style = "background-color: rgba(0, 255, 0, .5)";
-                    statusEl.innerHTML = "done";
+                stats.decodeEnd = performance.now();
+                stats.sampleRates.push(sampleRate);
+                stats.samplesDecoded += samplesDecoded;
+                stats.numberFilesDecoded++;
+                stats.bytesIn += size;
+                stats.bytesOut += downloadDecodeResult(
+                  { samplesDecoded, sampleRate, channelData },
+                  name,
+                  size
+                );
 
-                    updateDecodeStats(stats);
-                    updateDecoderProgress(
-                      index,
-                      decoder.constructor.name,
-                      size,
-                      allocated
-                    );
+                rowEl.style = "background-color: rgba(0, 255, 0, .5)";
+                statusEl.innerHTML = "done";
 
-                    decoder.reset();
-                  });
+                updateDecodeStats(stats);
+                updateDecoderProgress(
+                  index,
+                  decoder.constructor.name,
+                  size,
+                  allocated
+                );
+
+                await decoder.reset();
               })
           )
         );
