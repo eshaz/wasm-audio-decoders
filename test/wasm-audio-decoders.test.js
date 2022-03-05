@@ -20,17 +20,15 @@ const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
 const TEST_DATA_PATH = new URL("data", import.meta.url).pathname;
 
-const getTestPaths = (fileName) => ({
+const getTestPaths = (fileName, outputFileName) => ({
   fileName,
   inputPath: path.join(TEST_DATA_PATH, fileName),
-  actualPath: path.join(ACTUAL_PATH, fileName + ".wav"),
-  expectedPath: path.join(EXPECTED_PATH, fileName + ".wav"),
+  actualPath: path.join(ACTUAL_PATH, (outputFileName || fileName) + ".wav"),
+  expectedPath: path.join(EXPECTED_PATH, (outputFileName || fileName) + ".wav"),
 });
 
-const test_decode = async (DecoderClass, testName, fileName) => {
-  const decoder = new DecoderClass();
-
-  const paths = getTestPaths(fileName);
+const test_decode = async (decoder, testName, fileName, outputFileName) => {
+  const paths = getTestPaths(fileName, outputFileName);
 
   const result = await decoder.ready.then(() =>
     testDecoder_decode(decoder, testName, paths.inputPath, paths.actualPath)
@@ -117,7 +115,7 @@ const test_decodeFrames = async (
 describe("mpg123-decoder", () => {
   it("should decode mpeg", async () => {
     const { paths, result } = await test_decode(
-      MPEGDecoder,
+      new MPEGDecoder(),
       "should decode mpeg",
       "mpeg.cbr.mp3"
     );
@@ -135,7 +133,7 @@ describe("mpg123-decoder", () => {
 
   it("should decode mpeg in a web worker", async () => {
     const { paths, result } = await test_decode(
-      MPEGDecoderWebWorker,
+      new MPEGDecoderWebWorker(),
       "should decode mpeg in a web worker",
       "mpeg.cbr.mp3"
     );
@@ -295,22 +293,22 @@ describe("mpg123-decoder", () => {
         { paths: paths4, result: result4 },
       ] = await Promise.all([
         test_decode(
-          MPEGDecoderWebWorker,
+          new MPEGDecoderWebWorker(),
           "should decode parallel.1.mp3 in it's own thread",
           "parallel.1.mp3"
         ),
         test_decode(
-          MPEGDecoderWebWorker,
+          new MPEGDecoderWebWorker(),
           "should decode parallel.2.mp3 in it's own thread",
           "parallel.2.mp3"
         ),
         test_decode(
-          MPEGDecoderWebWorker,
+          new MPEGDecoderWebWorker(),
           "should decode parallel.3.mp3 in it's own thread",
           "parallel.3.mp3"
         ),
         test_decode(
-          MPEGDecoderWebWorker,
+          new MPEGDecoderWebWorker(),
           "should decode parallel.4.mp3 in it's own thread",
           "parallel.4.mp3"
         ),
@@ -417,7 +415,7 @@ describe("opus-decoder", () => {
 describe("ogg-opus-decoder", () => {
   it("should decode ogg opus", async () => {
     const { paths, result } = await test_decode(
-      OggOpusDecoder,
+      new OggOpusDecoder(),
       "should decode ogg opus",
       "ogg.opus"
     );
@@ -428,6 +426,48 @@ describe("ogg-opus-decoder", () => {
     ]);
 
     expect(result.samplesDecoded).toEqual(3806842);
+    expect(result.sampleRate).toEqual(48000);
+    expect(actual.length).toEqual(expected.length);
+    expect(Buffer.compare(actual, expected)).toEqual(0);
+  });
+
+  it("should decode multi channel ogg opus", async () => {
+    const { paths, result } = await test_decode(
+      new OggOpusDecoder(),
+      "should decode multi channel ogg opus",
+      "ogg.opus.surround"
+    );
+
+    const [actual, expected] = await Promise.all([
+      fs.readFile(paths.actualPath),
+      fs.readFile(paths.expectedPath),
+    ]);
+
+    expect(result.channelsDecoded).toEqual(6);
+    expect(result.samplesDecoded).toEqual(1042177);
+    expect(result.sampleRate).toEqual(48000);
+    expect(actual.length).toEqual(expected.length);
+    expect(Buffer.compare(actual, expected)).toEqual(0);
+  });
+
+  it("should decode multi channel ogg opus as stereo when force stereo is enabled", async () => {
+    const decoder = new OggOpusDecoder();
+    decoder.forceStereo = true;
+
+    const { paths, result } = await test_decode(
+      decoder,
+      "should decode multi channel ogg opus",
+      "ogg.opus.surround",
+      "ogg.opus.surround.downmix"
+    );
+
+    const [actual, expected] = await Promise.all([
+      fs.readFile(paths.actualPath),
+      fs.readFile(paths.expectedPath),
+    ]);
+
+    expect(result.channelsDecoded).toEqual(2);
+    expect(result.samplesDecoded).toEqual(1042177);
     expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -462,7 +502,7 @@ describe("ogg-opus-decoder", () => {
 
   it("should decode ogg opus in a web worker", async () => {
     const { paths, result } = await test_decode(
-      OggOpusDecoderWebWorker,
+      new OggOpusDecoderWebWorker(),
       "should decode ogg opus in a web worker",
       "ogg.opus"
     );

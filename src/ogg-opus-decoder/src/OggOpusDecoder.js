@@ -15,7 +15,7 @@ export default class OggOpusDecoder {
     // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
     // per channel
     this._outputPtrSize = 120 * 48; // 120ms @ 48 khz.
-    this._outputChannels = 2; // max opus output channels
+    this._outputChannels = 8; // max opus output channels
 
     this._ready = this._init();
   }
@@ -29,6 +29,7 @@ export default class OggOpusDecoder {
       this._common.allocateTypedArray(1, Uint32Array);
 
     this._decoder = this._common.wasm._ogg_opus_decoder_create();
+    if (!this.forceStereo) this.forceStereo = false;
   }
 
   get ready() {
@@ -38,6 +39,20 @@ export default class OggOpusDecoder {
   async reset() {
     this.free();
     await this._init();
+  }
+
+  get forceStereo() {
+    return this._forceStereo;
+  }
+
+  set forceStereo(val) {
+    this._forceStereo = val;
+
+    this._ready.then(() => {
+      this._decoderMethod = this._forceStereo
+        ? this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved
+        : this._common.wasm._ogg_opus_decode_float_deinterleaved;
+    });
   }
 
   free() {
@@ -84,12 +99,11 @@ export default class OggOpusDecoder {
       // continue to decode until no more bytes are left to decode
       let samplesDecoded;
       while (
-        (samplesDecoded =
-          this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved(
-            this._decoder,
-            this._channelsDecodedPtr,
-            this._outputPtr
-          )) > 0
+        (samplesDecoded = this._decoderMethod(
+          this._decoder,
+          this._channelsDecodedPtr,
+          this._outputPtr
+        )) > 0
       ) {
         output.push(
           this._common.getOutputChannels(

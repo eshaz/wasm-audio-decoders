@@ -11,8 +11,11 @@ export const getInterleaved = (channelData, samples) => {
   const interleaved = new Int16Array(samples * channelData.length);
 
   for (let offset = 0, interleavedOffset = 0; offset < samples; offset++) {
-    interleaved[interleavedOffset++] = floatToInt(channelData[0][offset]);
-    interleaved[interleavedOffset++] = floatToInt(channelData[1][offset]);
+    for (let channel = 0; channel < channelData.length; channel++) {
+      interleaved[interleavedOffset++] = floatToInt(
+        channelData[channel][offset]
+      );
+    }
   }
 
   return new Uint8Array(interleaved.buffer);
@@ -125,6 +128,7 @@ export const testDecoder_decode = async (
     totalBytesWritten = 0,
     totalBytesRead = 0,
     sampleRate,
+    channelsDecoded,
     totalSamplesDecoded = 0;
 
   // allocate space for the wave header
@@ -159,6 +163,7 @@ export const testDecoder_decode = async (
     outEnd = performance.now();
 
     sampleRate = rate;
+    channelsDecoded = channelData.length;
     bytesWritten = interleaved.length;
     totalBytesWritten += bytesWritten;
     totalSamplesDecoded += samplesDecoded;
@@ -184,7 +189,7 @@ export const testDecoder_decode = async (
     bitDepth: 16,
     sampleRate,
     length: totalBytesWritten,
-    channels: 2,
+    channels: channelsDecoded,
   });
 
   await output.write(header, 0, header.length, 0);
@@ -193,6 +198,7 @@ export const testDecoder_decode = async (
   await output.close();
 
   return {
+    channelsDecoded,
     samplesDecoded: totalSamplesDecoded,
     sampleRate,
   };
