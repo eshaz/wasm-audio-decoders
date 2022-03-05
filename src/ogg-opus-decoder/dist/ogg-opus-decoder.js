@@ -98,17 +98,40 @@
       );
     }
 
-    getOutputChannels(
-      outputData,
-      outputPtrSize,
+    static getDecodedAudioMultiChannel(
+      input,
       channelsDecoded,
-      samplesDecoded
+      samplesDecoded,
+      sampleRate
     ) {
+      const channelData = [];
+
+      for (let i = 0; i < channelsDecoded; i++) {
+        const channel = [];
+        for (let j = 0; j < input.length; j++) {
+          channel.push(input[j][i]);
+        }
+        channelData.push(
+          WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded)
+        );
+      }
+
+      return WASMAudioDecoderCommon.getDecodedAudio(
+        channelData,
+        samplesDecoded,
+        sampleRate
+      );
+    }
+
+    getOutputChannels(outputData, channelsDecoded, samplesDecoded) {
       const output = [];
 
       for (let i = 0; i < channelsDecoded; i++)
         output.push(
-          outputData.slice(i * samplesDecoded, i * samplesDecoded + samplesDecoded)
+          outputData.slice(
+            i * samplesDecoded,
+            i * samplesDecoded + samplesDecoded
+          )
         );
 
       return output;
@@ -535,91 +558,84 @@
     }
   }
 
-  // statically store web worker source code
-  const sources = new WeakMap();
-
   class WASMAudioDecoderWorker extends Worker__default["default"] {
-    constructor(Decoder, EmscriptenWASM) {
-      let source = sources.get(Decoder);
+    constructor(options, Decoder, EmscriptenWASM) {
+      const webworkerSourceCode =
+        "'use strict';" +
+        // dependencies need to be manually resolved when stringifying this function
+        `(${((_options, _Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
+        // We're in a Web Worker
+        _Decoder.WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
+        _Decoder.EmscriptenWASM = _EmscriptenWASM;
+        _Decoder.isWebWorker = true;
 
-      if (!source) {
-        const webworkerSourceCode =
-          "'use strict';" +
-          // dependencies need to be manually resolved when stringifying this function
-          `(${((_WASMAudioDecoderCommon, _Decoder, _EmscriptenWASM) => {
-          // We're in a Web Worker
-          const decoder = new _Decoder(
-            _WASMAudioDecoderCommon,
-            _EmscriptenWASM
-          );
+        const decoder = new _Decoder(_options);
 
-          const detachBuffers = (buffer) =>
-            Array.isArray(buffer)
-              ? buffer.map((buffer) => new Uint8Array(buffer))
-              : new Uint8Array(buffer);
+        const detachBuffers = (buffer) =>
+          Array.isArray(buffer)
+            ? buffer.map((buffer) => new Uint8Array(buffer))
+            : new Uint8Array(buffer);
 
-          self.onmessage = ({ data: { id, command, data } }) => {
-            switch (command) {
-              case "ready":
-                decoder.ready.then(() => {
-                  self.postMessage({
-                    id,
-                  });
-                });
-                break;
-              case "free":
-                decoder.free();
+        self.onmessage = ({ data: { id, command, data } }) => {
+          switch (command) {
+            case "ready":
+              decoder.ready.then(() => {
                 self.postMessage({
                   id,
                 });
-                break;
-              case "reset":
-                decoder.reset().then(() => {
-                  self.postMessage({
-                    id,
-                  });
+              });
+              break;
+            case "free":
+              decoder.free();
+              self.postMessage({
+                id,
+              });
+              break;
+            case "reset":
+              decoder.reset().then(() => {
+                self.postMessage({
+                  id,
                 });
-                break;
-              case "decode":
-              case "decodeFrame":
-              case "decodeFrames":
-                const { channelData, samplesDecoded, sampleRate } = decoder[
-                  command
-                ](detachBuffers(data));
+              });
+              break;
+            case "decode":
+            case "decodeFrame":
+            case "decodeFrames":
+              const { channelData, samplesDecoded, sampleRate } = decoder[
+                command
+              ](detachBuffers(data));
 
-                self.postMessage(
-                  {
-                    id,
-                    channelData,
-                    samplesDecoded,
-                    sampleRate,
-                  },
-                  // The "transferList" parameter transfers ownership of channel data to main thread,
-                  // which avoids copying memory.
-                  channelData.map((channel) => channel.buffer)
-                );
-                break;
-              default:
-                this.console.error(
-                  "Unknown command sent to worker: " + command
-                );
-            }
-          };
-        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${EmscriptenWASM})`;
+              self.postMessage(
+                {
+                  id,
+                  channelData,
+                  samplesDecoded,
+                  sampleRate,
+                },
+                // The "transferList" parameter transfers ownership of channel data to main thread,
+                // which avoids copying memory.
+                channelData.map((channel) => channel.buffer)
+              );
+              break;
+            default:
+              this.console.error("Unknown command sent to worker: " + command);
+          }
+        };
+      }).toString()})(${JSON.stringify(
+        options
+      )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
 
-        const type = "text/javascript";
+      const type = "text/javascript";
+      let source;
 
-        try {
-          // browser
-          source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
-        } catch {
-          // nodejs
-          source = `data:${type};base64,${Buffer.from(
-          webworkerSourceCode
-        ).toString("base64")}`;
-        }
-
-        sources.set(Decoder, source);
+      try {
+        // browser
+        source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
+      } catch {
+        // nodejs
+        source = `data:${type};base64,${Buffer.from(webworkerSourceCode).toString(
+        "base64"
+      )}`;
       }
 
       super(source);
@@ -767,19 +783,21 @@
   }}
 
   class OggOpusDecoder {
-    constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
+    constructor(options = {}) {
       // injects dependencies when running as a web worker
-      this._isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
+      this._isWebWorker = this.constructor.isWebWorker;
       this._WASMAudioDecoderCommon =
-        _WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-      this._EmscriptenWASM = _EmscriptenWASM || EmscriptenWASM;
+        this.constructor.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+      this._EmscriptenWASM = this.constructor.EmscriptenWASM || EmscriptenWASM;
+
+      this._outputChannels = options.outputChannels || 8; // max opus output channels
+      this._stereoDownmix = options.stereoDownmix || false;
 
       //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
       this._inputPtrSize = 64 * 1024;
       // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
       // per channel
       this._outputPtrSize = 120 * 48; // 120ms @ 48 khz.
-      this._outputChannels = 2; // max opus output channels
 
       this._ready = this._init();
     }
@@ -793,6 +811,9 @@
         this._common.allocateTypedArray(1, Uint32Array);
 
       this._decoder = this._common.wasm._ogg_opus_decoder_create();
+      this._decoderMethod = this._stereoDownmix
+        ? this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved
+        : this._common.wasm._ogg_opus_decode_float_deinterleaved;
     }
 
     get ready() {
@@ -819,8 +840,7 @@
           `Data to decode must be Uint8Array. Instead got ${typeof data}`
         );
 
-      let decodedLeft = [],
-        decodedRight = [],
+      let output = [],
         decodedSamples = 0,
         offset = 0;
 
@@ -849,22 +869,20 @@
         // continue to decode until no more bytes are left to decode
         let samplesDecoded;
         while (
-          (samplesDecoded =
-            this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved(
-              this._decoder,
-              this._channelsDecodedPtr,
-              this._outputPtr
-            )) > 0
+          (samplesDecoded = this._decoderMethod(
+            this._decoder,
+            this._channelsDecodedPtr,
+            this._outputPtr
+          )) > 0
         ) {
-          const [left, right] = this._common.getOutputChannels(
-            this._output,
-            this._outputPtrSize,
-            this._channelsDecoded[0],
-            samplesDecoded
+          output.push(
+            this._common.getOutputChannels(
+              this._output,
+              this._channelsDecoded[0],
+              samplesDecoded
+            )
           );
 
-          decodedLeft.push(left);
-          decodedRight.push(right);
           decodedSamples += samplesDecoded;
         }
 
@@ -894,8 +912,9 @@
         }
       }
 
-      return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
-        [decodedLeft, decodedRight],
+      return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+        output,
+        this._channelsDecoded[0],
         decodedSamples,
         48000
       );
@@ -903,8 +922,8 @@
   }
 
   class OggOpusDecoderWebWorker extends WASMAudioDecoderWorker {
-    constructor() {
-      super(OggOpusDecoder, EmscriptenWASM);
+    constructor(options) {
+      super(options, OggOpusDecoder, EmscriptenWASM);
     }
 
     async decode(data) {

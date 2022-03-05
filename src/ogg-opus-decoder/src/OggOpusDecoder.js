@@ -3,19 +3,21 @@ import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
 export default class OggOpusDecoder {
-  constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
+  constructor(options = {}) {
     // injects dependencies when running as a web worker
-    this._isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
+    this._isWebWorker = this.constructor.isWebWorker;
     this._WASMAudioDecoderCommon =
-      _WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-    this._EmscriptenWASM = _EmscriptenWASM || EmscriptenWASM;
+      this.constructor.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+    this._EmscriptenWASM = this.constructor.EmscriptenWASM || EmscriptenWASM;
+
+    this._outputChannels = options.outputChannels || 8; // max opus output channels
+    this._stereoDownmix = options.stereoDownmix || false;
 
     //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
     this._inputPtrSize = 64 * 1024;
     // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
     // per channel
     this._outputPtrSize = 120 * 48; // 120ms @ 48 khz.
-    this._outputChannels = 8; // max opus output channels
 
     this._ready = this._init();
   }
@@ -29,7 +31,9 @@ export default class OggOpusDecoder {
       this._common.allocateTypedArray(1, Uint32Array);
 
     this._decoder = this._common.wasm._ogg_opus_decoder_create();
-    if (!this.forceStereo) this.forceStereo = false;
+    this._decoderMethod = this._stereoDownmix
+      ? this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved
+      : this._common.wasm._ogg_opus_decode_float_deinterleaved;
   }
 
   get ready() {
@@ -39,20 +43,6 @@ export default class OggOpusDecoder {
   async reset() {
     this.free();
     await this._init();
-  }
-
-  get forceStereo() {
-    return this._forceStereo;
-  }
-
-  set forceStereo(val) {
-    this._forceStereo = val;
-
-    this._ready.then(() => {
-      this._decoderMethod = this._forceStereo
-        ? this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved
-        : this._common.wasm._ogg_opus_decode_float_deinterleaved;
-    });
   }
 
   free() {

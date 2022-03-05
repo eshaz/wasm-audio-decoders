@@ -451,8 +451,9 @@ describe("ogg-opus-decoder", () => {
   });
 
   it("should decode multi channel ogg opus as stereo when force stereo is enabled", async () => {
-    const decoder = new OggOpusDecoder();
-    decoder.forceStereo = true;
+    const decoder = new OggOpusDecoder({
+      stereoDownmix: true,
+    });
 
     const { paths, result } = await test_decode(
       decoder,
@@ -513,6 +514,49 @@ describe("ogg-opus-decoder", () => {
     ]);
 
     expect(result.samplesDecoded).toEqual(3806842);
+    expect(result.sampleRate).toEqual(48000);
+    expect(actual.length).toEqual(expected.length);
+    expect(Buffer.compare(actual, expected)).toEqual(0);
+  });
+
+  it("should decode multi channel ogg opus in a web worker", async () => {
+    const { paths, result } = await test_decode(
+      new OggOpusDecoderWebWorker(),
+      "should decode multi channel ogg opus in a web worker",
+      "ogg.opus.surround"
+    );
+
+    const [actual, expected] = await Promise.all([
+      fs.readFile(paths.actualPath),
+      fs.readFile(paths.expectedPath),
+    ]);
+
+    expect(result.channelsDecoded).toEqual(6);
+    expect(result.samplesDecoded).toEqual(1042177);
+    expect(result.sampleRate).toEqual(48000);
+    expect(actual.length).toEqual(expected.length);
+    expect(Buffer.compare(actual, expected)).toEqual(0);
+  });
+
+  it("should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker", async () => {
+    const decoder = new OggOpusDecoderWebWorker({
+      stereoDownmix: true,
+    });
+
+    const { paths, result } = await test_decode(
+      decoder,
+      "should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker",
+      "ogg.opus.surround",
+      "ogg.opus.surround.downmix"
+    );
+
+    const [actual, expected] = await Promise.all([
+      fs.readFile(paths.actualPath),
+      fs.readFile(paths.expectedPath),
+    ]);
+
+    expect(result.channelsDecoded).toEqual(2);
+    expect(result.samplesDecoded).toEqual(1042177);
     expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
