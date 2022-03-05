@@ -14,7 +14,7 @@
     constructor(wasm) {
       this._wasm = wasm;
 
-      this._pointers = [];
+      this._pointers = new Set();
     }
 
     get wasm() {
@@ -60,6 +60,11 @@
         Float32Array
       );
 
+      [this._outputPtr, this._output] = common.allocateTypedArray(
+        this._outputChannels * this._outputPtrSize,
+        Float32Array
+      );
+
       return common;
     }
 
@@ -93,17 +98,33 @@
       );
     }
 
+    getOutputChannels(
+      outputData,
+      outputPtrSize,
+      channelsDecoded,
+      samplesDecoded
+    ) {
+      const output = [];
+
+      for (let i = 0; i < channelsDecoded; i++)
+        output.push(
+          outputData.slice(i * samplesDecoded, i * samplesDecoded + samplesDecoded)
+        );
+
+      return output;
+    }
+
     allocateTypedArray(length, TypedArray) {
       const pointer = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * length);
       const array = new TypedArray(this._wasm.HEAP, pointer, length);
 
-      this._pointers.push(pointer);
+      this._pointers.add(pointer);
       return [pointer, array];
     }
 
     free() {
-      this._pointers.forEach((ptr) => this._wasm._free(ptr));
-      this._pointers = [];
+      for (const pointer of this._pointers) this._wasm._free(pointer);
+      this._pointers.clear();
     }
 
     /*

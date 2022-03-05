@@ -151,25 +151,25 @@ describe("mpg123-decoder", () => {
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
 
-  /*it("should decode a large mpeg", async () => {
-    const decoder = new MPEGDecoder();
-    await decoder.ready;
-
-    const fileName = "waug-edm-fest-spr-2015.mp3";
-    const paths = getTestPaths(fileName);
-
-    const { sampleRate, samplesDecoded } = await testDecoder_decode(
-      decoder,
-      fileName,
-      paths.inputPath,
-      paths.actualPath
-    );
-
-    decoder.free()
-
-    expect(samplesDecoded).toEqual(751564800);
-    expect(sampleRate).toEqual(44100);
-  }, 100000);*/
+  //it("should decode a large mpeg", async () => {
+  //  const decoder = new MPEGDecoder();
+  //  await decoder.ready;
+  //
+  //  const fileName = "waug-edm-fest-spr-2015.mp3";
+  //  const paths = getTestPaths(fileName);
+  //
+  //  const { sampleRate, samplesDecoded } = await testDecoder_decode(
+  //    decoder,
+  //    fileName,
+  //    paths.inputPath,
+  //    paths.actualPath
+  //  );
+  //
+  //  decoder.free()
+  //
+  //  expect(samplesDecoded).toEqual(751564800);
+  //  expect(sampleRate).toEqual(44100);
+  //}, 100000);
 
   describe("frame decoding", () => {
     let fileName, frames, framesLength;
@@ -432,6 +432,33 @@ describe("ogg-opus-decoder", () => {
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
+
+  /*it("should interleave", () => {
+    const samples_decoded = 2;
+    const channels_decoded = 3;
+
+    const pcm = ["L1", "R1", "C1", "L2", "R2", "C2", ];
+    const out = [];
+
+    for (let i=(samples_decoded*channels_decoded)-1; i>=0; i--) {
+      let sample = (i/channels_decoded)|0;
+      let offset = (i%channels_decoded)*samples_decoded;
+
+      const outputIdx = sample + samples_decoded * (i - channels_decoded * sample);
+
+      console.log("i:", i, "s:", sample, "f:", offset, sample+offset)
+      out[outputIdx] = pcm[i];
+    }
+
+    // y = channels_decoded
+    // x = i
+    // z = samples_decoded
+
+    console.log(pcm)
+    console.log(out)
+
+    expect(true).toBeTruthy();
+  })*/
 
   it("should decode ogg opus in a web worker", async () => {
     const { paths, result } = await test_decode(

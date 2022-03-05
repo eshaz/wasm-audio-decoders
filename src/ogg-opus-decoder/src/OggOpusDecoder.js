@@ -13,8 +13,9 @@ export default class OggOpusDecoder {
     //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
     this._inputPtrSize = 64 * 1024;
     // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
+    // per channel
     this._outputPtrSize = 120 * 48; // 120ms @ 48 khz.
-    this._channelsOut = 2;
+    this._outputChannels = 2; // max opus output channels
 
     this._ready = this._init();
   }
@@ -23,6 +24,9 @@ export default class OggOpusDecoder {
     this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder.bind(
       this
     )();
+
+    [this._channelsDecodedPtr, this._channelsDecoded] =
+      this._common.allocateTypedArray(1, Uint32Array);
 
     this._decoder = this._common.wasm._ogg_opus_decoder_create();
   }
@@ -51,8 +55,7 @@ export default class OggOpusDecoder {
         `Data to decode must be Uint8Array. Instead got ${typeof data}`
       );
 
-    let decodedLeft = [],
-      decodedRight = [],
+    let output = [],
       decodedSamples = 0,
       offset = 0;
 
@@ -84,12 +87,18 @@ export default class OggOpusDecoder {
         (samplesDecoded =
           this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved(
             this._decoder,
-            this._leftPtr, // left channel
-            this._rightPtr // right channel
+            this._channelsDecodedPtr,
+            this._outputPtr
           )) > 0
       ) {
-        decodedLeft.push(this._leftArr.slice(0, samplesDecoded));
-        decodedRight.push(this._rightArr.slice(0, samplesDecoded));
+        output.push(
+          this._common.getOutputChannels(
+            this._output,
+            this._channelsDecoded[0],
+            samplesDecoded
+          )
+        );
+
         decodedSamples += samplesDecoded;
       }
 
@@ -119,8 +128,9 @@ export default class OggOpusDecoder {
       }
     }
 
-    return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
-      [decodedLeft, decodedRight],
+    return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      output,
+      this._channelsDecoded[0],
       decodedSamples,
       48000
     );
