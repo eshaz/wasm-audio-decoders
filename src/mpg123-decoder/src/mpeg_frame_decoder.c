@@ -6,8 +6,7 @@ MPEGFrameDecoder *mpeg_frame_decoder_create() {
     decoder.mh = mpg123_new(NULL, NULL);
     mpg123_param(decoder.mh, MPG123_FLAGS, 
       MPG123_FORCE_STEREO |
-      MPG123_QUIET |
-      MPG123_FORCE_ENDIAN, 0);
+      MPG123_QUIET, 0);
     mpg123_open_feed(decoder.mh);
 
     MPEGFrameDecoder *ptr = malloc(sizeof(decoder));
@@ -35,7 +34,7 @@ int mpeg_decode_interleaved(
             decoder->mh, 
             in + *in_read_pos, 
             in_read_chunk_size, 
-            decoder->pcm, 
+            decoder->pcm.bytes, 
             4*2*1152, 
             &bytes_decoded
         );
@@ -44,17 +43,8 @@ int mpeg_decode_interleaved(
     
         // deinterleave pcm
         for (int i=current_samples_decoded-1; i>=0; i--) {
-            unsigned char *out_ptr = (unsigned char *) &out[i + samples_decoded];
-            // left
-            out_ptr[0] = decoder->pcm[i*8];
-            out_ptr[1] = decoder->pcm[i*8+1];
-            out_ptr[2] = decoder->pcm[i*8+2];
-            out_ptr[3] = decoder->pcm[i*8+3];
-            // right
-            out_ptr[0+decode_buffer_size*4] = decoder->pcm[i*8+4];
-            out_ptr[1+decode_buffer_size*4] = decoder->pcm[i*8+5];
-            out_ptr[2+decode_buffer_size*4] = decoder->pcm[i*8+6];
-            out_ptr[3+decode_buffer_size*4] = decoder->pcm[i*8+7];
+            out[i+samples_decoded] = decoder->pcm.floats[i*2];
+            out[i+samples_decoded+decode_buffer_size] = decoder->pcm.floats[i*2+1];
         }
 
         samples_decoded += current_samples_decoded;

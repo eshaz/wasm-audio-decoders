@@ -3,7 +3,10 @@
 
 typedef struct {
     // stores the interleaved PCM result of one MPEG frame
-    unsigned char pcm[4*2*1152]; //max_mpeg_frame_size*bit_reservoir*channels*sizeof(float)
+    union {
+        float floats[1152*2];
+        unsigned char bytes[1152*2*sizeof(float)]; //max_mpeg_frame_size*bit_reservoir*channels*sizeof(float)
+    } pcm;
     mpg123_handle *mh;
     struct mpg123_frameinfo fr;
 } MPEGFrameDecoder;
