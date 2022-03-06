@@ -40,6 +40,6 @@
   },
   "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder",
   "dependencies": {
-    "@wasm-audio-decoders/common": "0.0.1"
+    "@wasm-audio-decoders/common": "file:../common"
   }
 }

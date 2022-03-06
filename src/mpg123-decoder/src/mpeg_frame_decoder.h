@@ -16,8 +16,7 @@ int mpeg_decode_interleaved(
     size_t in_size, // input data size
     unsigned int *in_read_pos, // total bytes read from input buffer
     size_t in_read_chunk_size, // interval of bytes to read from input data
-    float *left, // left output audio
-    float *right, // right output audio
+    float *out, // output audio
     size_t out_size, // output audio buffer size
     unsigned int *sample_rate // pointer to save the sample rate
 );

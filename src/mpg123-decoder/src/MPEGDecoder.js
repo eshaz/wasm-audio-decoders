@@ -12,7 +12,7 @@ export default class MPEGDecoder {
 
     this._inputPtrSize = 2 ** 18;
     this._outputPtrSize = 1152 * 512;
-    this._channelsOut = 2;
+    this._outputChannels = 2;
 
     this._ready = this._init();
   }
@@ -67,8 +67,7 @@ export default class MPEGDecoder {
       data.length,
       this._decodedBytesPtr,
       decodeInterval,
-      this._leftPtr,
-      this._rightPtr,
+      this._outputPtr,
       this._outputPtrSize,
       this._sampleRateBytePtr
     );
@@ -77,8 +76,11 @@ export default class MPEGDecoder {
 
     return this._WASMAudioDecoderCommon.getDecodedAudio(
       [
-        this._leftArr.slice(0, samplesDecoded),
-        this._rightArr.slice(0, samplesDecoded),
+        this._output.slice(0, samplesDecoded),
+        this._output.slice(
+          this._outputPtrSize,
+          this._outputPtrSize + samplesDecoded
+        ),
       ],
       samplesDecoded,
       this._sampleRate

@@ -12,7 +12,7 @@ export default class OpusDecoder {
 
     this._inputPtrSize = (0.12 * 510000) / 8;
     this._outputPtrSize = 120 * 48;
-    this._channelsOut = 2;
+    this._outputChannels = 2;
 
     this._ready = this._init();
   }
@@ -54,14 +54,13 @@ export default class OpusDecoder {
         this._decoder,
         this._inputPtr,
         opusFrame.length,
-        this._leftPtr,
-        this._rightPtr
+        this._outputPtr
       );
 
     return this._WASMAudioDecoderCommon.getDecodedAudio(
       [
-        this._leftArr.slice(0, samplesDecoded),
-        this._rightArr.slice(0, samplesDecoded),
+        this._output.slice(0, samplesDecoded),
+        this._output.slice(samplesDecoded, samplesDecoded * 2),
       ],
       samplesDecoded,
       48000

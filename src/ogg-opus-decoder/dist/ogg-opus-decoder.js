@@ -51,15 +51,6 @@
       );
 
       // output buffer
-      [this._leftPtr, this._leftArr] = common.allocateTypedArray(
-        this._outputPtrSize,
-        Float32Array
-      );
-      [this._rightPtr, this._rightArr] = common.allocateTypedArray(
-        this._outputPtrSize,
-        Float32Array
-      );
-
       [this._outputPtr, this._output] = common.allocateTypedArray(
         this._outputChannels * this._outputPtrSize,
         Float32Array
