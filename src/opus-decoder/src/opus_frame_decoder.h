@@ -3,7 +3,7 @@
 
 typedef struct {
     // stores the interleaved PCM result
-    float pcm[5760*2*sizeof(float)]; //frame_size*channels*sizeof(float)
+    float pcm[5760*2]; //frame_size*channels*sizeof(float)
     int *errors;
     OpusDecoder *st;
 } OpusFrameDecoder;

@@ -28,15 +28,17 @@ const getTestPaths = (fileName, outputFileName) => ({
 });
 
 const test_decode = async (decoder, testName, fileName, outputFileName) => {
-  const paths = getTestPaths(fileName, outputFileName);
+  try {
+    const paths = getTestPaths(fileName, outputFileName);
 
-  const result = await decoder.ready.then(() =>
-    testDecoder_decode(decoder, testName, paths.inputPath, paths.actualPath)
-  );
+    const result = await decoder.ready.then(() =>
+      testDecoder_decode(decoder, testName, paths.inputPath, paths.actualPath)
+    );
 
-  decoder.free();
-
-  return { paths, result };
+    return { paths, result };
+  } finally {
+    decoder.free();
+  }
 };
 
 const test_decode_multipleFiles = async (DecoderClass, testParams) => {
@@ -474,33 +476,6 @@ describe("ogg-opus-decoder", () => {
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
 
-  /*it("should interleave", () => {
-    const samples_decoded = 2;
-    const channels_decoded = 3;
-
-    const pcm = ["L1", "R1", "C1", "L2", "R2", "C2", ];
-    const out = [];
-
-    for (let i=(samples_decoded*channels_decoded)-1; i>=0; i--) {
-      let sample = (i/channels_decoded)|0;
-      let offset = (i%channels_decoded)*samples_decoded;
-
-      const outputIdx = sample + samples_decoded * (i - channels_decoded * sample);
-
-      console.log("i:", i, "s:", sample, "f:", offset, sample+offset)
-      out[outputIdx] = pcm[i];
-    }
-
-    // y = channels_decoded
-    // x = i
-    // z = samples_decoded
-
-    console.log(pcm)
-    console.log(out)
-
-    expect(true).toBeTruthy();
-  })*/
-
   it("should decode ogg opus in a web worker", async () => {
     const { paths, result } = await test_decode(
       new OggOpusDecoderWebWorker(),
@@ -560,5 +535,29 @@ describe("ogg-opus-decoder", () => {
     expect(result.sampleRate).toEqual(48000);
     expect(actual.length).toEqual(expected.length);
     expect(Buffer.compare(actual, expected)).toEqual(0);
+  });
+
+  it("should throw when attempting to decode a file with channel mapping 255", async () => {
+    try {
+      const { paths, result } = await test_decode(
+        new OggOpusDecoder(),
+        "should decode ogg opus",
+        "ogg.opus.16.ogg"
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.samplesDecoded).toEqual(286751);
+      expect(result.sampleRate).toEqual(48000);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    } catch (e) {
+      expect(e.message).toEqual(
+        "Failed to enqueue bytes for decoding. libopusfile -130 OP_EIMPL: The stream used a feature that is not implemented, such as an unsupported channel family."
+      );
+    }
   });
 });

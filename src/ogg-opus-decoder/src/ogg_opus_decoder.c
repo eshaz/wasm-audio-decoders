@@ -55,7 +55,7 @@ int ogg_opus_decoder_enqueue(OggOpusDecoder *decoder, unsigned char *data, size_
       bufferMax,
       (!decoder->of)? "false" : "true"
     );*/
-    return 0;
+    return -1;
   }
 
   decoder->buffer.cursor = decoder->buffer.start;
@@ -83,6 +83,8 @@ int ogg_opus_decoder_enqueue(OggOpusDecoder *decoder, unsigned char *data, size_
 
       // OggOpusFile instantiated.  Reset unread buffer count
       decoder->buffer.num_unread = 0;
+    } else {
+      return err;
     }
   } else {
     // set buffer to new data
@@ -90,7 +92,7 @@ int ogg_opus_decoder_enqueue(OggOpusDecoder *decoder, unsigned char *data, size_
     memcpy( decoder->buffer.cursor, data, size );
   }
 
-  return 1;
+  return 0;
 }
 
 int ogg_opus_decode_float_deinterleaved(OggOpusDecoder *decoder, int *channels_decoded, float *out) {
@@ -111,10 +113,10 @@ int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *decoder, int *cha
 }
 
 void deinterleave_and_trim_pcm(OggOpusDecoder *decoder, int channels_decoded, int samples_decoded, float *out) {
-  for (int inIdx=(samples_decoded*channels_decoded)-1; inIdx>=0; inIdx--) {
-    int sample = inIdx/channels_decoded;
-    int channel = (inIdx%channels_decoded)*samples_decoded;
-    out[sample+channel] = decoder->pcm[inIdx];
+  for (int in_idx=(samples_decoded*channels_decoded)-1; in_idx>=0; in_idx--) {
+    int sample = in_idx/channels_decoded;
+    int channel = (in_idx%channels_decoded)*samples_decoded;
+    out[sample+channel] = decoder->pcm[in_idx];
   }
 }
 

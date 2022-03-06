@@ -122,84 +122,88 @@ export const testDecoder_decode = async (
     fs.open(outputPath, "w+"),
   ]);
 
-  let decodeStart, decodeEnd, inStart, inEnd, outStart, outEnd;
+  try {
+    let decodeStart, decodeEnd, inStart, inEnd, outStart, outEnd;
 
-  let bytesWritten = 0,
-    totalBytesWritten = 0,
-    totalBytesRead = 0,
-    sampleRate,
-    channelsDecoded,
-    totalSamplesDecoded = 0;
-
-  // allocate space for the wave header
-  await output.writeFile(Buffer.alloc(44));
-
-  // print the initial stats header
-  process.stderr.write("\n" + decoder.constructor.name + " " + fileName + "\n");
-
-  while (true) {
-    inStart = performance.now();
-    const { bytesRead, buffer } = await input.read(
-      Buffer.allocUnsafe(2 ** 24),
-      0,
-      2 ** 24
-    );
-    inEnd = performance.now();
-
-    if (bytesRead === 0) break;
-
-    decodeStart = performance.now();
-    const {
-      channelData,
-      samplesDecoded,
-      sampleRate: rate,
-    } = await decoder.decode(buffer.subarray(0, bytesRead));
-    decodeEnd = performance.now();
-
-    const interleaved = getInterleaved(channelData, samplesDecoded);
-
-    outStart = performance.now();
-    await output.writeFile(interleaved);
-    outEnd = performance.now();
-
-    sampleRate = rate;
-    channelsDecoded = channelData.length;
-    bytesWritten = interleaved.length;
-    totalBytesWritten += bytesWritten;
-    totalSamplesDecoded += samplesDecoded;
-    totalBytesRead += bytesRead;
-
-    const decodeTime = (decodeEnd - decodeStart) / 1000;
-    const inTime = (inEnd - inStart) / 1000;
-    const outTime = (outEnd - outStart) / 1000;
-
-    printStats({
-      decodeTime,
-      samplesDecoded,
+    let bytesWritten = 0,
+      totalBytesWritten = 0,
+      totalBytesRead = 0,
       sampleRate,
-      totalSamplesDecoded,
-      bytesRead,
-      totalBytesRead,
-      bytesWritten,
-      totalBytesWritten,
+      channelsDecoded,
+      totalSamplesDecoded = 0;
+
+    // allocate space for the wave header
+    await output.writeFile(Buffer.alloc(44));
+
+    // print the initial stats header
+    process.stderr.write(
+      "\n" + decoder.constructor.name + " " + fileName + "\n"
+    );
+
+    while (true) {
+      inStart = performance.now();
+      const { bytesRead, buffer } = await input.read(
+        Buffer.allocUnsafe(2 ** 24),
+        0,
+        2 ** 24
+      );
+      inEnd = performance.now();
+
+      if (bytesRead === 0) break;
+
+      decodeStart = performance.now();
+      const {
+        channelData,
+        samplesDecoded,
+        sampleRate: rate,
+      } = await decoder.decode(buffer.subarray(0, bytesRead));
+      decodeEnd = performance.now();
+
+      const interleaved = getInterleaved(channelData, samplesDecoded);
+
+      outStart = performance.now();
+      await output.writeFile(interleaved);
+      outEnd = performance.now();
+
+      sampleRate = rate;
+      channelsDecoded = channelData.length;
+      bytesWritten = interleaved.length;
+      totalBytesWritten += bytesWritten;
+      totalSamplesDecoded += samplesDecoded;
+      totalBytesRead += bytesRead;
+
+      const decodeTime = (decodeEnd - decodeStart) / 1000;
+      const inTime = (inEnd - inStart) / 1000;
+      const outTime = (outEnd - outStart) / 1000;
+
+      printStats({
+        decodeTime,
+        samplesDecoded,
+        sampleRate,
+        totalSamplesDecoded,
+        bytesRead,
+        totalBytesRead,
+        bytesWritten,
+        totalBytesWritten,
+      });
+    }
+
+    const header = getWaveFileHeader({
+      bitDepth: 16,
+      sampleRate,
+      length: totalBytesWritten,
+      channels: channelsDecoded,
     });
+
+    await output.write(header, 0, header.length, 0);
+
+    return {
+      channelsDecoded,
+      samplesDecoded: totalSamplesDecoded,
+      sampleRate,
+    };
+  } finally {
+    await input.close();
+    await output.close();
   }
-
-  const header = getWaveFileHeader({
-    bitDepth: 16,
-    sampleRate,
-    length: totalBytesWritten,
-    channels: channelsDecoded,
-  });
-
-  await output.write(header, 0, header.length, 0);
-
-  await input.close();
-  await output.close();
-
-  return {
-    channelsDecoded,
-    samplesDecoded: totalSamplesDecoded,
-    sampleRate,
-  };
 };

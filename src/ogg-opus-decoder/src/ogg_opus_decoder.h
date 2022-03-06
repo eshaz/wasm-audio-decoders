@@ -21,7 +21,7 @@ typedef struct {
   int num_unread;
 } ByteBuffer;
 
-static const int pcm_len = 120*48*255;
+static const int pcm_len = 120*48*8;
 
 typedef struct {
   OpusFileCallbacks cb;
@@ -29,7 +29,7 @@ typedef struct {
   ByteBuffer buffer;
 
   // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
-  float pcm[pcm_len]; // 120ms @ 48 khz * 2 channels
+  float pcm[120*48*8]; // 120ms @ 48 khz * 8 channels
 } OggOpusDecoder;
 
 OggOpusDecoder *ogg_opus_decoder_create();
