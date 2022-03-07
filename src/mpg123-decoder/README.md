@@ -86,7 +86,7 @@ Decoded audio is always returned in the below structure.
       leftAudio, // Float32Array of PCM samples for the left channel
       rightAudio // Float32Array of PCM samples for the right channel
     ],
-    samplesDecoded: 1234, // number of PCM samples that were decoded
+    samplesDecoded: 1234, // number of PCM samples that were decoded per channel
     sampleRate: 44100 // sample rate of the decoded PCM
 }
 ```

@@ -25,6 +25,7 @@ Decodes Ogg Opus data into PCM
   * 115.5 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
+  * Multichannel decoding (up to 8 channels)
   * Based on [`libopusfile`](https://github.com/xiph/opusfile)
   * Install using [NPM](https://www.npmjs.com/package/ogg-opus-decoder)
 

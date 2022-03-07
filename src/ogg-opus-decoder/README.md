@@ -4,6 +4,7 @@
   * 115.5 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
+  * Multichannel decoding (up to 8 channels)
   * Based on [`libopusfile`](https://github.com/xiph/opusfile)
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
@@ -80,18 +81,42 @@ Decoded audio is always returned in the below structure.
 {
     channelData: [
       leftAudio, // Float32Array of PCM samples for the left channel
-      rightAudio // Float32Array of PCM samples for the right channel
+      rightAudio, // Float32Array of PCM samples for the right channel
+      ... // additional channels
     ],
-    samplesDecoded: 1234, // number of PCM samples that were decoded
+    samplesDecoded: 1234, // number of PCM samples that were decoded per channel
     sampleRate: 48000 // sample rate of the decoded PCM
 }
 ```
 
 Each Float32Array within `channelData` can be used directly in the WebAudio API for playback.
 
+### Multichannel Output
+
+Each channel is assigned to a speaker location in a conventional surround arrangement. Specific locations depend on the number of channels, and are given below in order of the corresponding channel indices. This set of surround options and speaker location orderings is the same as those used by the Vorbis codec.
+
+* 1 channel: monophonic (mono).
+* 2 channels: stereo (left, right).
+* 3 channels: linear surround (left, center, right).
+* 4 channels: quadraphonic (front left, front right, rear left, rear right).
+* 5 channels: 5.0 surround (front left, front center, front right, rear left, rear right).
+* 6 channels: 5.1 surround (front left, front center, front right, rear left, rear right, LFE).
+* 7 channels: 6.1 surround (front left, front center, front right, side left, side right, rear center, LFE).
+* 8 channels: 7.1 surround (front left, front center, front right, side left, side right, rear left, rear right, LFE).
+
+See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
+
 ## `OggOpusDecoder`
 
 Class that decodes Ogg Opus data synchronously on the main thread.
+
+### Options
+```javascript
+const decoder = new OggOpusDecoder({ forceStereo: true });
+```
+
+* `forceStereo` *optional, defaults to `false`*
+  * Set to `true` to forces stereo output when decoding mono or multichannel Ogg Opus.
 
 ### Getters
 * `decoder.ready` *async*
@@ -111,6 +136,14 @@ Class that decodes Ogg Opus data synchronously on the main thread.
 ## `OggOpusDecoderWebWorker`
 
 Class that decodes Ogg Opus data asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
+
+### Options
+```javascript
+const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
+```
+
+* `forceStereo` *optional, defaults to `false`*
+  * Set to `true` to forces stereo output when decoding mono or multichannel Ogg Opus.
 
 ### Getters
 * `decoder.ready` *async*
