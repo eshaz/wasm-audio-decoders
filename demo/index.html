@@ -265,38 +265,37 @@
     <ul>
       <li>
         <a
-          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder#mpegdecoderwebworker"
-          ><b>MPEGDecoderWebWorker</b></a
-        >, from the
-        <a
-          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder"
-          >mpg123-decoder</a
-        >
-        library, is used to decode MPEG data.
-        <ul>
-          <li>
-            Runs using a Web Assembly build of
-            <a href="https://www.mpg123.de/">mpg123</a>.
-          </li>
-          <li>Runs in a separate thread using the Web Worker api.</li>
-        </ul>
-      </li>
-      <li>
-        <a
-          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder#oggopusdecoderwebworker"
-          ><b>OggOpusDecoderWebWorker</b></a
-        >, from the
-        <a
           href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder"
-          >ogg-opus-decoder</a
+          ><b>ogg-opus-decoder</b></a
         >
-        library, is used to decode Ogg Opus data.
+        is used to decode Ogg Opus data.
         <ul>
           <li>
             Runs using a Web Assembly build of
             <a href="https://github.com/xiph/opusfile">libopusfile</a>.
           </li>
-          <li>Runs in a separate thread using the Web Worker api.</li>
+          <li>Decodes up to 8 discrete channels of audio.</li>
+          <li>
+            Runs in the main thread or a separate thread using the Web Worker
+            api.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder"
+          ><b>mpg123-decoder</b></a
+        >
+        is used to decode MPEG Layer I/II/III data.
+        <ul>
+          <li>
+            Runs using a Web Assembly build of
+            <a href="https://www.mpg123.de/">mpg123</a>.
+          </li>
+          <li>
+            Runs in the main thread or a separate thread using the Web Worker
+            api.
+          </li>
         </ul>
       </li>
     </ul>
