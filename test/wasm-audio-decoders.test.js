@@ -454,7 +454,7 @@ describe("ogg-opus-decoder", () => {
 
   it("should decode multi channel ogg opus as stereo when force stereo is enabled", async () => {
     const decoder = new OggOpusDecoder({
-      stereoDownmix: true,
+      forceStereo: true,
     });
 
     const { paths, result } = await test_decode(
@@ -515,7 +515,7 @@ describe("ogg-opus-decoder", () => {
 
   it("should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker", async () => {
     const decoder = new OggOpusDecoderWebWorker({
-      stereoDownmix: true,
+      forceStereo: true,
     });
 
     const { paths, result } = await test_decode(

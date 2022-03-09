@@ -10,7 +10,7 @@ export default class OggOpusDecoder {
       this.constructor.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
     this._EmscriptenWASM = this.constructor.EmscriptenWASM || EmscriptenWASM;
 
-    this._stereoDownmix = options.stereoDownmix || false;
+    this._forceStereo = options.forceStereo || false;
 
     //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
     this._inputPtrSize = 64 * 1024;
@@ -48,7 +48,7 @@ export default class OggOpusDecoder {
       this._common.allocateTypedArray(1, Uint32Array);
 
     this._decoder = this._common.wasm._ogg_opus_decoder_create();
-    this._decoderMethod = this._stereoDownmix
+    this._decoderMethod = this._forceStereo
       ? this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved
       : this._common.wasm._ogg_opus_decode_float_deinterleaved;
   }
