@@ -23,6 +23,8 @@
     "Opus",
     "audio",
     "decoder",
+    "multichannel",
+    "surround",
     "stream",
     "streams",
     "libopus",

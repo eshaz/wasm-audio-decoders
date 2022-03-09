@@ -28,8 +28,11 @@
           offset < samples;
           offset++
         ) {
-          interleaved[interleavedOffset++] = floatToInt(channelData[0][offset]);
-          interleaved[interleavedOffset++] = floatToInt(channelData[1][offset]);
+          for (let channel = 0; channel < channelData.length; channel++) {
+            interleaved[interleavedOffset++] = floatToInt(
+              channelData[channel][offset]
+            );
+          }
         }
 
         return new Uint8Array(interleaved.buffer);
@@ -44,10 +47,10 @@
       };
 
       const generateHeader = ({
-        dataLength = 4294967295 - 100,
-        channels = 2,
-        sampleRate = 44100,
-        bitDepth = 16,
+        dataLength,
+        channels,
+        sampleRate,
+        bitDepth,
       }) => {
         const RIFF = stringToUint8Array("RIFF");
         const WAVE = stringToUint8Array("WAVE");
@@ -382,7 +385,7 @@
                       <option value="5">5 workers</option>
                       <option value="6">6 workers</option>
                       <option value="7">7 workers</option>
-                      <option value="8">8 workers</option>
+                      <option selected value="8">8 workers</option>
                       <option value="9">9 workers</option>
                       <option value="10">10 workers</option>
                       <option value="11">11 workers</option>
@@ -420,6 +423,9 @@
     <br />
   </body>
   <script>
+    "use strict";
+    document.getElementById("playerForm").reset();
+
     // progress bars
     let decoderProgressIds;
 
@@ -650,6 +656,12 @@
           border: 1px solid black;
           border-collapse: collapse;
         }
+        .button-container {
+          display: flex;
+        }
+        .progress {
+          width: 100%
+        }
         tr, td, th {
           border: 1px solid black;
           border-collapse: collapse;
@@ -663,7 +675,6 @@
         <tbody id="files-to-decode"></tbody>
       </table>
     `;
-
     const filesToDecodeHeaderEl =
       filesToDecodeContainerEl.shadowRoot.getElementById(
         "files-to-decode-header"
@@ -673,43 +684,9 @@
 
     const decodeButtonEl = document.getElementById("decode-button");
     const numberOfDecodersEl = document.getElementById("threads");
-
-    fileSelector.addEventListener("change", (e) => {
-      fileList = e.target.files;
-      totalLength = 0;
-      mpegLength = 0;
-      opusLength = 0;
-
-      if (fileList.length > 0) decodeButtonEl.disabled = false;
-      else decodeButtonEl.disabled = true;
-
-      filesToDecodeHeaderEl.innerHTML =
-        "<tr><th>Status</th><th>Name</th><th>Size</th><th>Type</th><th>Decoder</th></tr>";
-      filesToDecodeEl.innerHTML = "";
-
-      [...fileList].forEach(({ name, type, size }) => {
-        totalLength += size;
-        if (type === "audio/mpeg") mpegLength += size;
-        if (type === "audio/ogg") opusLength += size;
-        filesToDecodeEl.innerHTML += `<tr id="_row-${name}"><td id="_status-${name}">selected</td><td>${name}</td><td>${size}</td><td>${type}</td><td id="_decoder-${name}"></td></tr>`;
-      });
-
-      if (decoderPool) {
-        decoderPool.destroy();
-        decoderPool = null;
-      }
-      if (mpegLength || opusLength)
-        decoderPool = new DecoderPool(
-          numberOfDecodersEl.value,
-          mpegLength,
-          opusLength
-        );
-
-      updateDecodeStats();
-      clearDecoderProgress();
-    });
   </script>
   <script>
+    "use strict";
     const { MPEGDecoderWebWorker, MPEGDecoder } = window["mpg123-decoder"];
     const { OpusDecoderWebWorker, OpusDecoder } = window["opus-decoder"];
     const { OggOpusDecoderWebWorker, OggOpusDecoder } =
@@ -759,6 +736,7 @@
               : MPEGDecoderWebWorker;
             decoderStats = this._mpegDecoderStats;
             break;
+          case "video/ogg":
           case "audio/ogg":
             DecoderClass = this._useMainThread
               ? OggOpusDecoder
@@ -806,20 +784,50 @@
       }
     }
 
-    let decoderPool = new DecoderPool(numberOfDecodersEl.value);
+    let decoderPool = new DecoderPool(
+      numberOfDecodersEl.value,
+      mpegLength,
+      opusLength
+    );
 
-    numberOfDecodersEl.addEventListener("change", (e) => {
-      if (decoderPool) {
-        decoderPool.destroy();
-        decoderPool = null;
-      }
-      if (mpegLength || opusLength)
-        decoderPool = new DecoderPool(e.target.value, mpegLength, opusLength);
+    const createDecoderPool = () => {
+      decoderPool?.destroy();
+      decoderPool = new DecoderPool(
+        numberOfDecodersEl.value,
+        mpegLength,
+        opusLength
+      );
+    };
 
-      clearDecoderProgress(totalLength);
+    numberOfDecodersEl.addEventListener("change", () => {
+      createDecoderPool();
+      clearDecoderProgress();
     });
 
-    decodeButtonEl.addEventListener("click", async (e) => {
+    const setFileStatus = (
+      name,
+      rowStyle = "",
+      status = "selected",
+      decoder = ""
+    ) => {
+      const rowEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+        `_row-${name}`
+      );
+      const statusEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+        `_status-${name}`
+      );
+      const decoderEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+        `_decoder-${name}`
+      );
+
+      rowEl.style = rowStyle;
+      statusEl.innerHTML = status;
+      decoderEl.innerHTML = decoder;
+
+      return { rowEl, statusEl, decoderEl };
+    };
+
+    const decode = async (fileList, shouldReset) => {
       decodeButtonEl.disabled = true;
       numberOfDecodersEl.disabled = true;
       let totalBytes = 0;
@@ -848,23 +856,14 @@
       resetDecoderProgress(totalBytes);
       updateDecodeStats();
 
-      decoderPool.reset();
+      if (shouldReset) {
+        decoderPool.reset();
+      }
+
       const decodeOperations = [];
 
       for (const { buffer, name, type, size } of files) {
-        const rowEl = filesToDecodeContainerEl.shadowRoot.getElementById(
-          `_row-${name}`
-        );
-        const statusEl = filesToDecodeContainerEl.shadowRoot.getElementById(
-          `_status-${name}`
-        );
-        const decoderEl = filesToDecodeContainerEl.shadowRoot.getElementById(
-          `_decoder-${name}`
-        );
-
-        rowEl.style = "";
-        statusEl.innerHTML = "selected";
-        decoderEl.innerHTML = "";
+        const { rowEl, statusEl, decoderEl } = setFileStatus(name);
 
         decodeOperations.push(
           buffer.then((data) =>
@@ -901,15 +900,250 @@
                 );
 
                 await decoder.reset();
+
+                return { samplesDecoded, sampleRate, channelData };
               })
           )
         );
       }
 
-      Promise.all(decodeOperations).then(() => {
+      return Promise.all(decodeOperations).then((ops) => {
         decodeButtonEl.disabled = false;
         numberOfDecodersEl.disabled = false;
+        return ops;
       });
+    };
+
+    let audioCtx;
+    const PLAY = "▶";
+    const STOP = "■";
+    const PROGRESS_FACTOR = 100;
+
+    const webAudioPlayers = new Map();
+    const resetWebAudioPlayers = () => {
+      for (const [k, player] of webAudioPlayers) {
+        player.stop();
+      }
+      webAudioPlayers.clear();
+    };
+
+    class WebAudioPlayer {
+      constructor(name) {
+        if (!audioCtx) {
+          audioCtx = new AudioContext();
+          audioCtx.onstatechange = () => {
+            if (audioCtx !== "running") audioCtx.resume();
+          };
+          audioCtx.destination.channelCount =
+            audioCtx.destination.maxChannelCount;
+        }
+
+        this.name = name;
+        this.playbackEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+          "_play-" + this.name
+        );
+        this.progressBarEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+          "_seek-" + this.name
+        );
+        this.timeEl = filesToDecodeContainerEl.shadowRoot.getElementById(
+          "_time-" + this.name
+        );
+
+        this.startProgress = () => {
+          clearInterval(this.progressInterval);
+          this.progressInterval = setInterval(() => {
+            if (this.action === STOP) {
+              const currentTime =
+                this.offset +
+                (audioCtx.currentTime * PROGRESS_FACTOR - this.start);
+              this.progressBarEl.value = currentTime;
+              this.timeEl.innerHTML = this.getTime(
+                currentTime / PROGRESS_FACTOR
+              );
+            }
+          }, 2);
+        };
+        this.stopProgress = () => {
+          clearInterval(this.progressInterval);
+        };
+
+        this.decodePromise = this.decode();
+      }
+
+      get action() {
+        return this.playbackEl.innerHTML;
+      }
+
+      getTime(seconds) {
+        return new Date(seconds * 1000).toISOString().substr(14, 9);
+      }
+
+      async decode() {
+        this.playbackEl.disabled = true;
+        const files = [];
+        for (const file of fileList) {
+          if (file.name === this.name) files.push(file);
+        }
+
+        await decode(files, false).then(
+          ([{ channelData, samplesDecoded, sampleRate }]) => {
+            this.audioBuffer = audioCtx.createBuffer(
+              channelData.length,
+              samplesDecoded,
+              sampleRate
+            );
+
+            channelData.forEach((channel, idx) =>
+              this.audioBuffer.getChannelData(idx).set(channel)
+            );
+          }
+        );
+      }
+
+      seek() {
+        this.stop();
+        this.play(parseFloat(this.progressBarEl.value));
+      }
+
+      play(offset = 0) {
+        // wait for decoding to complete
+        this.decodePromise.then(() => {
+          // start playing audio
+          audioCtx.resume();
+          this.source = audioCtx.createBufferSource();
+          this.source.buffer = this.audioBuffer;
+          this.source.connect(audioCtx.destination);
+          this.source.start(0, offset / PROGRESS_FACTOR);
+          this.source.onended = () => {
+            this.stop();
+          };
+
+          // setup progress bar
+          this.start = audioCtx.currentTime * PROGRESS_FACTOR;
+          this.offset = offset;
+          this.progressBarEl.disabled = false;
+          this.progressBarEl.min = 0;
+          this.progressBarEl.max = this.audioBuffer.duration * PROGRESS_FACTOR;
+          this.progressBarEl.value = offset;
+
+          // start progress bar and add event listeners
+          this.progressBarEl.addEventListener("pointerup", this.startProgress);
+          this.progressBarEl.addEventListener("pointerdown", this.stopProgress);
+          this.startProgress();
+
+          // update file status and play button
+          this.playbackEl.innerHTML = STOP;
+          this.playbackEl.disabled = false;
+          setFileStatus(
+            this.name,
+            "background-color: rgba(0, 255, 0, .5)",
+            "playing",
+            ""
+          );
+        });
+      }
+
+      stop() {
+        // stop playing audio
+        if (this.source) {
+          this.source.onended = null;
+          this.source.stop();
+          this.source.disconnect();
+        }
+
+        // stop progress bar and clear event listeners
+        this.progressBarEl.removeEventListener("pointerup", this.startProgress);
+        this.progressBarEl.removeEventListener(
+          "pointerdown",
+          this.stopProgress
+        );
+        this.stopProgress();
+
+        // update file status and play button
+        this.playbackEl.innerHTML = PLAY;
+        this.playbackEl.disabled = false;
+        setFileStatus(this.name);
+      }
+    }
+
+    const seek = (e) => {
+      const name = e.name;
+      let player = webAudioPlayers.get(name);
+
+      if (!player) {
+        player = new WebAudioPlayer(name);
+        webAudioPlayers.set(name, player);
+        player.play();
+      }
+
+      player.seek();
+    };
+
+    const playPause = (e) => {
+      const name = e.name;
+      let player = webAudioPlayers.get(name);
+
+      if (!player) {
+        player = new WebAudioPlayer(name);
+        webAudioPlayers.set(name, player);
+      }
+
+      if (player.action === PLAY) {
+        player.play();
+      } else {
+        player.stop();
+      }
+    };
+
+    decodeButtonEl.addEventListener("click", () => {
+      decode(fileList, true);
+    });
+
+    fileSelector.addEventListener("change", (e) => {
+      fileList = e.target.files;
+      totalLength = 0;
+      mpegLength = 0;
+      opusLength = 0;
+
+      resetWebAudioPlayers();
+
+      if (fileList.length > 0) decodeButtonEl.disabled = false;
+      else decodeButtonEl.disabled = true;
+
+      filesToDecodeHeaderEl.innerHTML = `<tr>
+          <th>Play</th>
+          <th>Name</th>
+          <th>Size</th>
+          <th>Type</th>
+          <th style="display:none;" >Status</th>
+          <th style="display:none;" >Decoder</th>
+        </tr>`;
+      filesToDecodeEl.innerHTML = "";
+
+      [...fileList].forEach(({ name, type, size }) => {
+        totalLength += size;
+        if (type === "audio/mpeg") mpegLength += size;
+        if (type === "audio/ogg") opusLength += size;
+        filesToDecodeEl.innerHTML += `
+        <tr id="_row-${name}">
+          <td>
+            <div class="button-container">
+              <div style="display: flex; align-items: center; padding-right: 5px;" id="_time-${name}">00:00.000</div>
+              <button style="display: flex; justify-content: center; width: 30px;" id="_play-${name}" name="${name}" onclick="playPause(this);">${PLAY}</button>
+              <input disabled class="progress" value="0" type="range" id="_seek-${name}" name="${name}" oninput="seek(this);"></input>
+            </div>
+          </td>
+          <td>${name}</td>
+          <td>${size}</td>
+          <td>${type}</td>
+          <td style="display:none;" id="_status-${name}">selected</td>
+          <td style="display:none;" id="_decoder-${name}"></td>
+        </tr>`;
+      });
+
+      createDecoderPool();
+      updateDecodeStats();
+      clearDecoderProgress();
     });
   </script>
 </html>
