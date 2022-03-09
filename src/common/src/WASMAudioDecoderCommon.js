@@ -4,7 +4,7 @@ export default class WASMAudioDecoderCommon {
   constructor(wasm) {
     this._wasm = wasm;
 
-    this._pointers = [];
+    this._pointers = new Set();
   }
 
   get wasm() {
@@ -41,12 +41,8 @@ export default class WASMAudioDecoderCommon {
     );
 
     // output buffer
-    [this._leftPtr, this._leftArr] = common.allocateTypedArray(
-      this._outputPtrSize,
-      Float32Array
-    );
-    [this._rightPtr, this._rightArr] = common.allocateTypedArray(
-      this._outputPtrSize,
+    [this._outputPtr, this._output] = common.allocateTypedArray(
+      this._outputChannels * this._outputPtrSize,
       Float32Array
     );
 
@@ -83,17 +79,56 @@ export default class WASMAudioDecoderCommon {
     );
   }
 
+  static getDecodedAudioMultiChannel(
+    input,
+    channelsDecoded,
+    samplesDecoded,
+    sampleRate
+  ) {
+    const channelData = [];
+
+    for (let i = 0; i < channelsDecoded; i++) {
+      const channel = [];
+      for (let j = 0; j < input.length; j++) {
+        channel.push(input[j][i]);
+      }
+      channelData.push(
+        WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded)
+      );
+    }
+
+    return WASMAudioDecoderCommon.getDecodedAudio(
+      channelData,
+      samplesDecoded,
+      sampleRate
+    );
+  }
+
+  getOutputChannels(outputData, channelsDecoded, samplesDecoded) {
+    const output = [];
+
+    for (let i = 0; i < channelsDecoded; i++)
+      output.push(
+        outputData.slice(
+          i * samplesDecoded,
+          i * samplesDecoded + samplesDecoded
+        )
+      );
+
+    return output;
+  }
+
   allocateTypedArray(length, TypedArray) {
     const pointer = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * length);
     const array = new TypedArray(this._wasm.HEAP, pointer, length);
 
-    this._pointers.push(pointer);
+    this._pointers.add(pointer);
     return [pointer, array];
   }
 
   free() {
-    this._pointers.forEach((ptr) => this._wasm._free(ptr));
-    this._pointers = [];
+    for (const pointer of this._pointers) this._wasm._free(pointer);
+    this._pointers.clear();
   }
 
   /*

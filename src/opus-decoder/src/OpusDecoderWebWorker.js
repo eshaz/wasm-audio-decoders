@@ -3,8 +3,8 @@ import EmscriptenWASM from "./EmscriptenWasm.js";
 import OpusDecoder from "./OpusDecoder.js";
 
 export default class OpusDecoderWebWorker extends WASMAudioDecoderWorker {
-  constructor() {
-    super(OpusDecoder, EmscriptenWASM);
+  constructor(options) {
+    super(options, OpusDecoder, EmscriptenWASM);
   }
 
   async decodeFrame(data) {

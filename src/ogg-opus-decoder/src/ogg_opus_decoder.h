@@ -21,13 +21,15 @@ typedef struct {
   int num_unread;
 } ByteBuffer;
 
+static const int pcm_len = 120*48*8;
+
 typedef struct {
   OpusFileCallbacks cb;
   OggOpusFile *of;
   ByteBuffer buffer;
 
   // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
-  float pcm[120*48*2]; // 120ms @ 48 khz * 2 channels
+  float pcm[120*48*8]; // 120ms @ 48 khz * 8 channels
 } OggOpusDecoder;
 
 OggOpusDecoder *ogg_opus_decoder_create();
@@ -36,4 +38,8 @@ void ogg_opus_decoder_free(OggOpusDecoder *);
 
 int ogg_opus_decoder_enqueue(OggOpusDecoder *, unsigned char *data, size_t data_size);
 
-int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *decoder, float *left, float *right);
+int ogg_opus_decode_float_deinterleaved(OggOpusDecoder *, int *channels_decoded, float *out);
+
+int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *, int *channels_decoded, float *out);
+
+void deinterleave_and_trim_pcm(OggOpusDecoder *decoder, int channels_decoded, int samples_decoded, float *out);

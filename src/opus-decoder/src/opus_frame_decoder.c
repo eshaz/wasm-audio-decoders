@@ -9,14 +9,14 @@ OpusFrameDecoder *opus_frame_decoder_create() {
     return ptr;
 }
 
-// left and right should be able to store frame_size*channels*sizeof(float) 
+// out should be able to store frame_size*channels*sizeof(float) 
 // frame_size should be the maximum packet duration (120ms; 5760 for 48kHz)
-int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned char *data, opus_int32 data_len, float *left, float *right) {
+int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned char *data, opus_int32 data_len, float *out) {
     int samples_decoded = opus_decode_float(decoder->st, data, data_len, decoder->pcm, 5760, 0);
 
     for (int i=samples_decoded-1; i>=0; i--) {
-      left[i] =  decoder->pcm[i*2];
-      right[i] = decoder->pcm[i*2+1];
+      out[i] =  decoder->pcm[i*2];
+      out[i+samples_decoded] = decoder->pcm[i*2+1];
     }
 
     return samples_decoded;

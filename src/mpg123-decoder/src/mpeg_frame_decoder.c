@@ -6,8 +6,7 @@ MPEGFrameDecoder *mpeg_frame_decoder_create() {
     decoder.mh = mpg123_new(NULL, NULL);
     mpg123_param(decoder.mh, MPG123_FLAGS, 
       MPG123_FORCE_STEREO |
-      MPG123_QUIET |
-      MPG123_FORCE_ENDIAN, 0);
+      MPG123_QUIET, 0);
     mpg123_open_feed(decoder.mh);
 
     MPEGFrameDecoder *ptr = malloc(sizeof(decoder));
@@ -21,8 +20,7 @@ int mpeg_decode_interleaved(
     size_t in_size, // input data size
     unsigned int *in_read_pos, // pointer to save the total bytes read from input buffer
     size_t in_read_chunk_size, // interval of bytes to read from input data
-    float *left, // pointer to save the left output audio
-    float *right, // pointer to save the right output audio
+    float *out, // pointer to save the output
     size_t decode_buffer_size, // output audio buffer size
     unsigned int *sample_rate // pointer to save the sample rate
 ) {
@@ -36,7 +34,7 @@ int mpeg_decode_interleaved(
             decoder->mh, 
             in + *in_read_pos, 
             in_read_chunk_size, 
-            decoder->pcm, 
+            decoder->pcm.bytes, 
             4*2*1152, 
             &bytes_decoded
         );
@@ -45,17 +43,8 @@ int mpeg_decode_interleaved(
     
         // deinterleave pcm
         for (int i=current_samples_decoded-1; i>=0; i--) {
-            unsigned char *left_ptr = (unsigned char *) &left[i + samples_decoded];
-            left_ptr[0] = decoder->pcm[i*8];
-            left_ptr[1] = decoder->pcm[i*8+1];
-            left_ptr[2] = decoder->pcm[i*8+2];
-            left_ptr[3] = decoder->pcm[i*8+3];
-    
-            unsigned char *right_ptr = (unsigned char *) &right[i + samples_decoded];
-            right_ptr[0] = decoder->pcm[i*8+4];
-            right_ptr[1] = decoder->pcm[i*8+5];
-            right_ptr[2] = decoder->pcm[i*8+6];
-            right_ptr[3] = decoder->pcm[i*8+7];
+            out[i+samples_decoded] = decoder->pcm.floats[i*2];
+            out[i+samples_decoded+decode_buffer_size] = decoder->pcm.floats[i*2+1];
         }
 
         samples_decoded += current_samples_decoded;

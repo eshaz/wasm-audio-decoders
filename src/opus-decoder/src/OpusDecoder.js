@@ -3,15 +3,16 @@ import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
 export default class OpusDecoder {
-  constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
-    this._isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
+  constructor(options = {}) {
+    // injects dependencies when running as a web worker
+    this._isWebWorker = this.constructor.isWebWorker;
     this._WASMAudioDecoderCommon =
-      _WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-    this._EmscriptenWASM = _EmscriptenWASM || EmscriptenWASM;
+      this.constructor.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+    this._EmscriptenWASM = this.constructor.EmscriptenWASM || EmscriptenWASM;
 
     this._inputPtrSize = (0.12 * 510000) / 8;
     this._outputPtrSize = 120 * 48;
-    this._channelsOut = 2;
+    this._outputChannels = 2;
 
     this._ready = this._init();
   }
@@ -53,14 +54,13 @@ export default class OpusDecoder {
         this._decoder,
         this._inputPtr,
         opusFrame.length,
-        this._leftPtr,
-        this._rightPtr
+        this._outputPtr
       );
 
     return this._WASMAudioDecoderCommon.getDecodedAudio(
       [
-        this._leftArr.slice(0, samplesDecoded),
-        this._rightArr.slice(0, samplesDecoded),
+        this._output.slice(0, samplesDecoded),
+        this._output.slice(samplesDecoded, samplesDecoded * 2),
       ],
       samplesDecoded,
       48000

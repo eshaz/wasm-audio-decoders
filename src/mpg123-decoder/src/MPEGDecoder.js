@@ -3,15 +3,16 @@ import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
 export default class MPEGDecoder {
-  constructor(_WASMAudioDecoderCommon, _EmscriptenWASM) {
-    this._isWebWorker = _WASMAudioDecoderCommon && _EmscriptenWASM;
+  constructor(options = {}) {
+    // injects dependencies when running as a web worker
+    this._isWebWorker = this.constructor.isWebWorker;
     this._WASMAudioDecoderCommon =
-      _WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-    this._EmscriptenWASM = _EmscriptenWASM || EmscriptenWASM;
+      this.constructor.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+    this._EmscriptenWASM = this.constructor.EmscriptenWASM || EmscriptenWASM;
 
     this._inputPtrSize = 2 ** 18;
     this._outputPtrSize = 1152 * 512;
-    this._channelsOut = 2;
+    this._outputChannels = 2;
 
     this._ready = this._init();
   }
@@ -66,8 +67,7 @@ export default class MPEGDecoder {
       data.length,
       this._decodedBytesPtr,
       decodeInterval,
-      this._leftPtr,
-      this._rightPtr,
+      this._outputPtr,
       this._outputPtrSize,
       this._sampleRateBytePtr
     );
@@ -76,8 +76,11 @@ export default class MPEGDecoder {
 
     return this._WASMAudioDecoderCommon.getDecodedAudio(
       [
-        this._leftArr.slice(0, samplesDecoded),
-        this._rightArr.slice(0, samplesDecoded),
+        this._output.slice(0, samplesDecoded),
+        this._output.slice(
+          this._outputPtrSize,
+          this._outputPtrSize + samplesDecoded
+        ),
       ],
       samplesDecoded,
       this._sampleRate

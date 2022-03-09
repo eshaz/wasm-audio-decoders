@@ -1,91 +1,84 @@
 import Worker from "web-worker";
 import WASMAudioDecoderCommon from "./WASMAudioDecoderCommon.js";
 
-// statically store web worker source code
-const sources = new WeakMap();
-
 export default class WASMAudioDecoderWorker extends Worker {
-  constructor(Decoder, EmscriptenWASM) {
-    let source = sources.get(Decoder);
+  constructor(options, Decoder, EmscriptenWASM) {
+    const webworkerSourceCode =
+      "'use strict';" +
+      // dependencies need to be manually resolved when stringifying this function
+      `(${((_options, _Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
+        // We're in a Web Worker
+        _Decoder.WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
+        _Decoder.EmscriptenWASM = _EmscriptenWASM;
+        _Decoder.isWebWorker = true;
 
-    if (!source) {
-      const webworkerSourceCode =
-        "'use strict';" +
-        // dependencies need to be manually resolved when stringifying this function
-        `(${((_WASMAudioDecoderCommon, _Decoder, _EmscriptenWASM) => {
-          // We're in a Web Worker
-          const decoder = new _Decoder(
-            _WASMAudioDecoderCommon,
-            _EmscriptenWASM
-          );
+        const decoder = new _Decoder(_options);
 
-          const detachBuffers = (buffer) =>
-            Array.isArray(buffer)
-              ? buffer.map((buffer) => new Uint8Array(buffer))
-              : new Uint8Array(buffer);
+        const detachBuffers = (buffer) =>
+          Array.isArray(buffer)
+            ? buffer.map((buffer) => new Uint8Array(buffer))
+            : new Uint8Array(buffer);
 
-          self.onmessage = ({ data: { id, command, data } }) => {
-            switch (command) {
-              case "ready":
-                decoder.ready.then(() => {
-                  self.postMessage({
-                    id,
-                  });
-                });
-                break;
-              case "free":
-                decoder.free();
+        self.onmessage = ({ data: { id, command, data } }) => {
+          switch (command) {
+            case "ready":
+              decoder.ready.then(() => {
                 self.postMessage({
                   id,
                 });
-                break;
-              case "reset":
-                decoder.reset().then(() => {
-                  self.postMessage({
-                    id,
-                  });
+              });
+              break;
+            case "free":
+              decoder.free();
+              self.postMessage({
+                id,
+              });
+              break;
+            case "reset":
+              decoder.reset().then(() => {
+                self.postMessage({
+                  id,
                 });
-                break;
-              case "decode":
-              case "decodeFrame":
-              case "decodeFrames":
-                const { channelData, samplesDecoded, sampleRate } = decoder[
-                  command
-                ](detachBuffers(data));
+              });
+              break;
+            case "decode":
+            case "decodeFrame":
+            case "decodeFrames":
+              const { channelData, samplesDecoded, sampleRate } = decoder[
+                command
+              ](detachBuffers(data));
 
-                self.postMessage(
-                  {
-                    id,
-                    channelData,
-                    samplesDecoded,
-                    sampleRate,
-                  },
-                  // The "transferList" parameter transfers ownership of channel data to main thread,
-                  // which avoids copying memory.
-                  channelData.map((channel) => channel.buffer)
-                );
-                break;
-              default:
-                this.console.error(
-                  "Unknown command sent to worker: " + command
-                );
-            }
-          };
-        }).toString()})(${WASMAudioDecoderCommon}, ${Decoder}, ${EmscriptenWASM})`;
+              self.postMessage(
+                {
+                  id,
+                  channelData,
+                  samplesDecoded,
+                  sampleRate,
+                },
+                // The "transferList" parameter transfers ownership of channel data to main thread,
+                // which avoids copying memory.
+                channelData.map((channel) => channel.buffer)
+              );
+              break;
+            default:
+              this.console.error("Unknown command sent to worker: " + command);
+          }
+        };
+      }).toString()})(${JSON.stringify(
+        options
+      )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
 
-      const type = "text/javascript";
+    const type = "text/javascript";
+    let source;
 
-      try {
-        // browser
-        source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
-      } catch {
-        // nodejs
-        source = `data:${type};base64,${Buffer.from(
-          webworkerSourceCode
-        ).toString("base64")}`;
-      }
-
-      sources.set(Decoder, source);
+    try {
+      // browser
+      source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
+    } catch {
+      // nodejs
+      source = `data:${type};base64,${Buffer.from(webworkerSourceCode).toString(
+        "base64"
+      )}`;
     }
 
     super(source);

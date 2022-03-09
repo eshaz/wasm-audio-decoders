@@ -3,8 +3,8 @@ import EmscriptenWASM from "./EmscriptenWasm.js";
 import MPEGDecoder from "./MPEGDecoder.js";
 
 export default class MPEGDecoderWebWorker extends WASMAudioDecoderWorker {
-  constructor() {
-    super(MPEGDecoder, EmscriptenWASM);
+  constructor(options) {
+    super(options, MPEGDecoder, EmscriptenWASM);
   }
 
   async decode(data) {

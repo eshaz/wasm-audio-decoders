@@ -55,7 +55,7 @@ int ogg_opus_decoder_enqueue(OggOpusDecoder *decoder, unsigned char *data, size_
       bufferMax,
       (!decoder->of)? "false" : "true"
     );*/
-    return 0;
+    return -1;
   }
 
   decoder->buffer.cursor = decoder->buffer.start;
@@ -83,6 +83,8 @@ int ogg_opus_decoder_enqueue(OggOpusDecoder *decoder, unsigned char *data, size_
 
       // OggOpusFile instantiated.  Reset unread buffer count
       decoder->buffer.num_unread = 0;
+    } else {
+      return err;
     }
   } else {
     // set buffer to new data
@@ -90,20 +92,32 @@ int ogg_opus_decoder_enqueue(OggOpusDecoder *decoder, unsigned char *data, size_
     memcpy( decoder->buffer.cursor, data, size );
   }
 
-  return 1;
+  return 0;
 }
 
-int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *decoder, float *left, float *right) {
-  if (!decoder->of) return 0;
-
-  int samples_decoded = op_read_float_stereo(decoder->of, decoder->pcm, 120*48*2);
-
-  for (int i=samples_decoded-1; i>=0; i--) {
-    left[i] =  decoder->pcm[i*2];
-    right[i] = decoder->pcm[i*2+1];
-  }
+int ogg_opus_decode_float_deinterleaved(OggOpusDecoder *decoder, int *channels_decoded, float *out) {
+  int *_li;
+  int samples_decoded = op_read_float(decoder->of, decoder->pcm, pcm_len, _li);
+  *channels_decoded = op_channel_count(decoder->of, *_li);
+  deinterleave_and_trim_pcm(decoder, *channels_decoded, samples_decoded, out);
 
   return samples_decoded;
+}
+
+int ogg_opus_decode_float_stereo_deinterleaved(OggOpusDecoder *decoder, int *channels_decoded, float *out) {
+  int samples_decoded = op_read_float_stereo(decoder->of, decoder->pcm, pcm_len);
+  *channels_decoded = 2;
+  deinterleave_and_trim_pcm(decoder, 2, samples_decoded, out);
+
+  return samples_decoded;
+}
+
+void deinterleave_and_trim_pcm(OggOpusDecoder *decoder, int channels_decoded, int samples_decoded, float *out) {
+  for (int in_idx=(samples_decoded*channels_decoded)-1; in_idx>=0; in_idx--) {
+    int sample = in_idx/channels_decoded;
+    int channel = (in_idx%channels_decoded)*samples_decoded;
+    out[sample+channel] = decoder->pcm[in_idx];
+  }
 }
 
 void ogg_opus_decoder_free(OggOpusDecoder *decoder) {
