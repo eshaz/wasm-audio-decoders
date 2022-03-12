@@ -14,8 +14,9 @@ export default class OpusDecoder {
     this._streamCount = options.streamCount || 1;
     this._coupledStreamCount = options.coupledStreamCount || 1;
     this._channelMappingTable = options.channelMappingTable || [0, 1];
+    this._preSkip = options.preSkip || 0;
 
-    this._inputPtrSize = 32000 * 0.12 * this._channels;
+    this._inputPtrSize = 32000 * 0.12 * this._channels; // 256kbs per channel
     this._outputPtrSize = 120 * 48;
     this._outputChannels = this._channels;
 
@@ -49,7 +50,8 @@ export default class OpusDecoder {
       this._channels,
       this._streamCount,
       this._coupledStreamCount,
-      mappingPtr
+      mappingPtr,
+      this._preSkip
     );
   }
 

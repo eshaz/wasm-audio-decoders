@@ -1,7 +1,8 @@
 #include "opus_frame_decoder.h"
 
-OpusFrameDecoder *opus_frame_decoder_create(int channels, int streams, int coupled_streams, unsigned char *mapping) {
+OpusFrameDecoder *opus_frame_decoder_create(int channels, int streams, int coupled_streams, unsigned char *mapping, int preSkip) {
     OpusFrameDecoder decoder;
+    decoder.preSkip = preSkip;
     decoder.channels = channels;
     decoder.pcm = malloc(5760*channels*sizeof(float));
     decoder.st = opus_multistream_decoder_create(48000, channels, streams, coupled_streams, mapping, decoder.errors);
@@ -16,6 +17,16 @@ OpusFrameDecoder *opus_frame_decoder_create(int channels, int streams, int coupl
 int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned char *data, opus_int32 data_len, float *out) {
     int samples_decoded = opus_multistream_decode_float(decoder->st, data, data_len, decoder->pcm, 5760, 0);
 
+    if (samples_decoded < 0) return samples_decoded;
+
+    // do not return the preSkip samples
+    if (decoder->preSkip > 0) {
+      decoder->preSkip -= samples_decoded;
+
+      samples_decoded = decoder->preSkip < 0 ? -decoder->preSkip : 0;
+    }
+
+    // deinterleave
     for (int in_idx=(samples_decoded*decoder->channels)-1; in_idx>=0; in_idx--) {
       int sample = in_idx/decoder->channels;
       int channel = (in_idx%decoder->channels)*samples_decoded;

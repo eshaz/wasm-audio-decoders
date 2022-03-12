@@ -2,7 +2,7 @@
 #include <opus_multistream.h>
 
 typedef struct {
-    // stores the interleaved PCM result
+    int preSkip;
     int channels;
     float *pcm; //frame_size*channels*sizeof(float)
     int *errors;
@@ -10,7 +10,7 @@ typedef struct {
 } OpusFrameDecoder;
 
 // sample rate should almost always be 48000
-OpusFrameDecoder *opus_frame_decoder_create(int channels, int streams, int coupled_streams, unsigned char *mapping);
+OpusFrameDecoder *opus_frame_decoder_create(int channels, int streams, int coupled_streams, unsigned char *mapping, int preSkip);
 
 // left and right should be able to store frame_size*channels*sizeof(float) 
 // frame_size should be the maximum packet duration (120ms; 5760 for 48kHz)

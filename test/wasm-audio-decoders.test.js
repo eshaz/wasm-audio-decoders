@@ -364,72 +364,101 @@ describe("opus-decoder", () => {
 
   let opusStereoFrames,
     opusStereoHeader,
+    opusStereoSampleCount,
     opusStereoFramesLength,
     opusSurroundFrames,
     opusSurroundHeader,
+    opusSurroundSampleCount,
     opusSurroundFramesLength,
     opus32Frames,
     opus32Header,
+    opus32SampleCount,
     opus32FramesLength,
     opus64Frames,
     opus64Header,
+    opus64SampleCount,
     opus64FramesLength,
     opus255Frames,
     opus255Header,
+    opus255SampleCount,
     opus255FramesLength;
 
   const getFrames = (codecFrames) => {
     let length = 0,
       header,
-      frames;
+      frames,
+      absoluteGranulePosition;
 
     frames = codecFrames
-      .flatMap((frame) => frame.codecFrames)
+      .flatMap((frame) => {
+        absoluteGranulePosition = frame.absoluteGranulePosition;
+        return frame.codecFrames;
+      })
       .map((codecFrame) => {
         length += codecFrame.data.length;
         header = codecFrame.header;
         return codecFrame.data;
       });
 
-    return [frames, header, length];
+    return [frames, header, length, Number(absoluteGranulePosition)];
   };
 
   beforeAll(async () => {
     const parser = new CodecParser("application/ogg");
 
-    [opusStereoFrames, opusStereoHeader, opusStereoFramesLength] = getFrames(
+    [
+      opusStereoFrames,
+      opusStereoHeader,
+      opusStereoFramesLength,
+      opusStereoSampleCount,
+    ] = getFrames(
       parser.parseAll(
         await fs.readFile(getTestPaths(opusStereoTestFile).inputPath)
       )
     );
 
-    [opusSurroundFrames, opusSurroundHeader, opusSurroundFramesLength] =
+    [
+      opusSurroundFrames,
+      opusSurroundHeader,
+      opusSurroundFramesLength,
+      opusSurroundSampleCount,
+    ] = getFrames(
+      parser.parseAll(
+        await fs.readFile(getTestPaths(opusSurroundTestFile).inputPath)
+      )
+    );
+
+    [opus32Frames, opus32Header, opus32FramesLength, opus32SampleCount] =
       getFrames(
         parser.parseAll(
-          await fs.readFile(getTestPaths(opusSurroundTestFile).inputPath)
+          await fs.readFile(getTestPaths(opus32TestFile).inputPath)
         )
       );
 
-    [opus32Frames, opus32Header, opus32FramesLength] = getFrames(
-      parser.parseAll(await fs.readFile(getTestPaths(opus32TestFile).inputPath))
-    );
+    [opus64Frames, opus64Header, opus64FramesLength, opus64SampleCount] =
+      getFrames(
+        parser.parseAll(
+          await fs.readFile(getTestPaths(opus64TestFile).inputPath)
+        )
+      );
 
-    [opus64Frames, opus64Header, opus64FramesLength] = getFrames(
-      parser.parseAll(await fs.readFile(getTestPaths(opus64TestFile).inputPath))
-    );
-
-    [opus255Frames, opus255Header, opus255FramesLength] = getFrames(
-      parser.parseAll(
-        await fs.readFile(getTestPaths(opus255TestFile).inputPath)
-      )
-    );
+    [opus255Frames, opus255Header, opus255FramesLength, opus255SampleCount] =
+      getFrames(
+        parser.parseAll(
+          await fs.readFile(getTestPaths(opus255TestFile).inputPath)
+        )
+      );
   });
 
   it("should decode opus frames", async () => {
+    const { preSkip } = opusStereoHeader;
+
     const { paths, result } = await test_decodeFrames(
-      new OpusDecoder(),
+      new OpusDecoder({
+        preSkip,
+      }),
       "should decode opus frames",
-      "frames." + opusStereoTestFile,
+      opusStereoTestFile,
       opusStereoFrames,
       opusStereoFramesLength
     );
@@ -439,16 +468,19 @@ describe("opus-decoder", () => {
       fs.readFile(paths.expectedPath),
     ]);
 
-    expect(result.samplesDecoded).toEqual(3807360);
+    expect(result.samplesDecoded).toEqual(3806842); //3807154, 204
     expect(result.sampleRate).toEqual(48000);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
 
   it("should decode opus frames in a web worker", async () => {
+    const { preSkip } = opusStereoHeader;
     const { paths, result } = await test_decodeFrames(
-      new OpusDecoderWebWorker(),
+      new OpusDecoderWebWorker({
+        preSkip,
+      }),
       "should decode opus frames in a web worker",
-      "frames." + opusStereoTestFile,
+      opusStereoTestFile,
       opusStereoFrames,
       opusStereoFramesLength
     );
@@ -458,15 +490,20 @@ describe("opus-decoder", () => {
       fs.readFile(paths.expectedPath),
     ]);
 
-    expect(result.samplesDecoded).toEqual(3807360);
+    expect(result.samplesDecoded).toEqual(3806842); //3807154
     expect(result.sampleRate).toEqual(48000);
     expect(Buffer.compare(actual, expected)).toEqual(0);
   });
 
   describe("5.1 Channels", () => {
     it("should decode 5.1 channel opus frames", async () => {
-      const { channels, channelMappingTable, coupledStreamCount, streamCount } =
-        opusSurroundHeader;
+      const {
+        channels,
+        channelMappingTable,
+        coupledStreamCount,
+        streamCount,
+        preSkip,
+      } = opusSurroundHeader;
 
       const { paths, result } = await test_decodeFrames(
         new OpusDecoder({
@@ -474,9 +511,10 @@ describe("opus-decoder", () => {
           channelMappingTable,
           coupledStreamCount,
           streamCount,
+          preSkip,
         }),
         "should decode 5.1 channel opus frames",
-        "frames." + opusSurroundTestFile,
+        opusSurroundTestFile,
         opusSurroundFrames,
         opusSurroundFramesLength
       );
@@ -486,23 +524,29 @@ describe("opus-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(1042560);
+      expect(result.samplesDecoded).toEqual(1042248); //1042489
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
 
     it("should decode 5.1 channel opus frames in a web worker", async () => {
-      const { channels, channelMappingTable, coupledStreamCount, streamCount } =
-        opusSurroundHeader;
+      const {
+        channels,
+        channelMappingTable,
+        coupledStreamCount,
+        streamCount,
+        preSkip,
+      } = opusSurroundHeader;
       const { paths, result } = await test_decodeFrames(
         new OpusDecoderWebWorker({
           channels,
           channelMappingTable,
           coupledStreamCount,
           streamCount,
+          preSkip,
         }),
         "should decode 5.1 channel opus frames in a web worker",
-        "frames." + opusSurroundTestFile,
+        opusSurroundTestFile,
         opusSurroundFrames,
         opusSurroundFramesLength
       );
@@ -512,7 +556,7 @@ describe("opus-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(1042560);
+      expect(result.samplesDecoded).toEqual(1042248); //1042489
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
@@ -520,14 +564,20 @@ describe("opus-decoder", () => {
 
   describe("32 Channels", () => {
     it("should decode 32 channel opus frames", async () => {
-      const { channels, channelMappingTable, coupledStreamCount, streamCount } =
-        opus32Header;
+      const {
+        channels,
+        channelMappingTable,
+        coupledStreamCount,
+        streamCount,
+        preSkip,
+      } = opus32Header;
       const { paths, result } = await test_decodeFrames(
         new OpusDecoder({
           channels,
           channelMappingTable,
           coupledStreamCount,
           streamCount,
+          preSkip,
         }),
         "should decode 32 channel opus frames",
         opus32TestFile,
@@ -540,20 +590,26 @@ describe("opus-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(288000);
+      expect(result.samplesDecoded).toEqual(287688); //287063
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
 
     it("should decode 32 channel opus frames in a web worker", async () => {
-      const { channels, channelMappingTable, coupledStreamCount, streamCount } =
-        opus32Header;
+      const {
+        channels,
+        channelMappingTable,
+        coupledStreamCount,
+        streamCount,
+        preSkip,
+      } = opus32Header;
       const { paths, result } = await test_decodeFrames(
         new OpusDecoderWebWorker({
           channels,
           channelMappingTable,
           coupledStreamCount,
           streamCount,
+          preSkip,
         }),
         "should decode 32 channel opus frames in a web worker",
         opus32TestFile,
@@ -566,7 +622,7 @@ describe("opus-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(288000);
+      expect(result.samplesDecoded).toEqual(287688); //287063
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
@@ -574,14 +630,20 @@ describe("opus-decoder", () => {
 
   describe("64 Channels", () => {
     it("should decode 64 channel opus frames", async () => {
-      const { channels, channelMappingTable, coupledStreamCount, streamCount } =
-        opus64Header;
+      const {
+        channels,
+        channelMappingTable,
+        coupledStreamCount,
+        streamCount,
+        preSkip,
+      } = opus64Header;
       const { paths, result } = await test_decodeFrames(
         new OpusDecoder({
           channels,
           channelMappingTable,
           coupledStreamCount,
           streamCount,
+          preSkip,
         }),
         "should decode 64 channel opus frames",
         opus64TestFile,
@@ -594,20 +656,26 @@ describe("opus-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(288000);
+      expect(result.samplesDecoded).toEqual(287688); //287063
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
 
     it("should decode 64 channel opus frames in a web worker", async () => {
-      const { channels, channelMappingTable, coupledStreamCount, streamCount } =
-        opus64Header;
+      const {
+        channels,
+        channelMappingTable,
+        coupledStreamCount,
+        streamCount,
+        preSkip,
+      } = opus64Header;
       const { paths, result } = await test_decodeFrames(
         new OpusDecoderWebWorker({
           channels,
           channelMappingTable,
           coupledStreamCount,
           streamCount,
+          preSkip,
         }),
         "should decode 64 channel opus frames in a web worker",
         opus64TestFile,
@@ -620,7 +688,7 @@ describe("opus-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(288000);
+      expect(result.samplesDecoded).toEqual(287688); //287063
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
@@ -628,14 +696,20 @@ describe("opus-decoder", () => {
 
   describe("255 Channels", () => {
     it("should decode 255 channel opus frames", async () => {
-      const { channels, channelMappingTable, coupledStreamCount, streamCount } =
-        opus255Header;
+      const {
+        channels,
+        channelMappingTable,
+        coupledStreamCount,
+        streamCount,
+        preSkip,
+      } = opus255Header;
       const { paths, result } = await test_decodeFrames(
         new OpusDecoder({
           channels,
           channelMappingTable,
           coupledStreamCount,
           streamCount,
+          preSkip,
         }),
         "should decode 255 channel opus frames",
         opus255TestFile,
@@ -648,20 +722,26 @@ describe("opus-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(288000);
+      expect(result.samplesDecoded).toEqual(287688); //287063
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
 
     it("should decode 255 channel opus frames in a web worker", async () => {
-      const { channels, channelMappingTable, coupledStreamCount, streamCount } =
-        opus255Header;
+      const {
+        channels,
+        channelMappingTable,
+        coupledStreamCount,
+        streamCount,
+        preSkip,
+      } = opus255Header;
       const { paths, result } = await test_decodeFrames(
         new OpusDecoderWebWorker({
           channels,
           channelMappingTable,
           coupledStreamCount,
           streamCount,
+          preSkip,
         }),
         "should decode 255 channel opus frames in a web worker",
         opus255TestFile,
@@ -674,14 +754,14 @@ describe("opus-decoder", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(288000);
+      expect(result.samplesDecoded).toEqual(287688); //287063
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
   });
 });
 
-describe("ogg-opus-decoder", () => {
+/*describe("ogg-opus-decoder", () => {
   it("should decode ogg opus", async () => {
     const { paths, result } = await test_decode(
       new OggOpusDecoder(),
@@ -827,4 +907,4 @@ describe("ogg-opus-decoder", () => {
       );
     }
   });
-});
+});*/
