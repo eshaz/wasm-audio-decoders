@@ -97,6 +97,7 @@ endef
 # ------------------
 define OPUS_DECODER_EMCC_OPTS
 -s JS_MATH \
+-s INITIAL_MEMORY=28MB \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
   , '_opus_frame_decoder_destroy' \

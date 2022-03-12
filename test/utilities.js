@@ -99,7 +99,7 @@ export const testDecoder_decodeFrames = async (
     bitDepth: 16,
     sampleRate,
     length: interleaved.length,
-    channels: 2,
+    channels: channelData.length,
   });
 
   await output.write(header, 0, header.length, 0);
