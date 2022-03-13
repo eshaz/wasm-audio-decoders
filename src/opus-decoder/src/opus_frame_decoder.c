@@ -49,19 +49,28 @@ int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned ch
       0
     );
 
-    if (samples_decoded < 0) return samples_decoded;
+    if (samples_decoded <= 0) return samples_decoded;
+
+    float *pcm = decoder->pcm;
 
     // do not return the pre_skip samples
     if (decoder->pre_skip > 0) {
       decoder->pre_skip -= samples_decoded;
-      samples_decoded = decoder->pre_skip < 0 ? -decoder->pre_skip : 0;
+
+      // more preskip samples than samples decoded, nothing to return
+      if (decoder->pre_skip > 0) return 0;
+
+      // offset input by remaining preskip
+      pcm = decoder->pcm + (decoder->pre_skip + samples_decoded) * decoder->channels;
+      // set samples to decode
+      samples_decoded = -decoder->pre_skip;
     }
 
     // deinterleave
     for (int in_idx=(samples_decoded * decoder->channels) -1; in_idx >= 0; in_idx--) {
       int sample = in_idx / decoder->channels;
       int channel = (in_idx % decoder->channels) * samples_decoded;
-      out[sample+channel] = decoder->pcm[in_idx];
+      out[sample+channel] = pcm[in_idx];
     }
 
     return samples_decoded;

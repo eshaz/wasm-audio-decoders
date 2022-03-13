@@ -509,7 +509,7 @@ describe("wasm-audio-decoders", () => {
           preSkip,
         }),
         "should decode opus frames",
-        "frames."+opusStereoTestFile,
+        "frames." + opusStereoTestFile,
         opusStereoFrames,
         opusStereoFramesLength
       );
@@ -531,7 +531,7 @@ describe("wasm-audio-decoders", () => {
           preSkip,
         }),
         "should decode opus frames in a web worker",
-        "frames."+opusStereoTestFile,
+        "frames." + opusStereoTestFile,
         opusStereoFrames,
         opusStereoFramesLength
       );
@@ -565,7 +565,7 @@ describe("wasm-audio-decoders", () => {
             preSkip,
           }),
           "should decode 5.1 channel opus frames",
-          "frames."+opusSurroundTestFile,
+          "frames." + opusSurroundTestFile,
           opusSurroundFrames,
           opusSurroundFramesLength
         );
@@ -597,7 +597,7 @@ describe("wasm-audio-decoders", () => {
             preSkip,
           }),
           "should decode 5.1 channel opus frames in a web worker",
-          "frames."+opusSurroundTestFile,
+          "frames." + opusSurroundTestFile,
           opusSurroundFrames,
           opusSurroundFramesLength
         );
