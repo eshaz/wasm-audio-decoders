@@ -163,10 +163,6 @@ describe("wasm-audio-decoders", () => {
     await decompressExpectedFiles();
   });
 
-  it("shouo", () => {
-    expect(true).toBeTruthy();
-  });
-
   describe("mpg123-decoder", () => {
     it("should decode mpeg", async () => {
       const { paths, result } = await test_decode(
@@ -513,7 +509,7 @@ describe("wasm-audio-decoders", () => {
           preSkip,
         }),
         "should decode opus frames",
-        opusStereoTestFile,
+        "frames."+opusStereoTestFile,
         opusStereoFrames,
         opusStereoFramesLength
       );
@@ -523,7 +519,7 @@ describe("wasm-audio-decoders", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(3806842); //3807154, 204
+      expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
@@ -535,7 +531,7 @@ describe("wasm-audio-decoders", () => {
           preSkip,
         }),
         "should decode opus frames in a web worker",
-        opusStereoTestFile,
+        "frames."+opusStereoTestFile,
         opusStereoFrames,
         opusStereoFramesLength
       );
@@ -545,7 +541,7 @@ describe("wasm-audio-decoders", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(3806842); //3807154
+      expect(result.samplesDecoded).toEqual(3807048); //3807154
       expect(result.sampleRate).toEqual(48000);
       expect(Buffer.compare(actual, expected)).toEqual(0);
     });
@@ -569,7 +565,7 @@ describe("wasm-audio-decoders", () => {
             preSkip,
           }),
           "should decode 5.1 channel opus frames",
-          opusSurroundTestFile,
+          "frames."+opusSurroundTestFile,
           opusSurroundFrames,
           opusSurroundFramesLength
         );
@@ -601,7 +597,7 @@ describe("wasm-audio-decoders", () => {
             preSkip,
           }),
           "should decode 5.1 channel opus frames in a web worker",
-          opusSurroundTestFile,
+          "frames."+opusSurroundTestFile,
           opusSurroundFrames,
           opusSurroundFramesLength
         );

@@ -6,3 +6,4 @@ node_modules
 
 coverage
 test/actual/*
+test/expected/*.wav
