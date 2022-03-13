@@ -21,16 +21,20 @@ const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
 const TEST_DATA_PATH = new URL("data", import.meta.url).pathname;
 
-const getTestPaths = (fileName, outputFileName) => ({
+const getTestPaths = (fileName, outputFileName, isWorker = false) => ({
   fileName,
   inputPath: path.join(TEST_DATA_PATH, fileName),
-  actualPath: path.join(ACTUAL_PATH, (outputFileName || fileName) + ".wav"),
+  actualPath: path.join(
+    ACTUAL_PATH,
+    (outputFileName || fileName) + (isWorker ? ".worker" : "") + ".wav"
+  ),
   expectedPath: path.join(EXPECTED_PATH, (outputFileName || fileName) + ".wav"),
 });
 
 const test_decode = async (decoder, testName, fileName, outputFileName) => {
   try {
-    const paths = getTestPaths(fileName, outputFileName);
+    const isWorker = decoder.constructor.name.match(/WebWorker/);
+    const paths = getTestPaths(fileName, outputFileName, isWorker);
 
     const result = await decoder.ready.then(() =>
       testDecoder_decode(decoder, testName, paths.inputPath, paths.actualPath)
@@ -96,7 +100,8 @@ const test_decodeFrames = async (
   frames,
   framesLength
 ) => {
-  const paths = getTestPaths(fileName);
+  const isWorker = decoder.constructor.name.match(/WebWorker/);
+  const paths = getTestPaths(fileName, null, isWorker);
 
   const result = await decoder.ready.then(() =>
     testDecoder_decodeFrames(

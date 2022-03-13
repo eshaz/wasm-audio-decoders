@@ -777,10 +777,28 @@
         this.constructor.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
       this._EmscriptenWASM = this.constructor.EmscriptenWASM || EmscriptenWASM;
 
-      this._channels = options.channels || 2;
-      this._streamCount = options.streamCount || 1;
-      this._coupledStreamCount = options.coupledStreamCount || 1;
-      this._channelMappingTable = options.channelMappingTable || [0, 1];
+      const isNumber = (param) => typeof param === "number";
+
+      // channel mapping family >= 1
+      if (
+        options.channels > 2 &&
+        (!isNumber(options.streamCount) ||
+          !isNumber(options.coupledStreamCount) ||
+          !Array.isArray(options.channelMappingTable))
+      ) {
+        throw new Error(
+          "Invalid Opus Decoder Options for multichannel decoding."
+        );
+      }
+
+      // channel mapping family 0
+      this._channels = isNumber(options.channels) ? options.channels : 2;
+      this._streamCount = isNumber(options.streamCount) ? options.streamCount : 1;
+      this._coupledStreamCount = isNumber(options.coupledStreamCount)
+        ? options.coupledStreamCount
+        : this._channels - 1;
+      this._channelMappingTable =
+        options.channelMappingTable || (this._channels === 2 ? [0, 1] : [0]);
       this._preSkip = options.preSkip || 0;
 
       this._inputPtrSize = 32000 * 0.12 * this._channels; // 256kbs per channel
