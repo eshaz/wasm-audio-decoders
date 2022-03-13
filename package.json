@@ -4,7 +4,7 @@
     "deploy": "gh-pages -d demo",
     "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*'",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%",
-    "generate-data": "cd test/expected; find -iname \"*.wav\" | parallel --eta gzip -f {}"
+    "generate-data": "find test/expected -iname \"*.wav\" -exec gzip -fn {} ';'"
   },
   "type": "module",
   "devDependencies": {

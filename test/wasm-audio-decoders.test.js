@@ -113,50 +113,54 @@ const test_decodeFrames = async (
   return { paths, result };
 };
 
+const decompressExpectedFiles = async () => {
+  const files = await fs.readdir(EXPECTED_PATH);
+  const decompressPromises = [];
+
+  const compressed = new Set();
+  const decompressed = new Set();
+
+  for (const file of files) {
+    if (file.match(/.*gz$/)) compressed.add(file);
+    else if (file.match(/.*wav$/)) decompressed.add(file);
+  }
+
+  for (const file of compressed) {
+    //if (!decompressed.has(file))
+    decompressPromises.push(
+      new Promise((res, rej) => {
+        return fs.readFile(path.join(EXPECTED_PATH, file)).then((data) => {
+          gunzip(data, async (err, uncompressed) => {
+            if (err) {
+              rej(err);
+            } else {
+              fs.writeFile(
+                path.join(EXPECTED_PATH, file.slice(0, -3)),
+                uncompressed
+              ).then(() => {
+                res();
+              });
+            }
+          });
+        });
+      }).catch((e) => {
+        console.warn("failed to decompress", file);
+        throw e;
+      })
+    );
+  }
+
+  await Promise.all(decompressPromises).catch((e) => {
+    console.error(e);
+    throw new Error(
+      "Failed to decompress one or more expected test files. Check that the test files are valid gzip."
+    );
+  });
+};
+
 describe("wasm-audio-decoders", () => {
   beforeAll(async () => {
-    const files = await fs.readdir(EXPECTED_PATH);
-    const decompressPromises = [];
-
-    const compressed = new Set();
-    const decompressed = new Set();
-
-    for (const file of files) {
-      if (file.match(/.*gz$/)) compressed.add(file);
-      if (file.match(/.*wav$/)) decompressed.add(file);
-    }
-
-    for (const file of compressed) {
-      //if (!decompressed.has(file))
-      decompressPromises.push(
-        new Promise((res, rej) => {
-          return fs.readFile(path.join(EXPECTED_PATH, file)).then((data) => {
-            gunzip(data, async (err, uncompressed) => {
-              if (err) {
-                rej(err);
-              } else {
-                fs.writeFile(
-                  path.join(EXPECTED_PATH, file.slice(0, -3)),
-                  uncompressed
-                ).then(() => {
-                  res();
-                });
-              }
-            });
-          });
-        }).catch((e) => {
-          console.warn("failed to decompress", file);
-          throw e;
-        })
-      );
-    }
-
-    await Promise.all(decompressPromises).catch((e) => {
-      console.error(e);
-      throw new Error(
-        "Failed to decompress one or more expected test files. Check that the test files are valid gzip."
-      );
-    });
+    await decompressExpectedFiles();
   });
 
   it("shouo", () => {
