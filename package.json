@@ -3,21 +3,22 @@
     "build": "make clean && make -j8",
     "deploy": "gh-pages -d demo",
     "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*'",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%"
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%",
+    "generate-data": "cd test/expected; find -iname \"*.wav\" | parallel --eta gzip -f {}"
   },
   "type": "module",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^13.1.3",
-    "@types/jest": "^27.0.2",
+    "@types/jest": "^27.4.1",
     "@wpdas/wave-header": "^1.0.1",
     "codec-parser": "file:../codec-parser",
-    "fflate": "^0.7.1",
+    "fflate": "^0.7.3",
     "gh-pages": "^3.2.3",
-    "jest": "^27.3.1",
+    "jest": "^27.5.1",
     "prettier": "^2.4.1",
-    "rollup": "^2.60.0",
+    "rollup": "^2.70.0",
     "simple-yenc": "0.0.2",
-    "terser": "^5.10.0",
+    "terser": "^5.12.0",
     "web-worker": "^1.1.0"
   }
 }
