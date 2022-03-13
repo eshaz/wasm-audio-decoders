@@ -12,11 +12,10 @@ export default class OggOpusDecoder {
 
     this._forceStereo = options.forceStereo || false;
 
-    //  Max data to send per iteration. 64k is the max for enqueueing in libopusfile.
-    this._inputPtrSize = 64 * 1024;
+    this._inputPtrSize = 32 * 1024;
     // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
     // per channel
-    this._outputPtrSize = 120 * 48; // 120ms @ 48 khz.
+    this._outputPtrSize = 120 * 48 * 32; // 120ms @ 48 khz.
     this._outputChannels = 8; // max opus output channels
 
     this._ready = this._init();
@@ -36,6 +35,7 @@ export default class OggOpusDecoder {
       [-137]: "OP_EBADLINK: We failed to find data we had seen before, or the bitstream structure was sufficiently malformed that seeking to the target destination was impossible.",
       [-138]: "OP_ENOSEEK: An operation that requires seeking was requested on an unseekable stream.",
       [-139]: "OP_EBADTIMESTAMP: The first or last granule position of a link failed basic validity checks.",
+      [-140]: "Input buffer overflow"
     }
   }
 
@@ -47,10 +47,9 @@ export default class OggOpusDecoder {
     [this._channelsDecodedPtr, this._channelsDecoded] =
       this._common.allocateTypedArray(1, Uint32Array);
 
-    this._decoder = this._common.wasm._ogg_opus_decoder_create();
-    this._decoderMethod = this._forceStereo
-      ? this._common.wasm._ogg_opus_decode_float_stereo_deinterleaved
-      : this._common.wasm._ogg_opus_decode_float_deinterleaved;
+    this._decoder = this._common.wasm._ogg_opus_decoder_create(
+      this._forceStereo
+    );
   }
 
   get ready() {
@@ -67,10 +66,6 @@ export default class OggOpusDecoder {
     this._common.free();
   }
 
-  /*  WARNING: When decoding chained Ogg files (i.e. streaming) the first two Ogg packets
-               of the next chain must be present when decoding. Errors will be returned by
-               libopusfile if these initial Ogg packets are incomplete. 
-  */
   decode(data) {
     if (!(data instanceof Uint8Array))
       throw Error(
@@ -85,54 +80,39 @@ export default class OggOpusDecoder {
       while (offset < data.length) {
         const dataToSend = data.subarray(
           offset,
-          offset + Math.min(this._inputPtrSize, data.length - offset)
+          offset +
+            (this._inputPtrSize > data.length - offset
+              ? data.length - offset
+              : this._inputPtrSize)
         );
 
         offset += dataToSend.length;
 
         this._input.set(dataToSend);
 
-        const enqueueResult = this._common.wasm._ogg_opus_decoder_enqueue(
+        const samplesDecoded = this._common.wasm._ogg_opus_decoder_decode(
           this._decoder,
           this._inputPtr,
-          dataToSend.length
+          dataToSend.length,
+          this._channelsDecodedPtr,
+          this._outputPtr
         );
 
-        if (enqueueResult)
-          throw {
-            code: enqueueResult,
-            message: "Failed to enqueue bytes for decoding.",
-          };
+        if (samplesDecoded < 0) throw { code: samplesDecoded };
 
-        // continue to decode until no more bytes are left to decode
-        let samplesDecoded;
-        while (
-          (samplesDecoded = this._decoderMethod(
-            this._decoder,
-            this._channelsDecodedPtr,
-            this._outputPtr
-          )) > 0
-        ) {
-          output.push(
-            this._common.getOutputChannels(
-              this._output,
-              this._channelsDecoded[0],
-              samplesDecoded
-            )
-          );
-
-          decodedSamples += samplesDecoded;
-        }
-
-        if (samplesDecoded < 0)
-          throw { code: samplesDecoded, message: "Failed to decode." };
+        decodedSamples += samplesDecoded;
+        output.push(
+          this._common.getOutputChannels(
+            this._output,
+            this._channelsDecoded[0],
+            samplesDecoded
+          )
+        );
       }
     } catch (e) {
       if (e.code)
         throw new Error(
-          `${e.message} libopusfile ${e.code} ${
-            this._errors[e.code] || "Unknown Error"
-          }`
+          `libopusfile ${e.code} ${this._errors[e.code] || "Unknown Error"}`
         );
       throw e;
     }

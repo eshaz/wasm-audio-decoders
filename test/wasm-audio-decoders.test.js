@@ -761,7 +761,7 @@ describe("opus-decoder", () => {
   });
 });
 
-/*describe("ogg-opus-decoder", () => {
+describe("ogg-opus-decoder", () => {
   it("should decode ogg opus", async () => {
     const { paths, result } = await test_decode(
       new OggOpusDecoder(),
@@ -903,8 +903,8 @@ describe("opus-decoder", () => {
       expect(Buffer.compare(actual, expected)).toEqual(0);
     } catch (e) {
       expect(e.message).toEqual(
-        "Failed to enqueue bytes for decoding. libopusfile -130 OP_EIMPL: The stream used a feature that is not implemented, such as an unsupported channel family."
+        "libopusfile -130 OP_EIMPL: The stream used a feature that is not implemented, such as an unsupported channel family."
       );
     }
   });
-});*/
+});

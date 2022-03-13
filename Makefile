@@ -133,9 +133,7 @@ define OGG_OPUS_DECODER_EMCC_OPTS
     '_free', '_malloc' \
   , '_ogg_opus_decoder_create' \
   , '_ogg_opus_decoder_free' \
-  , '_ogg_opus_decoder_enqueue' \
-  , '_ogg_opus_decode_float_deinterleaved' \
-  , '_ogg_opus_decode_float_stereo_deinterleaved' \
+  , '_ogg_opus_decoder_decode' \
 ]" \
 --pre-js 'src/ogg-opus-decoder/src/emscripten-pre.js' \
 --post-js 'src/ogg-opus-decoder/src/emscripten-post.js' \
