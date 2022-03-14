@@ -9,7 +9,8 @@
   var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
   class WASMAudioDecoderCommon {
-    static compiledWasm = new WeakMap();
+    // share the same WASM instance per thread
+    static instances = new WeakMap();
 
     constructor(wasm) {
       this._wasm = wasm;
@@ -25,13 +26,13 @@
       // instantiate wasm code as singleton
       if (!this._wasm) {
         // new decoder instance
-        if (WASMAudioDecoderCommon.compiledWasm.has(this._EmscriptenWASM)) {
+        if (WASMAudioDecoderCommon.instances.has(this._EmscriptenWASM)) {
           // reuse existing compilation
-          this._wasm = WASMAudioDecoderCommon.compiledWasm.get(this._EmscriptenWASM);
+          this._wasm = WASMAudioDecoderCommon.instances.get(this._EmscriptenWASM);
         } else {
           // first compilation
           this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
-          WASMAudioDecoderCommon.compiledWasm.set(this._EmscriptenWASM, this._wasm);
+          WASMAudioDecoderCommon.instances.set(this._EmscriptenWASM, this._wasm);
         }
       }
 
@@ -72,7 +73,7 @@
         sampleRate,
       };
     }
-    
+
     static getDecodedAudioMultiChannel(
       input,
       channelsDecoded,
