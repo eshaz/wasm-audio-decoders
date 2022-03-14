@@ -88,8 +88,7 @@ export default class MPEGDecoder {
   }
 
   decode(data) {
-    let left = [],
-      right = [],
+    let output = [],
       samples = 0;
 
     for (
@@ -102,13 +101,13 @@ export default class MPEGDecoder {
         48
       );
 
-      left.push(channelData[0]);
-      right.push(channelData[1]);
+      output.push(channelData);
       samples += samplesDecoded;
     }
 
-    return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
-      [left, right],
+    return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      output,
+      2,
       samples,
       this._sampleRate
     );
@@ -119,20 +118,19 @@ export default class MPEGDecoder {
   }
 
   decodeFrames(mpegFrames) {
-    let left = [],
-      right = [],
+    let output = [],
       samples = 0;
 
     for (const frame of mpegFrames) {
       const { channelData, samplesDecoded } = this.decodeFrame(frame);
 
-      left.push(channelData[0]);
-      right.push(channelData[1]);
+      output.push(channelData);
       samples += samplesDecoded;
     }
 
-    return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
-      [left, right],
+    return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      output,
+      2,
       samples,
       this._sampleRate
     );

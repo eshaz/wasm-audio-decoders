@@ -8,9 +8,10 @@
 
   var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
-  const compiledWasm = new WeakMap();
-
   class WASMAudioDecoderCommon {
+    // share the same WASM instance per thread
+    static instances = new WeakMap();
+
     constructor(wasm) {
       this._wasm = wasm;
 
@@ -25,19 +26,13 @@
       // instantiate wasm code as singleton
       if (!this._wasm) {
         // new decoder instance
-        if (this._isWebWorker) {
-          // web worker
-          this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
+        if (WASMAudioDecoderCommon.instances.has(this._EmscriptenWASM)) {
+          // reuse existing compilation
+          this._wasm = WASMAudioDecoderCommon.instances.get(this._EmscriptenWASM);
         } else {
-          // main thread
-          if (compiledWasm.has(this._EmscriptenWASM)) {
-            // reuse existing compilation
-            this._wasm = compiledWasm.get(this._EmscriptenWASM);
-          } else {
-            // first compilation
-            this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
-            compiledWasm.set(this._EmscriptenWASM, this._wasm);
-          }
+          // first compilation
+          this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
+          WASMAudioDecoderCommon.instances.set(this._EmscriptenWASM, this._wasm);
         }
       }
 
@@ -77,16 +72,6 @@
         samplesDecoded,
         sampleRate,
       };
-    }
-
-    static getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
-      return WASMAudioDecoderCommon.getDecodedAudio(
-        channelData.map((data) =>
-          WASMAudioDecoderCommon.concatFloat32(data, samplesDecoded)
-        ),
-        samplesDecoded,
-        sampleRate
-      );
     }
 
     static getDecodedAudioMultiChannel(
@@ -991,8 +976,7 @@
     }
 
     decode(data) {
-      let left = [],
-        right = [],
+      let output = [],
         samples = 0;
 
       for (
@@ -1005,13 +989,13 @@
           48
         );
 
-        left.push(channelData[0]);
-        right.push(channelData[1]);
+        output.push(channelData);
         samples += samplesDecoded;
       }
 
-      return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
-        [left, right],
+      return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+        output,
+        2,
         samples,
         this._sampleRate
       );
@@ -1022,20 +1006,19 @@
     }
 
     decodeFrames(mpegFrames) {
-      let left = [],
-        right = [],
+      let output = [],
         samples = 0;
 
       for (const frame of mpegFrames) {
         const { channelData, samplesDecoded } = this.decodeFrame(frame);
 
-        left.push(channelData[0]);
-        right.push(channelData[1]);
+        output.push(channelData);
         samples += samplesDecoded;
       }
 
-      return this._WASMAudioDecoderCommon.getDecodedAudioConcat(
-        [left, right],
+      return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+        output,
+        2,
         samples,
         this._sampleRate
       );

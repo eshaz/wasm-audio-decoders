@@ -1,10 +1,10 @@
-type MPEGDecodedAudio = {
-  channelData: Float32Array[];
-  samplesDecoded: number;
-  sampleRate: number;
-};
+declare module "mpg123-decoder" {
+  export interface MPEGDecodedAudio {
+    channelData: Float32Array[];
+    samplesDecoded: number;
+    sampleRate: number;
+  }
 
-declare module 'mpg123-decoder' {
   export class MPEGDecoder {
     ready: Promise<void>;
     reset: () => Promise<void>;

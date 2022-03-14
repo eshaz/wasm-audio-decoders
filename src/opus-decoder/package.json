@@ -1,9 +1,10 @@
 {
   "name": "opus-decoder",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "description": "Web Assembly streaming Opus decoder",
-  "main": "dist/opus-decoder.min.js",
-  "module": "index.js",
+  "type": "module",
+  "main": "./index.js",
+  "exports": "./index.js",
   "types": "types.d.ts",
   "files": [
     "index.js",
@@ -14,15 +15,12 @@
     "dist/opus-decoder.min.js",
     "dist/opus-decoder.min.js.map"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git"
-  },
-  "type": "module",
   "keywords": [
     "Opus",
     "audio",
     "decoder",
+    "multichannel",
+    "surround",
     "stream",
     "streams",
     "libopus",
@@ -39,7 +37,16 @@
     "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
   },
   "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git",
+    "directory": "src/opus-decoder"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/eshaz"
+  },
   "dependencies": {
-    "@wasm-audio-decoders/common": "1.0.0"
+    "@wasm-audio-decoders/common": "2.0.0"
   }
 }

@@ -66,49 +66,54 @@ export const testDecoder_decodeFrames = async (
   outputPath
 ) => {
   const output = await fs.open(outputPath, "w+");
+  try {
+    // allocate space for the wave header
+    await output.writeFile(Buffer.alloc(44));
 
-  // allocate space for the wave header
-  await output.writeFile(Buffer.alloc(44));
+    // print the initial stats header
+    process.stderr.write(
+      "\n" + decoder.constructor.name + " " + fileName + "\n"
+    );
 
-  // print the initial stats header
-  process.stderr.write("\n" + decoder.constructor.name + " " + fileName + "\n");
+    const decodeStart = performance.now();
+    const { channelData, samplesDecoded, sampleRate } =
+      await decoder.decodeFrames(frames);
+    const decodeEnd = performance.now();
 
-  const decodeStart = performance.now();
-  const { channelData, samplesDecoded, sampleRate } =
-    await decoder.decodeFrames(frames);
-  const decodeEnd = performance.now();
+    const interleaved = getInterleaved(channelData, samplesDecoded);
 
-  const interleaved = getInterleaved(channelData, samplesDecoded);
+    await output.writeFile(interleaved);
 
-  await output.writeFile(interleaved);
+    const decodeTime = (decodeEnd - decodeStart) / 1000;
 
-  const decodeTime = (decodeEnd - decodeStart) / 1000;
+    printStats({
+      decodeTime,
+      samplesDecoded,
+      sampleRate,
+      totalSamplesDecoded: samplesDecoded,
+      bytesRead: framesLength,
+      totalBytesRead: framesLength,
+      bytesWritten: interleaved.length,
+      totalBytesWritten: interleaved.length,
+    });
 
-  printStats({
-    decodeTime,
-    samplesDecoded,
-    sampleRate,
-    totalSamplesDecoded: samplesDecoded,
-    bytesRead: framesLength,
-    totalBytesRead: framesLength,
-    bytesWritten: interleaved.length,
-    totalBytesWritten: interleaved.length,
-  });
+    const header = getWaveFileHeader({
+      bitDepth: 16,
+      sampleRate,
+      length: interleaved.length,
+      channels: channelData.length,
+    });
 
-  const header = getWaveFileHeader({
-    bitDepth: 16,
-    sampleRate,
-    length: interleaved.length,
-    channels: 2,
-  });
+    await output.write(header, 0, header.length, 0);
+    await output.close();
 
-  await output.write(header, 0, header.length, 0);
-  await output.close();
-
-  return {
-    samplesDecoded,
-    sampleRate,
-  };
+    return {
+      samplesDecoded,
+      sampleRate,
+    };
+  } finally {
+    await output.close();
+  }
 };
 
 export const testDecoder_decode = async (

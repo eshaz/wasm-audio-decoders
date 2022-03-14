@@ -2,22 +2,26 @@
   "scripts": {
     "build": "make clean && make -j8",
     "deploy": "gh-pages -d demo",
-    "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*'",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%"
+    "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.*ts'",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%",
+    "generate-data": "find test/expected -iname \"*.wav\" -exec gzip -fnk {} ';'"
   },
   "type": "module",
   "devDependencies": {
+    "opus-decoder": "file:src/opus-decoder",
+    "ogg-opus-decoder": "file:src/ogg-opus-decoder",
+    "mpg123-decoder": "file:src/mpg123-decoder",
     "@rollup/plugin-node-resolve": "^13.1.3",
-    "@types/jest": "^27.0.2",
+    "@types/jest": "^27.4.1",
     "@wpdas/wave-header": "^1.0.1",
-    "codec-parser": "^1.5.0",
-    "fflate": "^0.7.1",
+    "codec-parser": "2.0.1",
+    "fflate": "^0.7.3",
     "gh-pages": "^3.2.3",
-    "jest": "^27.3.1",
+    "jest": "^27.5.1",
     "prettier": "^2.4.1",
-    "rollup": "^2.60.0",
+    "rollup": "^2.70.0",
     "simple-yenc": "0.0.2",
-    "terser": "^5.10.0",
+    "terser": "^5.12.0",
     "web-worker": "^1.1.0"
   }
 }

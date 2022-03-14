@@ -1,7 +1,7 @@
 # `opus-decoder`
 
 `opus-decoder` is a Web Assembly Opus audio decoder.
-  * 87.7 KiB minified bundle size
+  * 89.9 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`libopus`](https://github.com/xiph/opus)
@@ -74,14 +74,14 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
    ```
 
 ## API
-
 Decoded audio is always returned in the below structure.
 
 ```javascript
 {
     channelData: [
       leftAudio, // Float32Array of PCM samples for the left channel
-      rightAudio // Float32Array of PCM samples for the right channel
+      rightAudio, // Float32Array of PCM samples for the right channel
+      ... // additional channels
     ],
     samplesDecoded: 1234, // number of PCM samples that were decoded per channel
     sampleRate: 48000 // sample rate of the decoded PCM
@@ -90,9 +90,52 @@ Decoded audio is always returned in the below structure.
 
 Each Float32Array within `channelData` can be used directly in the WebAudio API for playback.
 
+### Multichannel Output
+
+Each channel is assigned to a speaker location in a conventional surround arrangement. Specific locations depend on the number of channels, and are given below in order of the corresponding channel indices. This set of surround options and speaker location orderings is the same as those used by the Vorbis codec.
+
+* 1 channel: monophonic (mono).
+* 2 channels: stereo (left, right).
+* 3 channels: linear surround (left, center, right).
+* 4 channels: quadraphonic (front left, front right, rear left, rear right).
+* 5 channels: 5.0 surround (front left, front center, front right, rear left, rear right).
+* 6 channels: 5.1 surround (front left, front center, front right, rear left, rear right, LFE).
+* 7 channels: 6.1 surround (front left, front center, front right, side left, side right, rear center, LFE).
+* 8 channels: 7.1 surround (front left, front center, front right, side left, side right, rear left, rear right, LFE).
+
+See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
+
+Each Float32Array within `channelData` can be used directly in the WebAudio API for playback.
+
 ## `OpusDecoder`
 
 Class that decodes Opus frames synchronously on the main thread.
+
+### Options
+```javascript
+const decoder = new OpusDecoder({ 
+  preSkip: 0,
+  channels: 2,
+  streamCount: 1,
+  coupledStreamCount: 1,
+  channelMappingTable: [0, 1]
+});
+```
+
+#### **The below options should be obtained from the Opus Header.**
+See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus header for more information. If you don't have access to the Opus header, the default values will successfully decode most stereo Opus streams.
+
+* `preSkip` *optional, defaults to `0`*
+  * Number of samples to skip at the beginning reported by the Opus header.
+#### ***Required for Multichannel Decoding.** (Channel Mapping Family >= 1)*
+* `channels` *optional, defaults to `2`*
+  * Number of channels reported by the Opus header.
+* `streamCount` *optional, defaults to `1`*
+  * Number of streams reported by the Opus header.
+* `coupledStreamCount` *optional, defaults to: `1` when 2 channels, `0` when 1 channel*
+  * Number of coupled streams reported by the Opus header.
+* `channelMappingTable` *optional, defaults to `[0, 1]` when 2 channels, `[0]` when 1 channel*
+  * Channel mapping reported by the Opus header.
 
 ### Getters
 * `decoder.ready` *async*
@@ -116,6 +159,31 @@ Class that decodes Opus frames synchronously on the main thread.
 
 Class that decodes Opus frames asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
 
+### Options
+```javascript
+const decoder = new OpusDecoderWebWorker({ 
+  preSkip: 0,
+  channels: 2,
+  streamCount: 1,
+  coupledStreamCount: 1,
+  channelMappingTable: [0, 1]
+});
+```
+
+#### **The below options should be obtained from the Opus Header.**
+See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus header for more information. If you don't have access to the Opus header, the default values will successfully decode most stereo Opus streams.
+
+* `preSkip` *optional, defaults to `0`*
+  * Number of samples to skip at the beginning reported by the Opus header.
+#### ***Required for Multichannel Decoding.** (Channel Mapping Family >= 1)*
+* `channels` *optional, defaults to `2`*
+  * Number of channels reported by the Opus header.
+* `streamCount` *optional, defaults to `1`*
+  * Number of streams reported by the Opus header.
+* `coupledStreamCount` *optional, defaults to: `1` when 2 channels, `0` when 1 channel*
+  * Number of coupled streams reported by the Opus header.
+* `channelMappingTable` *optional, defaults to `[0, 1]` when 2 channels, `[0]` when 1 channel*
+  * Channel mapping reported by the Opus header.
 ### Getters
 * `decoder.ready` *async*
   * Returns a promise that is resolved when the WASM is compiled and ready to use.
