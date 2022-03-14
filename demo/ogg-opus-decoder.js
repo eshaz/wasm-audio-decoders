@@ -8,9 +8,9 @@
 
   var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
-  const compiledWasm = new WeakMap();
-
   class WASMAudioDecoderCommon {
+    static compiledWasm = new WeakMap();
+
     constructor(wasm) {
       this._wasm = wasm;
 
@@ -25,19 +25,13 @@
       // instantiate wasm code as singleton
       if (!this._wasm) {
         // new decoder instance
-        if (this._isWebWorker) {
-          // web worker
-          this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
+        if (WASMAudioDecoderCommon.compiledWasm.has(this._EmscriptenWASM)) {
+          // reuse existing compilation
+          this._wasm = WASMAudioDecoderCommon.compiledWasm.get(this._EmscriptenWASM);
         } else {
-          // main thread
-          if (compiledWasm.has(this._EmscriptenWASM)) {
-            // reuse existing compilation
-            this._wasm = compiledWasm.get(this._EmscriptenWASM);
-          } else {
-            // first compilation
-            this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
-            compiledWasm.set(this._EmscriptenWASM, this._wasm);
-          }
+          // first compilation
+          this._wasm = new this._EmscriptenWASM(WASMAudioDecoderCommon);
+          WASMAudioDecoderCommon.compiledWasm.set(this._EmscriptenWASM, this._wasm);
         }
       }
 
@@ -78,17 +72,7 @@
         sampleRate,
       };
     }
-
-    static getDecodedAudioConcat(channelData, samplesDecoded, sampleRate) {
-      return WASMAudioDecoderCommon.getDecodedAudio(
-        channelData.map((data) =>
-          WASMAudioDecoderCommon.concatFloat32(data, samplesDecoded)
-        ),
-        samplesDecoded,
-        sampleRate
-      );
-    }
-
+    
     static getDecodedAudioMultiChannel(
       input,
       channelsDecoded,
