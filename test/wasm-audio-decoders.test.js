@@ -10,12 +10,9 @@ import {
   testDecoder_decodeFrames,
 } from "./utilities";
 
-import { MPEGDecoder, MPEGDecoderWebWorker } from "../src/mpg123-decoder/index";
-import { OpusDecoder, OpusDecoderWebWorker } from "../src/opus-decoder/index";
-import {
-  OggOpusDecoder,
-  OggOpusDecoderWebWorker,
-} from "../src/ogg-opus-decoder/index";
+import { MPEGDecoder, MPEGDecoderWebWorker } from "mpg123-decoder";
+import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
+import { OggOpusDecoder, OggOpusDecoderWebWorker } from "ogg-opus-decoder";
 
 const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;

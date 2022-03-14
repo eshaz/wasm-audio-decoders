@@ -2,8 +2,9 @@
   "name": "mpg123-decoder",
   "version": "0.3.5",
   "description": "Web Assembly streaming MPEG Layer I/II/III decoder",
-  "main": "dist/mpg123-decoder.min.js",
-  "module": "index.js",
+  "type": "module",
+  "main": "./index.js",
+  "exports": "./index.js",
   "types": "types.d.ts",
   "files": [
     "index.js",
@@ -14,11 +15,6 @@
     "dist/mpg123-decoder.min.js",
     "dist/mpg123-decoder.min.js.map"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git"
-  },
-  "type": "module",
   "keywords": [
     "MPEG",
     "mp1",
@@ -43,6 +39,15 @@
     "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
   },
   "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git",
+    "directory": "src/mpg123-decoder"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/eshaz"
+  },
   "dependencies": {
     "@wasm-audio-decoders/common": "1.0.0"
   }

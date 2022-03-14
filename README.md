@@ -22,7 +22,7 @@ Decodes MPEG Layer I/II/III into PCM
 
 ### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 116.1 KiB minified bundle size
+  * 115.9 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
@@ -31,9 +31,10 @@ Decodes Ogg Opus data into PCM
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
 Decodes raw Opus audio frames into PCM
-  * 87.7 KiB minified bundle size
+  * 90.0 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
+  * Multichannel decoding (up to 255 channels)
   * Based on [`libopus`](https://github.com/xiph/opus)
   * Install using [NPM](https://www.npmjs.com/package/opus-decoder)
 
