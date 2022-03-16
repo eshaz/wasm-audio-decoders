@@ -135,22 +135,20 @@
     static inflateYencString(source, dest) {
       const output = new Uint8Array(source.length);
 
-      let continued = false,
+      let escaped = false,
         byteIndex = 0,
         byte;
 
       for (let i = 0; i < source.length; i++) {
         byte = source.charCodeAt(i);
 
-        if (byte === 13 || byte === 10) continue;
-
-        if (byte === 61 && !continued) {
-          continued = true;
+        if (byte === 61 && !escaped) {
+          escaped = true;
           continue;
         }
 
-        if (continued) {
-          continued = false;
+        if (escaped) {
+          escaped = false;
           byte -= 64;
         }
 
