@@ -1,9 +1,0 @@
-/audio
-/tmp
-.DS_Store
-node_modules
-.vscode
-
-coverage
-test/actual/*
-test/expected/*.wav
