@@ -1,6 +1,0 @@
-package-lock.json
-modules/
-demo/*.js
-dist
-coverage
-EmscriptenWasm.js
