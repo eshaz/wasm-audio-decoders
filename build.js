@@ -20,8 +20,7 @@ if (shouldCompress) {
     mem: 12,
   });
   // yEnc encoded wasm
-  const yencEncodedWasm = yenc.encode(wasmBufferCompressed);
-  const yencStringifiedWasm = yenc.stringify(yencEncodedWasm);
+  const dynEncodedWasm = yenc.dynamicEncode(wasmBufferCompressed, "`");
 
   // code before the wasm
   const startIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
@@ -33,8 +32,8 @@ if (shouldCompress) {
   decoder = Buffer.concat(
     [
       decoder.substring(0, startIdx),
-      'Module["wasm"] = WASMAudioDecoderCommon.inflateYencString(`',
-      yencStringifiedWasm,
+      'Module["wasm"] = WASMAudioDecoderCommon.inflateDynEncodeString(String.raw`',
+      dynEncodedWasm,
       `\`, new Uint8Array(${wasmBuffer.length}))`,
       decoder.substring(endIdx),
     ].map(Buffer.from)

@@ -122,14 +122,16 @@ export default class WASMAudioDecoderCommon {
    ******************
    */
 
-  static inflateYencString(source, dest) {
+  static inflateDynEncodeString(source, dest) {
     const output = new Uint8Array(source.length);
+    const offset = parseInt(source.substring(11, 13), 16);
+    const offsetReverse = 256 - offset;
 
     let escaped = false,
       byteIndex = 0,
       byte;
 
-    for (let i = 0; i < source.length; i++) {
+    for (let i = 13; i < source.length; i++) {
       byte = source.charCodeAt(i);
 
       if (byte === 61 && !escaped) {
@@ -142,7 +144,8 @@ export default class WASMAudioDecoderCommon {
         byte -= 64;
       }
 
-      output[byteIndex++] = byte < 42 && byte > 0 ? byte + 214 : byte - 42;
+      output[byteIndex++] =
+        byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
     }
 
     return WASMAudioDecoderCommon.inflate(output.subarray(0, byteIndex), dest);
