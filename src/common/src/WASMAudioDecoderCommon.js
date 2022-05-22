@@ -1,9 +1,7 @@
 export default function WASMAudioDecoderCommon(caller) {
   // setup static methods
-  if (!WASMAudioDecoderCommon.instances) {
+  if (!WASMAudioDecoderCommon.concatFloat32) {
     Object.defineProperties(WASMAudioDecoderCommon, {
-      instances: { value: new WeakMap() },
-
       concatFloat32: {
         value: (buffers, length) => {
           const ret = new Float32Array(length);
@@ -499,23 +497,6 @@ export default function WASMAudioDecoderCommon(caller) {
       this._wasm._free(this._pointers[i]);
     this._pointers.clear();
   };
-
-  // need to only cache wasm compilation, not instance
-  /*
-  let instance;
-
-  // new decoder instance
-  if (WASMAudioDecoderCommon.instances.has(caller._EmscriptenWASM)) {
-    // reuse existing compilation
-    instance = WASMAudioDecoderCommon.instances.get(caller._EmscriptenWASM);
-  } else {
-    // first compilation
-    instance = Object.create(methods);
-    instance._wasm = new caller._EmscriptenWASM(WASMAudioDecoderCommon);
-    instance._pointers = new Set();
-    WASMAudioDecoderCommon.instances.set(caller._EmscriptenWASM, instance);
-  }
-  */
 
   this._wasm = new caller._EmscriptenWASM(WASMAudioDecoderCommon);
   this._pointers = new Set();

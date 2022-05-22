@@ -7,6 +7,13 @@ const distPath = process.argv[2];
 let decoder = fs.readFileSync(distPath, { encoding: "ascii" });
 
 if (shouldCompress) {
+  // only compile wasm once
+  const wasmInstantiateMatcher = /WebAssembly\.instantiate\(.*?exports;/s;
+  decoder = decoder.replace(
+    decoder.match(wasmInstantiateMatcher)[0],
+    "EmscriptenWASM.compiled.then((wasm) => WebAssembly.instantiate(wasm, imports)).then(function(instance) {\n var asm = instance.exports;"
+  );
+
   const wasmBase64ContentMatcher =
     /Module\["wasm"\] = base64Decode\("(?<wasm>(.+))"\)/;
   const wasmBase64DeclarationMatcher = 'Module["wasm"] = base64Decode("';
@@ -23,19 +30,20 @@ if (shouldCompress) {
   const dynEncodedWasm = yenc.dynamicEncode(wasmBufferCompressed, "'");
 
   // code before the wasm
-  const startIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
+  const wasmStartIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
 
   // code after the wasm
-  const endIdx =
-    startIdx + wasmBase64DeclarationMatcher.length + wasmContent.length + 2;
+  const wasmEndIdx =
+    wasmStartIdx + wasmBase64DeclarationMatcher.length + wasmContent.length + 2;
 
   decoder = Buffer.concat(
     [
-      decoder.substring(0, startIdx),
-      'Module["wasm"] = WASMAudioDecoderCommon.inflateDynEncodeString(\'',
+      decoder.substring(0, wasmStartIdx),
+      'if (!EmscriptenWASM.compiled) Object.defineProperty(EmscriptenWASM, "compiled", {value: ',
+      "WebAssembly.compile(WASMAudioDecoderCommon.inflateDynEncodeString('",
       dynEncodedWasm,
-      `', new Uint8Array(${wasmBuffer.length}))`,
-      decoder.substring(endIdx),
+      `', new Uint8Array(${wasmBuffer.length})))})`,
+      decoder.substring(wasmEndIdx),
     ].map(Buffer.from)
   );
 }
@@ -53,7 +61,7 @@ const finalString = Buffer.concat(
     banner,
     "export default function EmscriptenWASM(WASMAudioDecoderCommon) {\n",
     decoder,
-    "return this;",
+    "return this;\n",
     "}",
   ].map(Buffer.from)
 );
