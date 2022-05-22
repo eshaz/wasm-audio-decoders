@@ -5,26 +5,25 @@ import EmscriptenWASM from "./EmscriptenWasm.js";
 export default function OggOpusDecoder(options = {}) {
   // static properties
   if (!OggOpusDecoder.errors) {
-    const errors = new Map();
     // prettier-ignore
-    errors.set(-1, "OP_FALSE: A request did not succeed."),
-    errors.set(-3, "OP_HOLE: There was a hole in the page sequence numbers (e.g., a page was corrupt or missing)."),
-    errors.set(-128, "OP_EREAD: An underlying read, seek, or tell operation failed when it should have succeeded."),
-    errors.set(-129, "OP_EFAULT: A NULL pointer was passed where one was unexpected, or an internal memory allocation failed, or an internal library error was encountered."),
-    errors.set(-130, "OP_EIMPL: The stream used a feature that is not implemented, such as an unsupported channel family."),
-    errors.set(-131, "OP_EINVAL: One or more parameters to a function were invalid."),
-    errors.set(-132, "OP_ENOTFORMAT: A purported Ogg Opus stream did not begin with an Ogg page, a purported header packet did not start with one of the required strings, \"OpusHead\" or \"OpusTags\", or a link in a chained file was encountered that did not contain any logical Opus streams."),
-    errors.set(-133, "OP_EBADHEADER: A required header packet was not properly formatted, contained illegal values, or was missing altogether."),
-    errors.set(-134, "OP_EVERSION: The ID header contained an unrecognized version number."),
-    errors.set(-136, "OP_EBADPACKET: An audio packet failed to decode properly. This is usually caused by a multistream Ogg packet where the durations of the individual Opus packets contained in it are not all the same."),
-    errors.set(-137, "OP_EBADLINK: We failed to find data we had seen before, or the bitstream structure was sufficiently malformed that seeking to the target destination was impossible."),
-    errors.set(-138, "OP_ENOSEEK: An operation that requires seeking was requested on an unseekable stream."),
-    errors.set(-139, "OP_EBADTIMESTAMP: The first or last granule position of a link failed basic validity checks."),
-    errors.set(-140, "Input buffer overflow");
-
     Object.defineProperties(OggOpusDecoder, {
       errors: {
-        value: errors,
+        value: new Map([
+          [-1, "OP_FALSE: A request did not succeed."],
+          [-3, "OP_HOLE: There was a hole in the page sequence numbers (e.g., a page was corrupt or missing)."],
+          [-128, "OP_EREAD: An underlying read, seek, or tell operation failed when it should have succeeded."],
+          [-129, "OP_EFAULT: A NULL pointer was passed where one was unexpected, or an internal memory allocation failed, or an internal library error was encountered."],
+          [-130, "OP_EIMPL: The stream used a feature that is not implemented, such as an unsupported channel family."],
+          [-131, "OP_EINVAL: One or more parameters to a function were invalid."],
+          [-132, "OP_ENOTFORMAT: A purported Ogg Opus stream did not begin with an Ogg page, a purported header packet did not start with one of the required strings, \"OpusHead\" or \"OpusTags\", or a link in a chained file was encountered that did not contain any logical Opus streams."],
+          [-133, "OP_EBADHEADER: A required header packet was not properly formatted, contained illegal values, or was missing altogether."],
+          [-134, "OP_EVERSION: The ID header contained an unrecognized version number."],
+          [-136, "OP_EBADPACKET: An audio packet failed to decode properly. This is usually caused by a multistream Ogg packet where the durations of the individual Opus packets contained in it are not all the same."],
+          [-137, "OP_EBADLINK: We failed to find data we had seen before, or the bitstream structure was sufficiently malformed that seeking to the target destination was impossible."],
+          [-138, "OP_ENOSEEK: An operation that requires seeking was requested on an unseekable stream."],
+          [-139, "OP_EBADTIMESTAMP: The first or last granule position of a link failed basic validity checks."],
+          [-140, "Input buffer overflow"],
+        ]),
       },
     });
   }

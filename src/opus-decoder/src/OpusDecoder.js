@@ -5,19 +5,18 @@ import EmscriptenWASM from "./EmscriptenWasm.js";
 export default function OpusDecoder(options = {}) {
   // static properties
   if (!OpusDecoder.errors) {
-    const errors = new Map();
     // prettier-ignore
-    errors.set(-1, "OPUS_BAD_ARG: One or more invalid/out of range arguments"),
-    errors.set(-2, "OPUS_BUFFER_TOO_SMALL: Not enough bytes allocated in the buffer"),
-    errors.set(-3, "OPUS_INTERNAL_ERROR: An internal error was detected"),
-    errors.set(-4, "OPUS_INVALID_PACKET: The compressed data passed is corrupted"),
-    errors.set(-5, "OPUS_UNIMPLEMENTED: Invalid/unsupported request number"),
-    errors.set(-6, "OPUS_INVALID_STATE: An encoder or decoder structure is invalid or already freed"),
-    errors.set(-7, "OPUS_ALLOC_FAIL: Memory allocation has failed");
-
     Object.defineProperties(OpusDecoder, {
       errors: {
-        value: errors,
+        value: new Map([
+          [-1, "OPUS_BAD_ARG: One or more invalid/out of range arguments"],
+          [-2, "OPUS_BUFFER_TOO_SMALL: Not enough bytes allocated in the buffer"],
+          [-3, "OPUS_INTERNAL_ERROR: An internal error was detected"],
+          [-4, "OPUS_INVALID_PACKET: The compressed data passed is corrupted"],
+          [-5, "OPUS_UNIMPLEMENTED: Invalid/unsupported request number"],
+          [-6, "OPUS_INVALID_STATE: An encoder or decoder structure is invalid or already freed"],
+          [-7, "OPUS_ALLOC_FAIL: Memory allocation has failed"],
+        ]),
       },
     });
   }

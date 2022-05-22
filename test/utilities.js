@@ -60,6 +60,7 @@ const printStats = ({
 
 export const testDecoder_decodeFrames = async (
   decoder,
+  decoderName,
   fileName,
   frames,
   framesLength,
@@ -71,9 +72,7 @@ export const testDecoder_decodeFrames = async (
     await output.writeFile(Buffer.alloc(44));
 
     // print the initial stats header
-    process.stderr.write(
-      "\n" + decoder.constructor.name + " " + fileName + "\n"
-    );
+    process.stderr.write("\n" + decoderName + " " + fileName + "\n");
 
     const decodeStart = performance.now();
     const { channelData, samplesDecoded, sampleRate } =
@@ -118,6 +117,7 @@ export const testDecoder_decodeFrames = async (
 
 export const testDecoder_decode = async (
   decoder,
+  decoderName,
   fileName,
   inputPath,
   outputPath
@@ -141,9 +141,7 @@ export const testDecoder_decode = async (
     await output.writeFile(Buffer.alloc(44));
 
     // print the initial stats header
-    process.stderr.write(
-      "\n" + decoder.constructor.name + " " + fileName + "\n"
-    );
+    process.stderr.write("\n" + decoderName + " " + fileName + "\n");
 
     while (true) {
       inStart = performance.now();
