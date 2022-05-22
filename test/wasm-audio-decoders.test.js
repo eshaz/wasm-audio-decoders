@@ -56,10 +56,11 @@ const test_decode_multipleFiles = async (DecoderClass, testParams) => {
 
   await decoder.ready;
 
-  for (const file of inputFiles) {
-    decoder.decode(file).then((result) => decodedFiles.push(result));
-    decoder.reset();
-  }
+  for (const file of inputFiles)
+    await decoder
+      .decode(file)
+      .then((result) => decodedFiles.push(result))
+      .then(() => decoder.reset());
 
   await decoder.free();
 

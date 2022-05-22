@@ -8,8 +8,7 @@ export default function WASMAudioDecoderCommon(caller) {
         value: (buffers, length) => {
           const ret = new Float32Array(length);
 
-          let offset = 0;
-          for (let i = 0; i < buffers.length; i++) {
+          for (let i = 0, offset = 0; i < buffers.length; i++) {
             ret.set(buffers[i], offset);
             offset += buffers[i].length;
           }
@@ -485,20 +484,26 @@ export default function WASMAudioDecoderCommon(caller) {
       return output;
     },
 
-    allocateTypedArray(length, TypedArray) {
-      const pointer = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * length);
-      const array = new TypedArray(this._wasm.HEAP, pointer, length);
+    allocateTypedArray(len, TypedArray) {
+      const ptr = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * len);
+      this._pointers.add(ptr);
 
-      this._pointers.add(pointer);
-      return [pointer, array];
+      return {
+        ptr: ptr,
+        len: len,
+        buf: new TypedArray(this._wasm.HEAP, ptr, len),
+      };
     },
 
     free() {
-      for (const pointer of this._pointers) this._wasm._free(pointer);
+      for (let i = 0; i < this._pointers.length; i++)
+        this._wasm._free(this._pointers[i]);
       this._pointers.clear();
     },
   };
 
+  // need to only cache wasm compilation, not instance
+  /*
   let instance;
 
   // new decoder instance
@@ -512,19 +517,20 @@ export default function WASMAudioDecoderCommon(caller) {
     instance._pointers = new Set();
     WASMAudioDecoderCommon.instances.set(caller._EmscriptenWASM, instance);
   }
+  */
+
+  const instance = Object.create(methods);
+  instance._wasm = new caller._EmscriptenWASM(WASMAudioDecoderCommon);
+  instance._pointers = new Set();
 
   return instance._wasm.ready.then(() => {
-    const input = instance.allocateTypedArray(caller._inputPtrSize, Uint8Array);
-    caller._inputPtr = input[0];
-    caller._input = input[1];
+    caller._input = instance.allocateTypedArray(caller._inputSize, Uint8Array);
 
     // output buffer
-    const output = instance.allocateTypedArray(
-      caller._outputChannels * caller._outputPtrSize,
+    caller._output = instance.allocateTypedArray(
+      caller._outputChannels * caller._outputChannelSize,
       Float32Array
     );
-    caller._outputPtr = output[0];
-    caller._output = output[1];
 
     return instance;
   });

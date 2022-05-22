@@ -34,9 +34,7 @@ export default function OggOpusDecoder(options = {}) {
       return new this._WASMAudioDecoderCommon(this).then((common) => {
         this._common = common;
 
-        const channelsDecoded = this._common.allocateTypedArray(1, Uint32Array);
-        this._channelsDecodedPtr = channelsDecoded[0];
-        this._channelsDecoded = channelsDecoded[1];
+        this._channelsDecoded = this._common.allocateTypedArray(1, Uint32Array);
 
         this._decoder = this._common.wasm._ogg_opus_decoder_create(
           this._forceStereo
@@ -73,21 +71,21 @@ export default function OggOpusDecoder(options = {}) {
           const dataToSend = data.subarray(
             offset,
             offset +
-              (this._inputPtrSize > data.length - offset
+              (this._input.len > data.length - offset
                 ? data.length - offset
-                : this._inputPtrSize)
+                : this._input.len)
           );
 
           offset += dataToSend.length;
 
-          this._input.set(dataToSend);
+          this._input.buf.set(dataToSend);
 
           const samplesDecoded = this._common.wasm._ogg_opus_decoder_decode(
             this._decoder,
-            this._inputPtr,
+            this._input.ptr,
             dataToSend.length,
-            this._channelsDecodedPtr,
-            this._outputPtr
+            this._channelsDecoded.ptr,
+            this._output.ptr
           );
 
           if (samplesDecoded < 0) throw { code: samplesDecoded };
@@ -95,8 +93,8 @@ export default function OggOpusDecoder(options = {}) {
           decodedSamples += samplesDecoded;
           output.push(
             this._common.getOutputChannels(
-              this._output,
-              this._channelsDecoded[0],
+              this._output.buf,
+              this._channelsDecoded.buf[0],
               samplesDecoded
             )
           );
@@ -114,7 +112,7 @@ export default function OggOpusDecoder(options = {}) {
 
       return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
         output,
-        this._channelsDecoded[0],
+        this._channelsDecoded.buf[0],
         decodedSamples,
         48000
       );
@@ -131,10 +129,10 @@ export default function OggOpusDecoder(options = {}) {
 
   instance._forceStereo = options.forceStereo || false;
 
-  instance._inputPtrSize = 32 * 1024;
+  instance._inputSize = 32 * 1024;
   // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
   // per channel
-  instance._outputPtrSize = 120 * 48 * 32; // 120ms @ 48 khz.
+  instance._outputChannelSize = 120 * 48 * 32; // 120ms @ 48 khz.
   instance._outputChannels = 8; // max opus output channels
 
   instance._ready = instance._init();

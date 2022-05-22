@@ -34,13 +34,13 @@ export default function OpusDecoder(options = {}) {
           Uint8Array
         );
 
-        mapping[1].set(this._channelMappingTable);
+        mapping.buf.set(this._channelMappingTable);
 
         this._decoder = this._common.wasm._opus_frame_decoder_create(
           this._channels,
           this._streamCount,
           this._coupledStreamCount,
-          mapping[0],
+          mapping.ptr,
           this._preSkip
         );
       });
@@ -68,14 +68,14 @@ export default function OpusDecoder(options = {}) {
           "Data to decode must be Uint8Array. Instead got " + typeof opusFrame
         );
 
-      this._input.set(opusFrame);
+      this._input.buf.set(opusFrame);
 
       const samplesDecoded =
         this._common.wasm._opus_frame_decode_float_deinterleaved(
           this._decoder,
-          this._inputPtr,
+          this._input.ptr,
           opusFrame.length,
-          this._outputPtr
+          this._output.ptr
         );
 
       if (samplesDecoded < 0) {
@@ -94,7 +94,7 @@ export default function OpusDecoder(options = {}) {
       const samplesDecoded = this._decode(opusFrame);
 
       return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        this._output,
+        this._output.buf,
         this._channels,
         samplesDecoded,
         48000
@@ -110,7 +110,7 @@ export default function OpusDecoder(options = {}) {
 
         outputBuffers.push(
           this._common.getOutputChannels(
-            this._output,
+            this._output.buf,
             this._channels,
             samplesDecoded
           )
@@ -161,8 +161,8 @@ export default function OpusDecoder(options = {}) {
     options.channelMappingTable || (instance._channels === 2 ? [0, 1] : [0]);
   instance._preSkip = options.preSkip || 0;
 
-  instance._inputPtrSize = 32000 * 0.12 * instance._channels; // 256kbs per channel
-  instance._outputPtrSize = 120 * 48;
+  instance._inputSize = 32000 * 0.12 * instance._channels; // 256kbs per channel
+  instance._outputChannelSize = 120 * 48;
   instance._outputChannels = instance._channels;
 
   instance._ready = instance._init();
