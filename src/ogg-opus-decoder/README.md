@@ -1,7 +1,7 @@
 # `ogg-opus-decoder`
 
 `ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder.
-  * 114.3 KiB minified bundle size
+  * 116.0 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
@@ -67,7 +67,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
    ```javascript
    // `reset()` clears the decoder state and allows you do decode a new stream of Ogg Opus data.
-   decoder.reset();
+   await decoder.reset();
 
    // `free()` de-allocates the memory used by the decoder. You will need to create a new instance after calling `free()` to start decoding again.
    decoder.free();

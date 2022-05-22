@@ -1,7 +1,7 @@
 # `opus-decoder`
 
 `opus-decoder` is a Web Assembly Opus audio decoder.
-  * 88.7 KiB minified bundle size
+  * 90.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`libopus`](https://github.com/xiph/opus)
@@ -67,7 +67,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
    ```javascript
    // `reset()` clears the decoder state and allows you do decode a new stream of Opus frames.
-   decoder.reset();
+   await decoder.reset();
 
    // `free()` de-allocates the memory used by the decoder. You will need to create a new instance after calling `free()` to start decoding again.
    decoder.free();

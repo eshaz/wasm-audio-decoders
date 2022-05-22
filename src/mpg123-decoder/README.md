@@ -1,7 +1,7 @@
 # `mpg123-decoder`
 
 `mpg123-decoder` is a Web Assembly MPEG Layer (I/II/III) audio decoder.
-  * 83.3 KiB minified bundle size
+  * 85.6 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`mpg123`](https://www.mpg123.de/)
@@ -70,7 +70,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
    ```javascript
    // `reset()` clears the decoder state and allows you do decode a new stream of MPEG data.
-   decoder.reset();
+   await decoder.reset();
 
    // `free()` de-allocates the memory used by the decoder. You will need to create a new instance after calling `free()` to start decoding again.
    decoder.free();
