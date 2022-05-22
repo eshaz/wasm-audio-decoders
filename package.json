@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build": "make clean && make -j8",
+    "minify": "node build.js $SOURCE_PATH/src/EmscriptenWasm.js && rollup $SOURCE_PATH/index.js --file $MODULE --config $SOURCE_PATH/rollup.config.js && terser --config-file $SOURCE_PATH/terser.json $MODULE -o $MODULE_MIN",
     "deploy": "gh-pages -d demo",
     "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.*ts'",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%",
