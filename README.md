@@ -14,7 +14,7 @@ Pre-built minified JS files are available from NPM and in each decoder's `dist` 
 
 ### [`mpg123-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder)
 Decodes MPEG Layer I/II/III into PCM
-  * 83.3 KiB minified bundle size
+  * 85.6 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`mpg123`](https://www.mpg123.de/)
@@ -22,7 +22,7 @@ Decodes MPEG Layer I/II/III into PCM
 
 ### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 114.3 KiB minified bundle size
+  * 116.0 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
@@ -31,7 +31,7 @@ Decodes Ogg Opus data into PCM
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
 Decodes raw Opus audio frames into PCM
-  * 88.7 KiB minified bundle size
+  * 90.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
@@ -47,6 +47,7 @@ Decodes raw Opus audio frames into PCM
 
 ### Building
 1. Make sure to `source` the Emscripten path in the terminal you want build in.
+   * i.e. `$ source path/to/emsdk/emsdk_env.sh`
 1. Run `git submodule update --init` to clone down the git sub-modules.
 1. Run `npm i` to install the build tool dependencies.
 1. Run `make clean` and `make` to build the libraries.

@@ -8,9 +8,11 @@ export default class WASMAudioDecoderWorker extends Worker {
       // dependencies need to be manually resolved when stringifying this function
       `(${((_options, _Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
         // We're in a Web Worker
-        _Decoder.WASMAudioDecoderCommon = _WASMAudioDecoderCommon;
-        _Decoder.EmscriptenWASM = _EmscriptenWASM;
-        _Decoder.isWebWorker = true;
+        Object.defineProperties(_Decoder, {
+          WASMAudioDecoderCommon: { value: _WASMAudioDecoderCommon },
+          EmscriptenWASM: { value: _EmscriptenWASM },
+          isWebWorker: { value: true },
+        });
 
         const decoder = new _Decoder(_options);
 
@@ -66,7 +68,7 @@ export default class WASMAudioDecoderWorker extends Worker {
         };
       }).toString()})(${JSON.stringify(
         options
-      )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
+      )}, ${Decoder.toString()}, ${WASMAudioDecoderCommon.toString()}, ${EmscriptenWASM.toString()})`;
 
     const type = "text/javascript";
     let source;

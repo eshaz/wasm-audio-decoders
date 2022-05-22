@@ -56,10 +56,11 @@ const test_decode_multipleFiles = async (DecoderClass, testParams) => {
 
   await decoder.ready;
 
-  for (const file of inputFiles) {
-    decoder.decode(file).then((result) => decodedFiles.push(result));
-    decoder.reset();
-  }
+  for (const file of inputFiles)
+    await decoder
+      .decode(file)
+      .then((result) => decodedFiles.push(result))
+      .then(() => decoder.reset());
 
   await decoder.free();
 
@@ -166,6 +167,24 @@ describe("wasm-audio-decoders", () => {
   });
 
   describe("mpg123-decoder", () => {
+    it("should have name as an instance and static property for MPEGDecoder", () => {
+      const decoder = new MPEGDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("MPEGDecoder");
+      expect(MPEGDecoder.name).toEqual("MPEGDecoder");
+    });
+
+    it("should have name as an instance and static property for MPEGDecoderWebWorker", () => {
+      const decoder = new MPEGDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("MPEGDecoderWebWorker");
+      expect(MPEGDecoderWebWorker.name).toEqual("MPEGDecoderWebWorker");
+    });
+
     it("should decode mpeg", async () => {
       const { paths, result } = await test_decode(
         new MPEGDecoder(),
@@ -503,6 +522,24 @@ describe("wasm-audio-decoders", () => {
         );
     });
 
+    it("should have name as an instance and static property for OpusDecoder", () => {
+      const decoder = new OpusDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OpusDecoder");
+      expect(OpusDecoder.name).toEqual("OpusDecoder");
+    });
+
+    it("should have name as an instance and static property for OpusDecoderWebWorker", () => {
+      const decoder = new OpusDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OpusDecoderWebWorker");
+      expect(OpusDecoderWebWorker.name).toEqual("OpusDecoderWebWorker");
+    });
+
     it("should decode opus frames", async () => {
       const { preSkip } = opusStereoHeader;
 
@@ -815,6 +852,24 @@ describe("wasm-audio-decoders", () => {
   });
 
   describe("ogg-opus-decoder", () => {
+    it("should have name as an instance and static property for OggOpusDecoder", () => {
+      const decoder = new OggOpusDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OggOpusDecoder");
+      expect(OggOpusDecoder.name).toEqual("OggOpusDecoder");
+    });
+
+    it("should have name as an instance and static property for OggOpusDecoderWebWorker", () => {
+      const decoder = new OggOpusDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OggOpusDecoderWebWorker");
+      expect(OggOpusDecoderWebWorker.name).toEqual("OggOpusDecoderWebWorker");
+    });
+
     it("should decode ogg opus", async () => {
       const { paths, result } = await test_decode(
         new OggOpusDecoder(),
@@ -853,12 +908,10 @@ describe("wasm-audio-decoders", () => {
     });
 
     it("should decode multi channel ogg opus as stereo when force stereo is enabled", async () => {
-      const decoder = new OggOpusDecoder({
-        forceStereo: true,
-      });
-
       const { paths, result } = await test_decode(
-        decoder,
+        new OggOpusDecoder({
+          forceStereo: true,
+        }),
         "should decode multi channel ogg opus",
         "ogg.opus.surround",
         "ogg.opus.surround.downmix"
@@ -914,12 +967,10 @@ describe("wasm-audio-decoders", () => {
     });
 
     it("should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker", async () => {
-      const decoder = new OggOpusDecoderWebWorker({
-        forceStereo: true,
-      });
-
       const { paths, result } = await test_decode(
-        decoder,
+        new OggOpusDecoderWebWorker({
+          forceStereo: true,
+        }),
         "should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker",
         "ogg.opus.surround",
         "ogg.opus.surround.downmix"
