@@ -464,42 +464,40 @@ export default function WASMAudioDecoderCommon(caller) {
     });
   }
 
-  // define instance methods
-  const methods = {
-    get wasm() {
-      return this._wasm;
-    },
+  Object.defineProperty(this, "wasm", {
+    enumerable: true,
+    get: () => this._wasm,
+  });
 
-    getOutputChannels(outputData, channelsDecoded, samplesDecoded) {
-      const output = [];
+  this.getOutputChannels = (outputData, channelsDecoded, samplesDecoded) => {
+    const output = [];
 
-      for (let i = 0; i < channelsDecoded; i++)
-        output.push(
-          outputData.slice(
-            i * samplesDecoded,
-            i * samplesDecoded + samplesDecoded
-          )
-        );
+    for (let i = 0; i < channelsDecoded; i++)
+      output.push(
+        outputData.slice(
+          i * samplesDecoded,
+          i * samplesDecoded + samplesDecoded
+        )
+      );
 
-      return output;
-    },
+    return output;
+  };
 
-    allocateTypedArray(len, TypedArray) {
-      const ptr = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * len);
-      this._pointers.add(ptr);
+  this.allocateTypedArray = (len, TypedArray) => {
+    const ptr = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * len);
+    this._pointers.add(ptr);
 
-      return {
-        ptr: ptr,
-        len: len,
-        buf: new TypedArray(this._wasm.HEAP, ptr, len),
-      };
-    },
+    return {
+      ptr: ptr,
+      len: len,
+      buf: new TypedArray(this._wasm.HEAP, ptr, len),
+    };
+  };
 
-    free() {
-      for (let i = 0; i < this._pointers.length; i++)
-        this._wasm._free(this._pointers[i]);
-      this._pointers.clear();
-    },
+  this.free = () => {
+    for (let i = 0; i < this._pointers.length; i++)
+      this._wasm._free(this._pointers[i]);
+    this._pointers.clear();
   };
 
   // need to only cache wasm compilation, not instance
@@ -519,19 +517,18 @@ export default function WASMAudioDecoderCommon(caller) {
   }
   */
 
-  const instance = Object.create(methods);
-  instance._wasm = new caller._EmscriptenWASM(WASMAudioDecoderCommon);
-  instance._pointers = new Set();
+  this._wasm = new caller._EmscriptenWASM(WASMAudioDecoderCommon);
+  this._pointers = new Set();
 
-  return instance._wasm.ready.then(() => {
-    caller._input = instance.allocateTypedArray(caller._inputSize, Uint8Array);
+  return this._wasm.ready.then(() => {
+    caller._input = this.allocateTypedArray(caller._inputSize, Uint8Array);
 
     // output buffer
-    caller._output = instance.allocateTypedArray(
+    caller._output = this.allocateTypedArray(
       caller._outputChannels * caller._outputChannelSize,
       Float32Array
     );
 
-    return instance;
+    return this;
   });
 }

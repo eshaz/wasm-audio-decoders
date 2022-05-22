@@ -28,113 +28,110 @@ export default function OggOpusDecoder(options = {}) {
     });
   }
 
-  const methods = {
-    _init() {
-      return new this._WASMAudioDecoderCommon(this).then((common) => {
-        this._common = common;
+  this._init = () => {
+    return new this._WASMAudioDecoderCommon(this).then((common) => {
+      this._common = common;
 
-        this._channelsDecoded = this._common.allocateTypedArray(1, Uint32Array);
+      this._channelsDecoded = this._common.allocateTypedArray(1, Uint32Array);
 
-        this._decoder = this._common.wasm._ogg_opus_decoder_create(
-          this._forceStereo
-        );
-      });
-    },
-
-    get ready() {
-      return this._ready;
-    },
-
-    reset() {
-      this.free();
-      return this._init();
-    },
-
-    free() {
-      this._common.wasm._ogg_opus_decoder_free(this._decoder);
-      this._common.free();
-    },
-
-    decode(data) {
-      if (!(data instanceof Uint8Array))
-        throw Error(
-          `Data to decode must be Uint8Array. Instead got ${typeof data}`
-        );
-
-      let output = [],
-        decodedSamples = 0,
-        offset = 0;
-
-      try {
-        while (offset < data.length) {
-          const dataToSend = data.subarray(
-            offset,
-            offset +
-              (this._input.len > data.length - offset
-                ? data.length - offset
-                : this._input.len)
-          );
-
-          offset += dataToSend.length;
-
-          this._input.buf.set(dataToSend);
-
-          const samplesDecoded = this._common.wasm._ogg_opus_decoder_decode(
-            this._decoder,
-            this._input.ptr,
-            dataToSend.length,
-            this._channelsDecoded.ptr,
-            this._output.ptr
-          );
-
-          if (samplesDecoded < 0) throw { code: samplesDecoded };
-
-          decodedSamples += samplesDecoded;
-          output.push(
-            this._common.getOutputChannels(
-              this._output.buf,
-              this._channelsDecoded.buf[0],
-              samplesDecoded
-            )
-          );
-        }
-      } catch (e) {
-        if (e.code)
-          throw new Error(
-            "libopusfile " +
-              e.code +
-              " " +
-              (OggOpusDecoder.errors.get(e.code) || "Unknown Error")
-          );
-        throw e;
-      }
-
-      return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        output,
-        this._channelsDecoded.buf[0],
-        decodedSamples,
-        48000
+      this._decoder = this._common.wasm._ogg_opus_decoder_create(
+        this._forceStereo
       );
-    },
+    });
   };
 
-  const instance = Object.create(methods);
+  Object.defineProperty(this, "ready", {
+    enumerable: true,
+    get: () => this._ready,
+  });
+
+  this.reset = () => {
+    this.free();
+    return this._init();
+  };
+
+  this.free = () => {
+    this._common.wasm._ogg_opus_decoder_free(this._decoder);
+    this._common.free();
+  };
+
+  this.decode = (data) => {
+    if (!(data instanceof Uint8Array))
+      throw Error(
+        `Data to decode must be Uint8Array. Instead got ${typeof data}`
+      );
+
+    let output = [],
+      decodedSamples = 0,
+      offset = 0;
+
+    try {
+      while (offset < data.length) {
+        const dataToSend = data.subarray(
+          offset,
+          offset +
+            (this._input.len > data.length - offset
+              ? data.length - offset
+              : this._input.len)
+        );
+
+        offset += dataToSend.length;
+
+        this._input.buf.set(dataToSend);
+
+        const samplesDecoded = this._common.wasm._ogg_opus_decoder_decode(
+          this._decoder,
+          this._input.ptr,
+          dataToSend.length,
+          this._channelsDecoded.ptr,
+          this._output.ptr
+        );
+
+        if (samplesDecoded < 0) throw { code: samplesDecoded };
+
+        decodedSamples += samplesDecoded;
+        output.push(
+          this._common.getOutputChannels(
+            this._output.buf,
+            this._channelsDecoded.buf[0],
+            samplesDecoded
+          )
+        );
+      }
+    } catch (e) {
+      if (e.code)
+        throw new Error(
+          "libopusfile " +
+            e.code +
+            " " +
+            (OggOpusDecoder.errors.get(e.code) || "Unknown Error")
+        );
+      throw e;
+    }
+
+    return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      output,
+      this._channelsDecoded.buf[0],
+      decodedSamples,
+      48000
+    );
+  };
 
   // injects dependencies when running as a web worker
-  instance._isWebWorker = OggOpusDecoder.isWebWorker;
-  instance._WASMAudioDecoderCommon =
+  this._isWebWorker = OggOpusDecoder.isWebWorker;
+  this._WASMAudioDecoderCommon =
     OggOpusDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-  instance._EmscriptenWASM = OggOpusDecoder.EmscriptenWASM || EmscriptenWASM;
+  this._EmscriptenWASM = OggOpusDecoder.EmscriptenWASM || EmscriptenWASM;
 
-  instance._forceStereo = options.forceStereo || false;
+  this._forceStereo = options.forceStereo || false;
 
-  instance._inputSize = 32 * 1024;
+  this._inputSize = 32 * 1024;
   // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
   // per channel
-  instance._outputChannelSize = 120 * 48 * 32; // 120ms @ 48 khz.
-  instance._outputChannels = 8; // max opus output channels
+  this._outputChannelSize = 120 * 48 * 32; // 120ms @ 48 khz.
+  this._outputChannels = 8; // max opus output channels
 
-  instance._ready = instance._init();
+  this._ready = this._init();
 
-  return instance;
+  return this;
 }

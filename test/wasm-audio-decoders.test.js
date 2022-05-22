@@ -28,25 +28,13 @@ const getTestPaths = (fileName, outputFileName, isWorker = false) => ({
   expectedPath: path.join(EXPECTED_PATH, (outputFileName || fileName) + ".wav"),
 });
 
-const test_decode = async (
-  decoder,
-  decoderName,
-  testName,
-  fileName,
-  outputFileName
-) => {
+const test_decode = async (decoder, testName, fileName, outputFileName) => {
   try {
     const isWorker = decoder.constructor.name.match(/WebWorker/);
     const paths = getTestPaths(fileName, outputFileName, isWorker);
 
     const result = await decoder.ready.then(() =>
-      testDecoder_decode(
-        decoder,
-        decoderName,
-        testName,
-        paths.inputPath,
-        paths.actualPath
-      )
+      testDecoder_decode(decoder, testName, paths.inputPath, paths.actualPath)
     );
 
     return { paths, result };
@@ -105,7 +93,6 @@ const test_decode_multipleFiles = async (DecoderClass, testParams) => {
 
 const test_decodeFrames = async (
   decoder,
-  decoderName,
   testName,
   fileName,
   frames,
@@ -117,7 +104,6 @@ const test_decodeFrames = async (
   const result = await decoder.ready.then(() =>
     testDecoder_decodeFrames(
       decoder,
-      decoderName,
       testName,
       frames,
       framesLength,
@@ -181,10 +167,27 @@ describe("wasm-audio-decoders", () => {
   });
 
   describe("mpg123-decoder", () => {
+    it("should have name as an instance and static property for MPEGDecoder", () => {
+      const decoder = new MPEGDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("MPEGDecoder");
+      expect(MPEGDecoder.name).toEqual("MPEGDecoder");
+    });
+
+    it("should have name as an instance and static property for MPEGDecoderWebWorker", () => {
+      const decoder = new MPEGDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("MPEGDecoderWebWorker");
+      expect(MPEGDecoderWebWorker.name).toEqual("MPEGDecoderWebWorker");
+    });
+
     it("should decode mpeg", async () => {
       const { paths, result } = await test_decode(
         new MPEGDecoder(),
-        "MPEGDecoder",
         "should decode mpeg",
         "mpeg.cbr.mp3"
       );
@@ -203,7 +206,6 @@ describe("wasm-audio-decoders", () => {
     it("should decode mpeg in a web worker", async () => {
       const { paths, result } = await test_decode(
         new MPEGDecoderWebWorker(),
-        "MPEGDecoderWebWorker",
         "should decode mpeg in a web worker",
         "mpeg.cbr.mp3"
       );
@@ -255,7 +257,6 @@ describe("wasm-audio-decoders", () => {
       it("should decode mpeg frames", async () => {
         const { paths, result } = await test_decodeFrames(
           new MPEGDecoder(),
-          "MPEGDecoder",
           "should decode mpeg frames in a web worker",
           "frames.mpeg.cbr.mp3",
           frames,
@@ -276,7 +277,6 @@ describe("wasm-audio-decoders", () => {
       it("should decode mpeg frames in a web worker", async () => {
         const { paths, result } = await test_decodeFrames(
           new MPEGDecoderWebWorker(),
-          "MPEGDecoderWebWorker",
           "should decode mpeg frames in a web worker",
           "frames.mpeg.cbr.mp3",
           frames,
@@ -366,25 +366,21 @@ describe("wasm-audio-decoders", () => {
         ] = await Promise.all([
           test_decode(
             new MPEGDecoderWebWorker(),
-            "MPEGDecoderWebWorker",
             "should decode parallel.1.mp3 in it's own thread",
             "parallel.1.mp3"
           ),
           test_decode(
             new MPEGDecoderWebWorker(),
-            "MPEGDecoderWebWorker",
             "should decode parallel.2.mp3 in it's own thread",
             "parallel.2.mp3"
           ),
           test_decode(
             new MPEGDecoderWebWorker(),
-            "MPEGDecoderWebWorker",
             "should decode parallel.3.mp3 in it's own thread",
             "parallel.3.mp3"
           ),
           test_decode(
             new MPEGDecoderWebWorker(),
-            "MPEGDecoderWebWorker",
             "should decode parallel.4.mp3 in it's own thread",
             "parallel.4.mp3"
           ),
@@ -526,6 +522,24 @@ describe("wasm-audio-decoders", () => {
         );
     });
 
+    it("should have name as an instance and static property for OpusDecoder", () => {
+      const decoder = new OpusDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OpusDecoder");
+      expect(OpusDecoder.name).toEqual("OpusDecoder");
+    });
+
+    it("should have name as an instance and static property for OpusDecoderWebWorker", () => {
+      const decoder = new OpusDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OpusDecoderWebWorker");
+      expect(OpusDecoderWebWorker.name).toEqual("OpusDecoderWebWorker");
+    });
+
     it("should decode opus frames", async () => {
       const { preSkip } = opusStereoHeader;
 
@@ -533,7 +547,6 @@ describe("wasm-audio-decoders", () => {
         new OpusDecoder({
           preSkip,
         }),
-        "OpusDecoder",
         "should decode opus frames",
         "frames." + opusStereoTestFile,
         opusStereoFrames,
@@ -556,7 +569,6 @@ describe("wasm-audio-decoders", () => {
         new OpusDecoderWebWorker({
           preSkip,
         }),
-        "OpusDecoderWebWorker",
         "should decode opus frames in a web worker",
         "frames." + opusStereoTestFile,
         opusStereoFrames,
@@ -591,7 +603,6 @@ describe("wasm-audio-decoders", () => {
             streamCount,
             preSkip,
           }),
-          "OpusDecoder",
           "should decode 5.1 channel opus frames",
           "frames." + opusSurroundTestFile,
           opusSurroundFrames,
@@ -624,7 +635,6 @@ describe("wasm-audio-decoders", () => {
             streamCount,
             preSkip,
           }),
-          "OpusDecoderWebWorker",
           "should decode 5.1 channel opus frames in a web worker",
           "frames." + opusSurroundTestFile,
           opusSurroundFrames,
@@ -659,7 +669,6 @@ describe("wasm-audio-decoders", () => {
             streamCount,
             preSkip,
           }),
-          "OpusDecoder",
           "should decode 32 channel opus frames",
           opus32TestFile,
           opus32Frames,
@@ -692,7 +701,6 @@ describe("wasm-audio-decoders", () => {
             streamCount,
             preSkip,
           }),
-          "OpusDecoderWebWorker",
           "should decode 32 channel opus frames in a web worker",
           opus32TestFile,
           opus32Frames,
@@ -727,7 +735,6 @@ describe("wasm-audio-decoders", () => {
             streamCount,
             preSkip,
           }),
-          "OpusDecoder",
           "should decode 64 channel opus frames",
           opus64TestFile,
           opus64Frames,
@@ -760,7 +767,6 @@ describe("wasm-audio-decoders", () => {
             streamCount,
             preSkip,
           }),
-          "OpusDecoderWebWorker",
           "should decode 64 channel opus frames in a web worker",
           opus64TestFile,
           opus64Frames,
@@ -795,7 +801,6 @@ describe("wasm-audio-decoders", () => {
             streamCount,
             preSkip,
           }),
-          "OpusDecoder",
           "should decode 255 channel opus frames",
           opus255TestFile,
           opus255Frames,
@@ -828,7 +833,6 @@ describe("wasm-audio-decoders", () => {
             streamCount,
             preSkip,
           }),
-          "OpusDecoderWebWorker",
           "should decode 255 channel opus frames in a web worker",
           opus255TestFile,
           opus255Frames,
@@ -848,10 +852,27 @@ describe("wasm-audio-decoders", () => {
   });
 
   describe("ogg-opus-decoder", () => {
+    it("should have name as an instance and static property for OggOpusDecoder", () => {
+      const decoder = new OggOpusDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OggOpusDecoder");
+      expect(OggOpusDecoder.name).toEqual("OggOpusDecoder");
+    });
+
+    it("should have name as an instance and static property for OggOpusDecoderWebWorker", () => {
+      const decoder = new OggOpusDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OggOpusDecoderWebWorker");
+      expect(OggOpusDecoderWebWorker.name).toEqual("OggOpusDecoderWebWorker");
+    });
+
     it("should decode ogg opus", async () => {
       const { paths, result } = await test_decode(
         new OggOpusDecoder(),
-        "OggOpusDecoder",
         "should decode ogg opus",
         "ogg.opus"
       );
@@ -870,7 +891,6 @@ describe("wasm-audio-decoders", () => {
     it("should decode multi channel ogg opus", async () => {
       const { paths, result } = await test_decode(
         new OggOpusDecoder(),
-        "OggOpusDecoder",
         "should decode multi channel ogg opus",
         "ogg.opus.surround"
       );
@@ -892,7 +912,6 @@ describe("wasm-audio-decoders", () => {
         new OggOpusDecoder({
           forceStereo: true,
         }),
-        "OggOpusDecoder",
         "should decode multi channel ogg opus",
         "ogg.opus.surround",
         "ogg.opus.surround.downmix"
@@ -913,7 +932,6 @@ describe("wasm-audio-decoders", () => {
     it("should decode ogg opus in a web worker", async () => {
       const { paths, result } = await test_decode(
         new OggOpusDecoderWebWorker(),
-        "OggOpusDecoderWebWorker",
         "should decode ogg opus in a web worker",
         "ogg.opus"
       );
@@ -932,7 +950,6 @@ describe("wasm-audio-decoders", () => {
     it("should decode multi channel ogg opus in a web worker", async () => {
       const { paths, result } = await test_decode(
         new OggOpusDecoderWebWorker(),
-        "OggOpusDecoderWebWorker",
         "should decode multi channel ogg opus in a web worker",
         "ogg.opus.surround"
       );
@@ -954,7 +971,6 @@ describe("wasm-audio-decoders", () => {
         new OggOpusDecoderWebWorker({
           forceStereo: true,
         }),
-        "OggOpusDecoderWebWorker",
         "should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker",
         "ogg.opus.surround",
         "ogg.opus.surround.downmix"
@@ -976,7 +992,6 @@ describe("wasm-audio-decoders", () => {
       try {
         const { paths, result } = await test_decode(
           new OggOpusDecoder(),
-          "OggOpusDecoder",
           "should decode ogg opus",
           "ogg.opus.32.ogg"
         );
