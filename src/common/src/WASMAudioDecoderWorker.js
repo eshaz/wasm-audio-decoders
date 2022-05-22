@@ -70,8 +70,6 @@ export default class WASMAudioDecoderWorker extends Worker {
         options
       )}, ${Decoder.toString()}, ${WASMAudioDecoderCommon.toString()}, ${EmscriptenWASM.toString()})`;
 
-    console.log(WASMAudioDecoderCommon);
-
     const type = "text/javascript";
     let source;
 
