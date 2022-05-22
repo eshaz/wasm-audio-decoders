@@ -2,137 +2,145 @@ import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
-export default class MPEGDecoder {
-  constructor(options = {}) {
+export default function MPEGDecoder(options = {}) {
+  const methods = {
     // injects dependencies when running as a web worker
-    this._isWebWorker = this.constructor.isWebWorker;
-    this._WASMAudioDecoderCommon =
-      this.constructor.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-    this._EmscriptenWASM = this.constructor.EmscriptenWASM || EmscriptenWASM;
+    // async
+    _init() {
+      return new this._WASMAudioDecoderCommon(this).then((common) => {
+        this._common = common;
 
-    this._inputPtrSize = 2 ** 18;
-    this._outputPtrSize = 1152 * 512;
-    this._outputChannels = 2;
+        this._sampleRate = 0;
 
-    this._ready = this._init();
-  }
+        // input decoded bytes pointer
+        const decodedBytes = this._common.allocateTypedArray(1, Uint32Array);
+        this._decodedBytesPtr = decodedBytes[0];
+        this._decodedBytes = decodedBytes[1];
+
+        // sample rate
+        const sampleRate = this._common.allocateTypedArray(1, Uint32Array);
+        this._sampleRateBytePtr = sampleRate[0];
+        this._sampleRateByte = sampleRate[1];
+
+        this._decoder = this._common.wasm._mpeg_frame_decoder_create();
+      });
+    },
+
+    get ready() {
+      return this._ready;
+    },
+
+    // async
+    reset() {
+      this.free();
+      return this._init();
+    },
+
+    free() {
+      this._common.wasm._mpeg_frame_decoder_destroy(this._decoder);
+      this._common.wasm._free(this._decoder);
+
+      this._common.free();
+    },
+
+    _decode(data, decodeInterval) {
+      if (!(data instanceof Uint8Array))
+        throw Error(
+          `Data to decode must be Uint8Array. Instead got ${typeof data}`
+        );
+
+      this._input.set(data);
+      this._decodedBytes[0] = 0;
+
+      const samplesDecoded = this._common.wasm._mpeg_decode_interleaved(
+        this._decoder,
+        this._inputPtr,
+        data.length,
+        this._decodedBytesPtr,
+        decodeInterval,
+        this._outputPtr,
+        this._outputPtrSize,
+        this._sampleRateBytePtr
+      );
+
+      this._sampleRate = this._sampleRateByte[0];
+
+      return this._WASMAudioDecoderCommon.getDecodedAudio(
+        [
+          this._output.slice(0, samplesDecoded),
+          this._output.slice(
+            this._outputPtrSize,
+            this._outputPtrSize + samplesDecoded
+          ),
+        ],
+        samplesDecoded,
+        this._sampleRate
+      );
+    },
+
+    decode(data) {
+      let output = [],
+        samples = 0;
+
+      for (
+        let offset = 0;
+        offset < data.length;
+        offset += this._decodedBytes[0]
+      ) {
+        const decoded = this._decode(
+          data.subarray(offset, offset + this._inputPtrSize),
+          48
+        );
+
+        output.push(decoded.channelData);
+        samples += decoded.samplesDecoded;
+      }
+
+      return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+        output,
+        2,
+        samples,
+        this._sampleRate
+      );
+    },
+
+    decodeFrame(mpegFrame) {
+      return this._decode(mpegFrame, mpegFrame.length);
+    },
+
+    decodeFrames(mpegFrames) {
+      let output = [],
+        samples = 0;
+
+      for (let i = 0; i < mpegFrames.length; i++) {
+        const decoded = this.decodeFrame(mpegFrames[i]);
+
+        output.push(decoded.channelData);
+        samples += decoded.samplesDecoded;
+      }
+
+      return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+        output,
+        2,
+        samples,
+        this._sampleRate
+      );
+    },
+  };
+
+  // constructor
+  const instance = Object.create(methods);
 
   // injects dependencies when running as a web worker
-  async _init() {
-    this._common = await this._WASMAudioDecoderCommon.initWASMAudioDecoder.bind(
-      this
-    )();
+  instance._isWebWorker = MPEGDecoder.isWebWorker;
+  instance._WASMAudioDecoderCommon =
+    MPEGDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+  instance._EmscriptenWASM = MPEGDecoder.EmscriptenWASM || EmscriptenWASM;
 
-    this._sampleRate = 0;
+  instance._inputPtrSize = 2 ** 18;
+  instance._outputPtrSize = 1152 * 512;
+  instance._outputChannels = 2;
 
-    // input decoded bytes pointer
-    [this._decodedBytesPtr, this._decodedBytes] =
-      this._common.allocateTypedArray(1, Uint32Array);
-
-    // sample rate
-    [this._sampleRateBytePtr, this._sampleRateByte] =
-      this._common.allocateTypedArray(1, Uint32Array);
-
-    this._decoder = this._wasm._mpeg_frame_decoder_create();
-  }
-
-  get ready() {
-    return this._ready;
-  }
-
-  async reset() {
-    this.free();
-    await this._init();
-  }
-
-  free() {
-    this._wasm._mpeg_frame_decoder_destroy(this._decoder);
-    this._wasm._free(this._decoder);
-
-    this._common.free();
-  }
-
-  _decode(data, decodeInterval) {
-    if (!(data instanceof Uint8Array))
-      throw Error(
-        `Data to decode must be Uint8Array. Instead got ${typeof data}`
-      );
-
-    this._input.set(data);
-    this._decodedBytes[0] = 0;
-
-    const samplesDecoded = this._wasm._mpeg_decode_interleaved(
-      this._decoder,
-      this._inputPtr,
-      data.length,
-      this._decodedBytesPtr,
-      decodeInterval,
-      this._outputPtr,
-      this._outputPtrSize,
-      this._sampleRateBytePtr
-    );
-
-    this._sampleRate = this._sampleRateByte[0];
-
-    return this._WASMAudioDecoderCommon.getDecodedAudio(
-      [
-        this._output.slice(0, samplesDecoded),
-        this._output.slice(
-          this._outputPtrSize,
-          this._outputPtrSize + samplesDecoded
-        ),
-      ],
-      samplesDecoded,
-      this._sampleRate
-    );
-  }
-
-  decode(data) {
-    let output = [],
-      samples = 0;
-
-    for (
-      let offset = 0;
-      offset < data.length;
-      offset += this._decodedBytes[0]
-    ) {
-      const { channelData, samplesDecoded } = this._decode(
-        data.subarray(offset, offset + this._inputPtrSize),
-        48
-      );
-
-      output.push(channelData);
-      samples += samplesDecoded;
-    }
-
-    return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      output,
-      2,
-      samples,
-      this._sampleRate
-    );
-  }
-
-  decodeFrame(mpegFrame) {
-    return this._decode(mpegFrame, mpegFrame.length);
-  }
-
-  decodeFrames(mpegFrames) {
-    let output = [],
-      samples = 0;
-
-    for (const frame of mpegFrames) {
-      const { channelData, samplesDecoded } = this.decodeFrame(frame);
-
-      output.push(channelData);
-      samples += samplesDecoded;
-    }
-
-    return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      output,
-      2,
-      samples,
-      this._sampleRate
-    );
-  }
+  instance._ready = instance._init();
+  return instance;
 }

@@ -47,6 +47,7 @@ Decodes raw Opus audio frames into PCM
 
 ### Building
 1. Make sure to `source` the Emscripten path in the terminal you want build in.
+   * i.e. `$ source path/to/emsdk/emsdk_env.sh`
 1. Run `git submodule update --init` to clone down the git sub-modules.
 1. Run `npm i` to install the build tool dependencies.
 1. Run `make clean` and `make` to build the libraries.
