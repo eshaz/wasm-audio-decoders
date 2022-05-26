@@ -229,6 +229,7 @@ define MPG123_EMCC_OPTS
   ,	'_mpeg_frame_decoder_destroy' \
   ,	'_mpeg_decode_interleaved' \
 ]" \
+-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
 --pre-js '$(MPG123_DECODER_PATH)/src/emscripten-pre.js' \
 --post-js '$(MPG123_DECODER_PATH)/src/emscripten-post.js' \
 -I "$(MPG123_SRC)/src/libmpg123" \
@@ -310,6 +311,7 @@ $(MPG123_WASM_LIB):
 	  -r \
 	  -Oz \
 	  -flto \
+	  -Wno-macro-redefined \
 	  -s NO_DYNAMIC_EXECUTION=1 \
 	  -s NO_FILESYSTEM=1 \
 	  -s STRICT=1 \
@@ -318,7 +320,6 @@ $(MPG123_WASM_LIB):
 	  -I "$(MPG123_SRC)/src/libmpg123" \
 	  -I "$(MPG123_SRC)/src/compat" \
 	  -I "$(MPG123_DECODER_PATH)/src/mpg123" \
-	  $(MPG123_SRC)/src/compat/compat.c \
   	  $(MPG123_SRC)/src/libmpg123/parse.c \
   	  $(MPG123_SRC)/src/libmpg123/frame.c \
   	  $(MPG123_SRC)/src/libmpg123/format.c \

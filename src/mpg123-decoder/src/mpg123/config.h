@@ -527,3 +527,5 @@
 
 /* Define to `unsigned long' if <sys/types.h> does not define. */
 /* #undef uintptr_t */
+
+#define NOQUIET 0
