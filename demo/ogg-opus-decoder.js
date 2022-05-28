@@ -697,6 +697,7 @@
 
   function _emscripten_resize_heap(requestedSize) {
    HEAPU8.length;
+   requestedSize = requestedSize >>> 0;
    abortOnCannotGrowMemory();
   }
 

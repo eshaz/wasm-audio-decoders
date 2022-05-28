@@ -25,7 +25,6 @@ if (shouldCompress) {
   const wasmBufferCompressed = Zopfli.deflateSync(wasmBuffer, {
     numiterations: 45,
     blocksplitting: true,
-    blocksplittinglast: true,
     blocksplittingmax: 0,
   });
 

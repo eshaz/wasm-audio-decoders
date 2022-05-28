@@ -65,8 +65,6 @@ mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 	npm run minify
 	cp $(MPG123_MODULE) $(DEMO_PATH)
 
-# node build.js $(MPG123_DECODER_PATH)/src/EmscriptenWasm.js
-
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
