@@ -65,8 +65,6 @@ mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 	npm run minify
 	cp $(MPG123_MODULE) $(DEMO_PATH)
 
-# node build.js $(MPG123_DECODER_PATH)/src/EmscriptenWasm.js
-
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
@@ -87,12 +85,11 @@ define EMCC_OPTS
 -O3 \
 --minify 0 \
 -flto \
--s BINARYEN_EXTRA_PASSES="-O4" \
+-s BINARYEN_EXTRA_PASSES="-O4,--flexible-inline-max-function-size,--dae-optimizing,-ffm,--coalesce-locals-learning,--optimize-instructions,--rse,--reorder-functions,--reorder-functions,--reorder-locals,--merge-blocks,--merge-locals,--simplify-globals-optimizing,--licm,--vacuum,--converge,--fuzz-exec" \
 -s MINIMAL_RUNTIME=2 \
 -s TEXTDECODER=2 \
 -s SUPPORT_ERRNO=0 \
 -s SINGLE_FILE=1 \
--s SUPPORT_LONGJMP=0 \
 -s MALLOC="emmalloc" \
 -s NO_FILESYSTEM=1 \
 -s ENVIRONMENT=web,worker \
