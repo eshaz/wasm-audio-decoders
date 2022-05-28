@@ -1,6 +1,6 @@
 import fs from "fs";
 import yenc from "simple-yenc";
-import { deflateSync } from "fflate";
+import Zopfli from "node-zopfli";
 
 const shouldCompress = true;
 const distPath = process.argv[2];
@@ -22,9 +22,11 @@ if (shouldCompress) {
   const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
   // compressed buffer
   const wasmBuffer = Uint8Array.from(Buffer.from(wasmContent, "base64"));
-  const wasmBufferCompressed = deflateSync(wasmBuffer, {
-    level: 9,
-    mem: 12,
+  const wasmBufferCompressed = Zopfli.deflateSync(wasmBuffer, {
+    numiterations: 45,
+    blocksplitting: true,
+    blocksplittinglast: true,
+    blocksplittingmax: 0,
   });
 
   // yEnc encoded wasm
