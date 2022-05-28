@@ -26,8 +26,20 @@ if (shouldCompress) {
     level: 9,
     mem: 12,
   });
+
   // yEnc encoded wasm
-  const dynEncodedWasm = yenc.dynamicEncode(wasmBufferCompressed, "'");
+  const dynEncodedSingleWasm = {
+    wasm: yenc.dynamicEncode(wasmBufferCompressed, "'"),
+    quote: "'",
+  };
+  const dynEncodedDoubleWasm = {
+    wasm: yenc.dynamicEncode(wasmBufferCompressed, '"'),
+    quote: '"',
+  };
+  const dynEncodedWasm =
+    dynEncodedDoubleWasm.wasm.length > dynEncodedSingleWasm.wasm.length
+      ? dynEncodedSingleWasm
+      : dynEncodedDoubleWasm;
 
   // code before the wasm
   const wasmStartIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
@@ -40,9 +52,11 @@ if (shouldCompress) {
     [
       decoder.substring(0, wasmStartIdx),
       'if (!EmscriptenWASM.compiled) Object.defineProperty(EmscriptenWASM, "compiled", {value: ',
-      "WebAssembly.compile(WASMAudioDecoderCommon.inflateDynEncodeString('",
-      dynEncodedWasm,
-      `', new Uint8Array(${wasmBuffer.length})))})`,
+      "WebAssembly.compile(WASMAudioDecoderCommon.inflateDynEncodeString(",
+      dynEncodedWasm.quote,
+      dynEncodedWasm.wasm,
+      dynEncodedWasm.quote,
+      `, new Uint8Array(${wasmBuffer.length})))})`,
       decoder.substring(wasmEndIdx),
     ].map(Buffer.from)
   );
