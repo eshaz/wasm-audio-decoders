@@ -14,7 +14,7 @@ Pre-built minified JS files are available from NPM and in each decoder's `dist` 
 
 ### [`mpg123-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder)
 Decodes MPEG Layer I/II/III into PCM
-  * 71.1 KiB minified bundle size
+  * 70.9 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`mpg123`](https://www.mpg123.de/)
@@ -22,7 +22,7 @@ Decodes MPEG Layer I/II/III into PCM
 
 ### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 108.2 KiB minified bundle size
+  * 107.7 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
@@ -31,7 +31,7 @@ Decodes Ogg Opus data into PCM
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
 Decodes raw Opus audio frames into PCM
-  * 82.8 KiB minified bundle size
+  * 82.4 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)

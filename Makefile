@@ -2,44 +2,46 @@ default: dist
 
 clean: dist-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
-DEMO_PATH=demo
+DEMO_PATH=demo/
 
 dist: opus-decoder ogg-opus-decoder mpg123-decoder
 dist-clean:
-	rm -rf $(DEMO_PATH)/*.js
-	rm -rf $(OPUS_DECODER_PATH)/dist/*
-	rm -rf $(OGG_OPUS_DECODER_PATH)/dist/*
-	rm -rf $(MPG123_DECODER_PATH)/dist/*
+	rm -rf $(DEMO_PATH)*.js
+	rm -rf $(OPUS_DECODER_PATH)dist/*
+	rm -rf $(OGG_OPUS_DECODER_PATH)dist/*
+	rm -rf $(MPG123_DECODER_PATH)dist/*
 	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 
 
 # ogg-opus-decoder
-OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder
-OGG_OPUS_DECODER_EMSCRIPTEN_BUILD=$(OGG_OPUS_DECODER_PATH)/src/EmscriptenWasm.js
-OGG_OPUS_DECODER_MODULE=$(OGG_OPUS_DECODER_PATH)/dist/ogg-opus-decoder.js
-OGG_OPUS_DECODER_MODULE_MIN=$(OGG_OPUS_DECODER_PATH)/dist/ogg-opus-decoder.min.js
+OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder/
+OGG_OPUS_DECODER_EMSCRIPTEN_BUILD=$(OGG_OPUS_DECODER_PATH)src/EmscriptenWasm.tmp.js
+OGG_OPUS_DECODER_MODULE=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.js
+OGG_OPUS_DECODER_MODULE_MIN=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.min.js
 
 ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(OGG_OPUS_DECODER_PATH) \
 	MODULE=$(OGG_OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OGG_OPUS_DECODER_MODULE_MIN) \
+	COMPRESSION_ITERATIONS=222 \
 	npm run minify
 	cp $(OGG_OPUS_DECODER_MODULE) $(OGG_OPUS_DECODER_MODULE_MIN) $(OGG_OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
 # opus-decoder
-OPUS_DECODER_PATH=src/opus-decoder
-OPUS_DECODER_EMSCRIPTEN_BUILD=$(OPUS_DECODER_PATH)/src/EmscriptenWasm.js
-OPUS_DECODER_MODULE=$(OPUS_DECODER_PATH)/dist/opus-decoder.js
-OPUS_DECODER_MODULE_MIN=$(OPUS_DECODER_PATH)/dist/opus-decoder.min.js
+OPUS_DECODER_PATH=src/opus-decoder/
+OPUS_DECODER_EMSCRIPTEN_BUILD=$(OPUS_DECODER_PATH)src/EmscriptenWasm.tmp.js
+OPUS_DECODER_MODULE=$(OPUS_DECODER_PATH)dist/opus-decoder.js
+OPUS_DECODER_MODULE_MIN=$(OPUS_DECODER_PATH)dist/opus-decoder.min.js
 
 opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(OPUS_DECODER_PATH) \
 	MODULE=$(OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OPUS_DECODER_MODULE_MIN) \
+	COMPRESSION_ITERATIONS=230 \
 	npm run minify
 	cp $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_MIN) $(OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -50,18 +52,19 @@ opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
 
 # mpg123-decoder
-MPG123_SRC=modules/mpg123
+MPG123_SRC=modules/mpg123/
 MPG123_WASM_LIB=tmp/mpg123.bc
-MPG123_DECODER_PATH=src/mpg123-decoder
-MPG123_EMSCRIPTEN_BUILD=$(MPG123_DECODER_PATH)/src/EmscriptenWasm.js
-MPG123_MODULE=$(MPG123_DECODER_PATH)/dist/mpg123-decoder.js
-MPG123_MODULE_MIN=$(MPG123_DECODER_PATH)/dist/mpg123-decoder.min.js
+MPG123_DECODER_PATH=src/mpg123-decoder/
+MPG123_EMSCRIPTEN_BUILD=$(MPG123_DECODER_PATH)src/EmscriptenWasm.tmp.js
+MPG123_MODULE=$(MPG123_DECODER_PATH)dist/mpg123-decoder.js
+MPG123_MODULE_MIN=$(MPG123_DECODER_PATH)dist/mpg123-decoder.min.js
 
 mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
 mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(MPG123_DECODER_PATH) \
 	MODULE=$(MPG123_MODULE) \
 	MODULE_MIN=$(MPG123_MODULE_MIN) \
+	COMPRESSION_ITERATIONS=108 \
 	npm run minify
 	cp $(MPG123_MODULE) $(MPG123_MODULE_MIN) $(MPG123_MODULE_MIN).map $(DEMO_PATH)
 
@@ -109,14 +112,14 @@ define OPUS_DECODER_EMCC_OPTS
   , '_opus_frame_decode_float_deinterleaved' \
   , '_opus_frame_decoder_create' \
 ]" \
---pre-js '$(OPUS_DECODER_PATH)/src/emscripten-pre.js' \
---post-js '$(OPUS_DECODER_PATH)/src/emscripten-post.js' \
+--pre-js '$(OPUS_DECODER_PATH)src/emscripten-pre.js' \
+--post-js '$(OPUS_DECODER_PATH)src/emscripten-post.js' \
 -I "modules/opus/include" \
-$(OPUS_DECODER_PATH)/src/opus_frame_decoder.c
+$(OPUS_DECODER_PATH)src/opus_frame_decoder.c
 endef
 
 $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
-	@ mkdir -p $(OPUS_DECODER_PATH)/dist
+	@ mkdir -p $(OPUS_DECODER_PATH)dist
 	@ echo "Building Emscripten WebAssembly module $(OPUS_DECODER_EMSCRIPTEN_BUILD)..."
 	@ emcc \
 		-o "$(OPUS_DECODER_EMSCRIPTEN_BUILD)" \
@@ -140,16 +143,16 @@ define OGG_OPUS_DECODER_EMCC_OPTS
   , '_ogg_opus_decoder_free' \
   , '_ogg_opus_decoder_decode' \
 ]" \
---pre-js '$(OGG_OPUS_DECODER_PATH)/src/emscripten-pre.js' \
---post-js '$(OGG_OPUS_DECODER_PATH)/src/emscripten-post.js' \
+--pre-js '$(OGG_OPUS_DECODER_PATH)src/emscripten-pre.js' \
+--post-js '$(OGG_OPUS_DECODER_PATH)src/emscripten-post.js' \
 -I modules/opusfile/include \
 -I "modules/ogg/include" \
 -I "modules/opus/include" \
-$(OGG_OPUS_DECODER_PATH)/src/ogg_opus_decoder.c
+$(OGG_OPUS_DECODER_PATH)src/ogg_opus_decoder.c
 endef
 
 $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
-	@ mkdir -p $(OGG_OPUS_DECODER_PATH)/dist
+	@ mkdir -p $(OGG_OPUS_DECODER_PATH)dist
 	@ echo "Building Emscripten WebAssembly module $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)..."
 	@ emcc \
 		-o "$(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)" \
@@ -227,16 +230,16 @@ define MPG123_EMCC_OPTS
   ,	'_mpeg_decode_interleaved' \
 ]" \
 -s ERROR_ON_UNDEFINED_SYMBOLS=0 \
---pre-js '$(MPG123_DECODER_PATH)/src/emscripten-pre.js' \
---post-js '$(MPG123_DECODER_PATH)/src/emscripten-post.js' \
--I "$(MPG123_SRC)/src/libmpg123" \
--I "$(MPG123_DECODER_PATH)/src/mpg123" \
-$(MPG123_DECODER_PATH)/src/mpeg_frame_decoder.c 
+--pre-js '$(MPG123_DECODER_PATH)src/emscripten-pre.js' \
+--post-js '$(MPG123_DECODER_PATH)src/emscripten-post.js' \
+-I "$(MPG123_SRC)src/libmpg123" \
+-I "$(MPG123_DECODER_PATH)src/mpg123" \
+$(MPG123_DECODER_PATH)src/mpeg_frame_decoder.c 
 endef
 
-# $(MPG123_SRC)/src/libmpg123/.libs/libmpg123.so
+# $(MPG123_SRC)src/libmpg123/.libs/libmpg123.so
 ${MPG123_EMSCRIPTEN_BUILD}: $(MPG123_WASM_LIB)
-	@ mkdir -p $(MPG123_DECODER_PATH)/dist
+	@ mkdir -p $(MPG123_DECODER_PATH)dist
 	@ echo "Building Emscripten WebAssembly module $(MPG123_EMSCRIPTEN_BUILD)..."
 	@ emcc $(MPG123_WASM_LIB) \
 		-o "$(MPG123_EMSCRIPTEN_BUILD)" \
@@ -313,23 +316,23 @@ $(MPG123_WASM_LIB):
 	  -s NO_FILESYSTEM=1 \
 	  -s STRICT=1 \
 	  -DOPT_GENERIC -DREAL_IS_FLOAT \
-	  -I "$(MPG123_SRC)/src" \
-	  -I "$(MPG123_SRC)/src/libmpg123" \
-	  -I "$(MPG123_SRC)/src/compat" \
-	  -I "$(MPG123_DECODER_PATH)/src/mpg123" \
-  	  $(MPG123_SRC)/src/libmpg123/parse.c \
-  	  $(MPG123_SRC)/src/libmpg123/frame.c \
-  	  $(MPG123_SRC)/src/libmpg123/format.c \
-  	  $(MPG123_SRC)/src/libmpg123/dct64.c \
-  	  $(MPG123_SRC)/src/libmpg123/id3.c \
-  	  $(MPG123_SRC)/src/libmpg123/optimize.c \
-  	  $(MPG123_SRC)/src/libmpg123/readers.c \
-  	  $(MPG123_SRC)/src/libmpg123/tabinit.c \
-  	  $(MPG123_SRC)/src/libmpg123/libmpg123.c \
-  	  $(MPG123_SRC)/src/libmpg123/layer1.c \
-  	  $(MPG123_SRC)/src/libmpg123/layer2.c \
-  	  $(MPG123_SRC)/src/libmpg123/layer3.c \
-  	  $(MPG123_SRC)/src/libmpg123/synth_real.c 
+	  -I "$(MPG123_SRC)src" \
+	  -I "$(MPG123_SRC)src/libmpg123" \
+	  -I "$(MPG123_SRC)src/compat" \
+	  -I "$(MPG123_DECODER_PATH)src/mpg123" \
+  	  $(MPG123_SRC)src/libmpg123/parse.c \
+  	  $(MPG123_SRC)src/libmpg123/frame.c \
+  	  $(MPG123_SRC)src/libmpg123/format.c \
+  	  $(MPG123_SRC)src/libmpg123/dct64.c \
+  	  $(MPG123_SRC)src/libmpg123/id3.c \
+  	  $(MPG123_SRC)src/libmpg123/optimize.c \
+  	  $(MPG123_SRC)src/libmpg123/readers.c \
+  	  $(MPG123_SRC)src/libmpg123/tabinit.c \
+  	  $(MPG123_SRC)src/libmpg123/libmpg123.c \
+  	  $(MPG123_SRC)src/libmpg123/layer1.c \
+  	  $(MPG123_SRC)src/libmpg123/layer2.c \
+  	  $(MPG123_SRC)src/libmpg123/layer3.c \
+  	  $(MPG123_SRC)src/libmpg123/synth_real.c 
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(MPG123_WASM_LIB)"
