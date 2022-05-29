@@ -102,10 +102,11 @@ export default function OpusDecoder(options = {}) {
 
   this.decodeFrames = (opusFrames) => {
     let outputBuffers = [],
-      outputSamples = 0;
+      outputSamples = 0,
+      i = 0;
 
-    opusFrames.forEach((frame) => {
-      const samplesDecoded = this._decode(frame);
+    while (i < opusFrames.length) {
+      const samplesDecoded = this._decode(opusFrames[i++]);
 
       outputBuffers.push(
         this._common.getOutputChannels(
@@ -115,7 +116,7 @@ export default function OpusDecoder(options = {}) {
         )
       );
       outputSamples += samplesDecoded;
-    });
+    }
 
     const data = this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
       outputBuffers,

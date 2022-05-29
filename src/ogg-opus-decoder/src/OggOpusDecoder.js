@@ -58,7 +58,7 @@ export default function OggOpusDecoder(options = {}) {
   this.decode = (data) => {
     if (!(data instanceof Uint8Array))
       throw Error(
-        `Data to decode must be Uint8Array. Instead got ${typeof data}`
+        "Data to decode must be Uint8Array. Instead got " + typeof data
       );
 
     let output = [],

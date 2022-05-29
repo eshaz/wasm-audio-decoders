@@ -49,6 +49,6 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "@wasm-audio-decoders/common": "4.0.0"
+    "@wasm-audio-decoders/common": "../common"
   }
 }
