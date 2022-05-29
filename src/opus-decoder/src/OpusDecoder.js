@@ -82,7 +82,7 @@ export default function OpusDecoder(options = {}) {
         "libopus " +
           samplesDecoded +
           " " +
-          OpusDecoder.errors.get(samplesDecoded)
+          (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error")
       );
       return 0;
     }

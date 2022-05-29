@@ -1,10 +1,14 @@
 export default function WASMAudioDecoderCommon(caller) {
   // setup static methods
+  const uint8Array = Uint8Array;
+  const uint16Array = Uint16Array;
+  const float32Array = Float32Array;
+
   if (!WASMAudioDecoderCommon.concatFloat32) {
     Object.defineProperties(WASMAudioDecoderCommon, {
       concatFloat32: {
         value: (buffers, length) => {
-          let ret = new Float32Array(length),
+          let ret = new float32Array(length),
             i = 0,
             offset = 0;
 
@@ -57,7 +61,7 @@ export default function WASMAudioDecoderCommon(caller) {
 
       inflateDynEncodeString: {
         value: (source, dest) => {
-          const output = new Uint8Array(source.length);
+          const output = new uint8Array(source.length);
           const offset = parseInt(source.substring(11, 13), 16);
           const offsetReverse = 256 - offset;
 
@@ -95,9 +99,6 @@ export default function WASMAudioDecoderCommon(caller) {
           const TINF_OK = 0;
           const TINF_DATA_ERROR = -3;
           const fullByte = 256;
-
-          const uint8Array = Uint8Array;
-          const uint16Array = Uint16Array;
 
           function Tree() {
             this.t = new uint16Array(16); /* table of code length counts */
@@ -500,12 +501,12 @@ export default function WASMAudioDecoderCommon(caller) {
   this._pointers = new Set();
 
   return this._wasm.ready.then(() => {
-    caller._input = this.allocateTypedArray(caller._inputSize, Uint8Array);
+    caller._input = this.allocateTypedArray(caller._inputSize, uint8Array);
 
     // output buffer
     caller._output = this.allocateTypedArray(
       caller._outputChannels * caller._outputChannelSize,
-      Float32Array
+      float32Array
     );
 
     return this;

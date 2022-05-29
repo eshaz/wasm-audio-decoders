@@ -10,11 +10,15 @@
 
   function WASMAudioDecoderCommon(caller) {
     // setup static methods
+    const uint8Array = Uint8Array;
+    const uint16Array = Uint16Array;
+    const float32Array = Float32Array;
+
     if (!WASMAudioDecoderCommon.concatFloat32) {
       Object.defineProperties(WASMAudioDecoderCommon, {
         concatFloat32: {
           value: (buffers, length) => {
-            let ret = new Float32Array(length),
+            let ret = new float32Array(length),
               i = 0,
               offset = 0;
 
@@ -67,7 +71,7 @@
 
         inflateDynEncodeString: {
           value: (source, dest) => {
-            const output = new Uint8Array(source.length);
+            const output = new uint8Array(source.length);
             const offset = parseInt(source.substring(11, 13), 16);
             const offsetReverse = 256 - offset;
 
@@ -105,9 +109,6 @@
             const TINF_OK = 0;
             const TINF_DATA_ERROR = -3;
             const fullByte = 256;
-
-            const uint8Array = Uint8Array;
-            const uint16Array = Uint16Array;
 
             function Tree() {
               this.t = new uint16Array(16); /* table of code length counts */
@@ -510,12 +511,12 @@
     this._pointers = new Set();
 
     return this._wasm.ready.then(() => {
-      caller._input = this.allocateTypedArray(caller._inputSize, Uint8Array);
+      caller._input = this.allocateTypedArray(caller._inputSize, uint8Array);
 
       // output buffer
       caller._output = this.allocateTypedArray(
         caller._outputChannels * caller._outputChannelSize,
-        Float32Array
+        float32Array
       );
 
       return this;
@@ -536,11 +537,6 @@
         });
 
         const decoder = new _Decoder(_options);
-
-        const detachBuffers = (buffer) =>
-          Array.isArray(buffer)
-            ? buffer.map((buffer) => new Uint8Array(buffer))
-            : new Uint8Array(buffer);
 
         self.onmessage = ({ data: { id, command, data } }) => {
           switch (command) {
@@ -569,7 +565,12 @@
             case "decodeFrames":
               const { channelData, samplesDecoded, sampleRate } = decoder[
                 command
-              ](detachBuffers(data));
+              ](
+                // detach buffers
+                Array.isArray(data)
+                  ? data.map((data) => new Uint8Array(data))
+                  : new Uint8Array(data)
+              );
 
               self.postMessage(
                 {
@@ -589,7 +590,7 @@
         };
       }).toString()})(${JSON.stringify(
         options
-      )}, ${Decoder.toString()}, ${WASMAudioDecoderCommon.toString()}, ${EmscriptenWASM.toString()})`;
+      )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
 
       const type = "text/javascript";
       let source;
@@ -822,7 +823,7 @@
           "libopus " +
             samplesDecoded +
             " " +
-            OpusDecoder.errors.get(samplesDecoded)
+            (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error")
         );
         return 0;
       }

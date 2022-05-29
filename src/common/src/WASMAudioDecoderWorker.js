@@ -16,11 +16,6 @@ export default class WASMAudioDecoderWorker extends Worker {
 
         const decoder = new _Decoder(_options);
 
-        const detachBuffers = (buffer) =>
-          Array.isArray(buffer)
-            ? buffer.map((buffer) => new Uint8Array(buffer))
-            : new Uint8Array(buffer);
-
         self.onmessage = ({ data: { id, command, data } }) => {
           switch (command) {
             case "ready":
@@ -48,7 +43,12 @@ export default class WASMAudioDecoderWorker extends Worker {
             case "decodeFrames":
               const { channelData, samplesDecoded, sampleRate } = decoder[
                 command
-              ](detachBuffers(data));
+              ](
+                // detach buffers
+                Array.isArray(data)
+                  ? data.map((data) => new Uint8Array(data))
+                  : new Uint8Array(data)
+              );
 
               self.postMessage(
                 {
@@ -68,7 +68,7 @@ export default class WASMAudioDecoderWorker extends Worker {
         };
       }).toString()})(${JSON.stringify(
         options
-      )}, ${Decoder.toString()}, ${WASMAudioDecoderCommon.toString()}, ${EmscriptenWASM.toString()})`;
+      )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
 
     const type = "text/javascript";
     let source;
