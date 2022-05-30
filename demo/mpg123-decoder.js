@@ -17,7 +17,7 @@
     if (!WASMAudioDecoderCommon.concatFloat32) {
       Object.defineProperties(WASMAudioDecoderCommon, {
         concatFloat32: {
-          value: (buffers, length) => {
+          value(buffers, length) {
             let ret = new float32Array(length),
               i = 0,
               offset = 0;
@@ -32,17 +32,15 @@
         },
 
         getDecodedAudio: {
-          value: (channelData, samplesDecoded, sampleRate) => {
-            return {
-              channelData,
-              samplesDecoded,
-              sampleRate,
-            };
-          },
+          value: (channelData, samplesDecoded, sampleRate) => ({
+            channelData,
+            samplesDecoded,
+            sampleRate,
+          }),
         },
 
         getDecodedAudioMultiChannel: {
-          value: (input, channelsDecoded, samplesDecoded, sampleRate) => {
+          value(input, channelsDecoded, samplesDecoded, sampleRate) {
             let channelData = [],
               i,
               j;
@@ -70,7 +68,7 @@
          */
 
         inflateDynEncodeString: {
-          value: (source, dest) => {
+          value(source, dest) {
             const output = new uint8Array(source.length);
             const offset = parseInt(source.substring(11, 13), 16);
             const offsetReverse = 256 - offset;
@@ -105,7 +103,7 @@
         },
 
         inflate: {
-          value: (source, dest) => {
+          value(source, dest) {
             const TINF_OK = 0;
             const TINF_DATA_ERROR = -3;
             const _16 = 16,
