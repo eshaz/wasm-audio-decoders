@@ -39,7 +39,7 @@ export default function MPEGDecoder(options = {}) {
   this._decode = (data, decodeInterval) => {
     if (!(data instanceof Uint8Array))
       throw Error(
-        `Data to decode must be Uint8Array. Instead got ${typeof data}`
+        "Data to decode must be Uint8Array. Instead got " + typeof data
       );
 
     this._input.buf.set(data);
@@ -73,13 +73,10 @@ export default function MPEGDecoder(options = {}) {
 
   this.decode = (data) => {
     let output = [],
-      samples = 0;
+      samples = 0,
+      offset = 0;
 
-    for (
-      let offset = 0;
-      offset < data.length;
-      offset += this._decodedBytes.buf[0]
-    ) {
+    for (; offset < data.length; offset += this._decodedBytes.buf[0]) {
       const decoded = this._decode(
         data.subarray(offset, offset + this._input.len),
         48
@@ -103,10 +100,11 @@ export default function MPEGDecoder(options = {}) {
 
   this.decodeFrames = (mpegFrames) => {
     let output = [],
-      samples = 0;
+      samples = 0,
+      i = 0;
 
-    for (let i = 0; i < mpegFrames.length; i++) {
-      const decoded = this.decodeFrame(mpegFrames[i]);
+    while (i < mpegFrames.length) {
+      const decoded = this.decodeFrame(mpegFrames[i++]);
 
       output.push(decoded.channelData);
       samples += decoded.samplesDecoded;

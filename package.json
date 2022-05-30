@@ -2,9 +2,9 @@
   "scripts": {
     "du": "find src -iname \"*.min.js\" -exec du -b {} \\;",
     "build": "make clean && make -j8",
-    "minify": "node build.js $SOURCE_PATH/src/EmscriptenWasm.js && rollup $SOURCE_PATH/index.js --file $MODULE --config $SOURCE_PATH/rollup.config.js && terser --config-file $SOURCE_PATH/terser.json $MODULE -o $MODULE_MIN",
+    "minify": "UV_THREADPOOL_SIZE=1024 node build.js $SOURCE_PATH $COMPRESSION_ITERATIONS $MODULE $MODULE_MIN",
     "deploy": "gh-pages -d demo",
-    "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.*ts'",
+    "format": "prettier --write '**/*.js' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.*ts'",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%",
     "generate-data": "find test/expected -iname \"*.wav\" -exec gzip -fnk {} ';'"
   },
@@ -13,7 +13,7 @@
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@types/jest": "^27.5.1",
     "@wpdas/wave-header": "^1.0.1",
-    "codec-parser": "2.0.1",
+    "codec-parser": "2.0.2",
     "gh-pages": "^4.0.0",
     "jest": "^27.5.1",
     "mpg123-decoder": "file:src/mpg123-decoder",
@@ -21,7 +21,7 @@
     "ogg-opus-decoder": "file:src/ogg-opus-decoder",
     "opus-decoder": "file:src/opus-decoder",
     "prettier": "^2.6.2",
-    "rollup": "^2.75.0",
+    "rollup": "^2.75.3",
     "simple-yenc": "0.2.1",
     "terser": "^5.13.1",
     "web-worker": "^1.1.0"

@@ -4,6 +4,9 @@
 node_modules
 .vscode
 
+*.tmp.js
+*.sizes.json
+
 coverage
 test/actual/*
 test/expected/*.wav

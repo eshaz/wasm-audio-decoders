@@ -58,7 +58,7 @@ export default function OggOpusDecoder(options = {}) {
   this.decode = (data) => {
     if (!(data instanceof Uint8Array))
       throw Error(
-        `Data to decode must be Uint8Array. Instead got ${typeof data}`
+        "Data to decode must be Uint8Array. Instead got " + typeof data
       );
 
     let output = [],
@@ -66,23 +66,26 @@ export default function OggOpusDecoder(options = {}) {
       offset = 0;
 
     try {
-      while (offset < data.length) {
+      const dataLength = data.length;
+
+      while (offset < dataLength) {
         const dataToSend = data.subarray(
           offset,
           offset +
-            (this._input.len > data.length - offset
-              ? data.length - offset
+            (this._input.len > dataLength - offset
+              ? dataLength - offset
               : this._input.len)
         );
 
-        offset += dataToSend.length;
+        const dataToSendLength = dataToSend.length;
+        offset += dataToSendLength;
 
         this._input.buf.set(dataToSend);
 
         const samplesDecoded = this._common.wasm._ogg_opus_decoder_decode(
           this._decoder,
           this._input.ptr,
-          dataToSend.length,
+          dataToSendLength,
           this._channelsDecoded.ptr,
           this._output.ptr
         );
@@ -99,12 +102,14 @@ export default function OggOpusDecoder(options = {}) {
         );
       }
     } catch (e) {
-      if (e.code)
+      const errorCode = e.code;
+
+      if (errorCode)
         throw new Error(
           "libopusfile " +
-            e.code +
+            errorCode +
             " " +
-            (OggOpusDecoder.errors.get(e.code) || "Unknown Error")
+            (OggOpusDecoder.errors.get(errorCode) || "Unknown Error")
         );
       throw e;
     }
