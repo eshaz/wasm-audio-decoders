@@ -136,25 +136,31 @@ export default function OpusDecoder(options = {}) {
 
   const isNumber = (param) => typeof param === "number";
 
+  const channels = options.channels;
+  const streamCount = options.streamCount;
+  const coupledStreamCount = options.coupledStreamCount;
+  const channelMappingTable = options.channelMappingTable;
+  const preSkip = options.preSkip;
+
   // channel mapping family >= 1
   if (
-    options.channels > 2 &&
-    (!isNumber(options.streamCount) ||
-      !isNumber(options.coupledStreamCount) ||
-      !Array.isArray(options.channelMappingTable))
+    channels > 2 &&
+    (!isNumber(streamCount) ||
+      !isNumber(coupledStreamCount) ||
+      !Array.isArray(channelMappingTable))
   ) {
     throw new Error("Invalid Opus Decoder Options for multichannel decoding.");
   }
 
   // channel mapping family 0
-  this._channels = isNumber(options.channels) ? options.channels : 2;
-  this._streamCount = isNumber(options.streamCount) ? options.streamCount : 1;
-  this._coupledStreamCount = isNumber(options.coupledStreamCount)
-    ? options.coupledStreamCount
+  this._channels = isNumber(channels) ? channels : 2;
+  this._streamCount = isNumber(streamCount) ? streamCount : 1;
+  this._coupledStreamCount = isNumber(coupledStreamCount)
+    ? coupledStreamCount
     : this._channels - 1;
   this._channelMappingTable =
-    options.channelMappingTable || (this._channels === 2 ? [0, 1] : [0]);
-  this._preSkip = options.preSkip || 0;
+    channelMappingTable || (this._channels === 2 ? [0, 1] : [0]);
+  this._preSkip = preSkip || 0;
 
   this._inputSize = 32000 * 0.12 * this._channels; // 256kbs per channel
   this._outputChannelSize = 120 * 48;

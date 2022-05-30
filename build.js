@@ -7,13 +7,12 @@ import { rollup } from "rollup";
 import { minify } from "terser";
 
 const searchFileSize = async (
+  startIteration,
+  stopIteration,
   sourcePath,
   rollupOutput,
   terserOutput
 ) => {
-  const startIteration = 50;
-  const stopIteration = 600;
-
   let bestLength = Infinity;
   let bestIteration = Infinity;
 
@@ -24,22 +23,29 @@ const searchFileSize = async (
     iteration <= stopIteration;
     iteration++
   ) {
-    await buildWasm(sourcePath, iteration, rollupOutput, terserOutput).then((code) => {
-      sizes.push({
-        iteration,
-        size: code.length,
-      });
+    await buildWasm(sourcePath, iteration, rollupOutput, terserOutput).then(
+      (code) => {
+        sizes.push({
+          iteration,
+          size: code.length,
+        });
 
-      if (code.length <= bestLength) {
-        if (code.length < bestLength || bestIteration > iteration) {
-          bestIteration = iteration;
-          console.log("new best iteration", iteration, sourcePath, code.length);
+        if (code.length <= bestLength) {
+          if (code.length < bestLength || bestIteration > iteration) {
+            bestIteration = iteration;
+            console.log(
+              "new best iteration",
+              iteration,
+              sourcePath,
+              code.length
+            );
+          }
+          bestLength = code.length;
         }
-        bestLength = code.length;
-      }
 
-      console.log(iteration, sourcePath, code.length);
-    });
+        console.log(iteration, sourcePath, code.length);
+      }
+    );
   }
 
   sizes.sort((a, b) => a.size - b.size || a.iteration - b.iteration);
@@ -138,7 +144,7 @@ const buildWasm = async (
   fs.writeFileSync(emscriptenOutputPath, finalString, { encoding: "binary" });
 
   // rollup
-  const rollupConfig = fs.readFileSync(rollupConfigPath).toString()
+  const rollupConfig = fs.readFileSync(rollupConfigPath).toString();
   const rollupInputConfig = JSON.parse(rollupConfig);
   rollupInputConfig.input = rollupInput;
   rollupInputConfig.plugins = [nodeResolve()];
@@ -175,6 +181,8 @@ await buildWasm(sourcePath, compressionIterations, module, moduleMin);
 
 /*
 await searchFileSize(
+  50, // start iteration
+  1000, // stop iteration
   sourcePath,
   module,
   moduleMin

@@ -108,10 +108,14 @@
           value: (source, dest) => {
             const TINF_OK = 0;
             const TINF_DATA_ERROR = -3;
-            const fullByte = 256;
+            const _16 = 16,
+              _24 = 24,
+              _30 = 30,
+              _144 = 144,
+              _256 = 256;
 
             function Tree() {
-              this.t = new uint16Array(16); /* table of code length counts */
+              this.t = new uint16Array(_16); /* table of code length counts */
               this.trans = new uint16Array(
                 288
               ); /* code -> symbol translation table */
@@ -138,16 +142,34 @@
             const sdtree = new Tree();
 
             /* extra bits and base tables for length codes */
-            const length_bits = new uint8Array(30);
-            const length_base = new uint16Array(30);
+            const length_bits = new uint8Array(_30);
+            const length_base = new uint16Array(_30);
 
             /* extra bits and base tables for distance codes */
-            const dist_bits = new uint8Array(30);
-            const dist_base = new uint16Array(30);
+            const dist_bits = new uint8Array(_30);
+            const dist_base = new uint16Array(_30);
 
             /* special ordering of code length codes */
             const clcidx = new uint8Array([
-              16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15,
+              _16,
+              17,
+              18,
+              0,
+              8,
+              7,
+              9,
+              6,
+              10,
+              5,
+              11,
+              4,
+              12,
+              3,
+              13,
+              2,
+              14,
+              1,
+              15,
             ]);
 
             /* used by tinf_decode_trees, avoids allocations every call */
@@ -164,10 +186,10 @@
 
               /* build bits table */
               for (i = 0; i < delta; ) bits[i++] = 0;
-              for (i = 0; i < 30 - delta; ) bits[i + delta] = (i++ / delta) | 0;
+              for (i = 0; i < _30 - delta; ) bits[i + delta] = (i++ / delta) | 0;
 
               /* build base table */
-              for (sum = first, i = 0; i < 30; ) {
+              for (sum = first, i = 0; i < _30; ) {
                 base[i] = sum;
                 sum += 1 << bits[i++];
               }
@@ -180,14 +202,14 @@
               /* build fixed length tree */
               for (i = 0; i < 7; ) lt.t[i++] = 0;
 
-              lt.t[7] = 24;
+              lt.t[7] = _24;
               lt.t[8] = 152;
               lt.t[9] = 112;
 
-              for (i = 0; i < 24; ) lt.trans[i] = fullByte + i++;
-              for (i = 0; i < 144; ) lt.trans[24 + i] = i++;
-              for (i = 0; i < 8; ) lt.trans[24 + 144 + i] = 280 + i++;
-              for (i = 0; i < 112; ) lt.trans[24 + 144 + 8 + i] = 144 + i++;
+              for (i = 0; i < _24; ) lt.trans[i] = _256 + i++;
+              for (i = 0; i < _144; ) lt.trans[_24 + i] = i++;
+              for (i = 0; i < 8; ) lt.trans[_24 + _144 + i] = 280 + i++;
+              for (i = 0; i < 112; ) lt.trans[_24 + _144 + 8 + i] = _144 + i++;
 
               /* build fixed distance tree */
               for (i = 0; i < 5; ) dt.t[i++] = 0;
@@ -198,13 +220,13 @@
             };
 
             /* given an array of code lengths, build a tree */
-            const offs = new uint16Array(16);
+            const offs = new uint16Array(_16);
 
             const tinf_build_tree = (t, lengths, off, num) => {
               let i, sum;
 
               /* clear code length count table */
-              for (i = 0; i < 16; ) t.t[i++] = 0;
+              for (i = 0; i < _16; ) t.t[i++] = 0;
 
               /* scan symbol lengths, and sum code length counts */
               for (i = 0; i < num; ) t.t[lengths[off + i++]]++;
@@ -212,7 +234,7 @@
               t.t[0] = 0;
 
               /* compute offset table for distribution sort */
-              for (sum = 0, i = 0; i < 16; ) {
+              for (sum = 0, i = 0; i < _16; ) {
                 offs[i] = sum;
                 sum += t.t[i++];
               }
@@ -246,12 +268,12 @@
             const tinf_read_bits = (d, num, base) => {
               if (!num) return base;
 
-              while (d.bitcount < 24) {
+              while (d.bitcount < _24) {
                 d.t |= d.s[d.i++] << d.bitcount;
                 d.bitcount += 8;
               }
 
-              const val = d.t & (0xffff >>> (16 - num));
+              const val = d.t & (65535 >>> (_16 - num));
               d.t >>>= num;
               d.bitcount -= num;
               return val + base;
@@ -259,7 +281,7 @@
 
             /* given a data stream and a tree, decode a symbol */
             const tinf_decode_symbol = (d, t) => {
-              while (d.bitcount < 24) {
+              while (d.bitcount < _24) {
                 d.t |= d.s[d.i++] << d.bitcount;
                 d.bitcount += 8;
               }
@@ -317,7 +339,7 @@
                 const sym = tinf_decode_symbol(d, code_tree);
 
                 switch (sym) {
-                  case 16:
+                  case _16:
                     /* copy previous code length 3-6 times (read 2 bits) */
                     const prev = lengths[num - 1];
                     length = tinf_read_bits(d, 2, 3);
@@ -355,9 +377,9 @@
                 let sym = tinf_decode_symbol(d, lt);
 
                 /* check for end of block */
-                if (sym === fullByte) return TINF_OK;
+                if (sym === _256) return TINF_OK;
 
-                if (sym < fullByte) {
+                if (sym < _256) {
                   d.dest[d.destLen++] = sym;
                 } else {
                   let length, dist, offs;
@@ -394,14 +416,14 @@
 
               /* get length */
               length = d.s[d.i + 1];
-              length = fullByte * length + d.s[d.i];
+              length = _256 * length + d.s[d.i];
 
               /* get one's complement of length */
               invlength = d.s[d.i + 3];
-              invlength = fullByte * invlength + d.s[d.i + 2];
+              invlength = _256 * invlength + d.s[d.i + 2];
 
               /* check length */
-              if (length !== (~invlength & 0x0000ffff)) return TINF_DATA_ERROR;
+              if (length !== (~invlength & 65535)) return TINF_DATA_ERROR;
 
               d.i += 4;
 

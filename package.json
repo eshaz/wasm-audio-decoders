@@ -4,7 +4,7 @@
     "build": "make clean && make -j8",
     "minify": "UV_THREADPOOL_SIZE=1024 node build.js $SOURCE_PATH $COMPRESSION_ITERATIONS $MODULE $MODULE_MIN",
     "deploy": "gh-pages -d demo",
-    "format": "prettier --write '**/*.*js*' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.*ts'",
+    "format": "prettier --write '**/*.js' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.*ts'",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%",
     "generate-data": "find test/expected -iname \"*.wav\" -exec gzip -fnk {} ';'"
   },
