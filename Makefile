@@ -10,10 +10,16 @@ dist-clean:
 	rm -rf $(OPUS_DECODER_PATH)dist/*
 	rm -rf $(OGG_OPUS_DECODER_PATH)dist/*
 	rm -rf $(MPG123_DECODER_PATH)dist/*
+	rm -rf $(PUFF_EMSCRIPTEN_BUILD)
 	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 
+# puff
+COMMON_PATH=src/common/
+PUFF_SRC=$(COMMON_PATH)src/puff/
+PUFF_WASM_LIB=tmp/puff.bc
+PUFF_EMSCRIPTEN_BUILD=$(COMMON_PATH)src/puff/Puff.wasm
 
 # ogg-opus-decoder
 OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder/
@@ -25,6 +31,7 @@ OGG_OPUS_DECODER_MODULE_MIN=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.min.js
 ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(OGG_OPUS_DECODER_PATH) \
+	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OGG_OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OGG_OPUS_DECODER_MODULE_MIN) \
 	COMPRESSION_ITERATIONS=222 \
@@ -41,6 +48,7 @@ OPUS_DECODER_MODULE_MIN=$(OPUS_DECODER_PATH)dist/opus-decoder.min.js
 opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(OPUS_DECODER_PATH) \
+	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OPUS_DECODER_MODULE_MIN) \
 	COMPRESSION_ITERATIONS=840 \
@@ -65,6 +73,7 @@ MPG123_MODULE_MIN=$(MPG123_DECODER_PATH)dist/mpg123-decoder.min.js
 mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
 mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(MPG123_DECODER_PATH) \
+	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(MPG123_MODULE) \
 	MODULE_MIN=$(MPG123_MODULE_MIN) \
 	COMPRESSION_ITERATIONS=729 \
@@ -102,6 +111,36 @@ define EMCC_OPTS
 -s STRICT=1 \
 -s INCOMING_MODULE_JS_API="[]"
 endef
+
+# ----------------------
+# puff (inflate library)
+# ----------------------
+# llvm, clang, llc, binaryen
+puff-llvm:
+	@ clang \
+		--target=wasm32 \
+		-nostdlib \
+		-flto \
+		-Wl,--export=puff \
+		-Wl,--export=__heap_base \
+		-Wl,--no-entry \
+		-Wl,--lto-O3 \
+		-Wl,--initial-memory=1048576 \
+		-Oz \
+		-DSLOW=1 \
+		-o "$(PUFF_EMSCRIPTEN_BUILD)" \
+		$(PUFF_SRC)puff.c
+	@ wasm-opt \
+		-lmu \
+		-O3 \
+		--reorder-functions \
+		--reorder-locals \
+		--strip-producers \
+		--vacuum \
+		--converge \
+		$(PUFF_EMSCRIPTEN_BUILD) \
+		-o $(PUFF_EMSCRIPTEN_BUILD)
+	@ npm run build-puff
 
 # ------------------
 # opus-decoder

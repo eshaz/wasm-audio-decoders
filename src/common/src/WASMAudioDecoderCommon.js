@@ -57,8 +57,8 @@ export default function WASMAudioDecoderCommon(caller) {
        ******************
        */
 
-      inflateDynEncodeString: {
-        value(source, dest) {
+      decodeDynString: {
+        value(source) {
           const output = new uint8Array(source.length);
           const offset = parseInt(source.substring(11, 13), 16);
           const offsetReverse = 256 - offset;
@@ -85,353 +85,34 @@ export default function WASMAudioDecoderCommon(caller) {
               byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
           }
 
-          return WASMAudioDecoderCommon.inflate(
-            output.subarray(0, byteIndex),
-            dest
-          );
+          return output.subarray(0, byteIndex);
         },
       },
 
-      inflate: {
-        value(source, dest) {
-          const TINF_OK = 0;
-          const TINF_DATA_ERROR = -3;
-          const _16 = 16,
-            _24 = 24,
-            _30 = 30,
-            _144 = 144,
-            _256 = 256;
-
-          function Tree() {
-            this.t = new uint16Array(_16); /* table of code length counts */
-            this.trans = new uint16Array(
-              288
-            ); /* code -> symbol translation table */
-          }
-
-          function Data(source, dest) {
-            this.s = source;
-            this.i = 0;
-            this.t = 0;
-            this.bitcount = 0;
-
-            this.dest = dest;
-            this.destLen = 0;
-
-            this.ltree = new Tree(); /* dynamic length/symbol tree */
-            this.dtree = new Tree(); /* dynamic distance tree */
-          }
-
-          /* --------------------------------------------------- *
-           * -- uninitialized global data (static structures) -- *
-           * --------------------------------------------------- */
-
-          const sltree = new Tree();
-          const sdtree = new Tree();
-
-          /* extra bits and base tables for length codes */
-          const length_bits = new uint8Array(_30);
-          const length_base = new uint16Array(_30);
-
-          /* extra bits and base tables for distance codes */
-          const dist_bits = new uint8Array(_30);
-          const dist_base = new uint16Array(_30);
-
-          /* special ordering of code length codes */
-          const clcidx = new uint8Array([
-            _16,
-            17,
-            18,
-            0,
-            8,
-            7,
-            9,
-            6,
-            10,
-            5,
-            11,
-            4,
-            12,
-            3,
-            13,
-            2,
-            14,
-            1,
-            15,
-          ]);
-
-          /* used by tinf_decode_trees, avoids allocations every call */
-          const code_tree = new Tree();
-          const lengths = new uint8Array(288 + 32);
-
-          /* ----------------------- *
-           * -- utility functions -- *
-           * ----------------------- */
-
-          /* build extra bits and base tables */
+      inflateDynEncodeString: {
+        value(source, destLength) {
           const tinf_build_bits_base = (bits, base, delta, first) => {
             let i, sum;
 
             /* build bits table */
             for (i = 0; i < delta; ) bits[i++] = 0;
-            for (i = 0; i < _30 - delta; ) bits[i + delta] = (i++ / delta) | 0;
+            for (i = 0; i < 30 - delta; ) bits[i + delta] = (i++ / delta) | 0;
 
             /* build base table */
-            for (sum = first, i = 0; i < _30; ) {
+            for (sum = first, i = 0; i < 30; ) {
               base[i] = sum;
               sum += 1 << bits[i++];
             }
           };
 
-          /* build the fixed huffman trees */
-          const tinf_build_fixed_trees = (lt, dt) => {
-            let i;
+          /* extra bits and base tables for length codes */
+          const length_bits = new uint8Array(30);
+          const length_base = new uint16Array(30);
 
-            /* build fixed length tree */
-            for (i = 0; i < 7; ) lt.t[i++] = 0;
+          /* extra bits and base tables for distance codes */
+          const dist_bits = new uint8Array(30);
+          const dist_base = new uint16Array(30);
 
-            lt.t[7] = _24;
-            lt.t[8] = 152;
-            lt.t[9] = 112;
-
-            for (i = 0; i < _24; ) lt.trans[i] = _256 + i++;
-            for (i = 0; i < _144; ) lt.trans[_24 + i] = i++;
-            for (i = 0; i < 8; ) lt.trans[_24 + _144 + i] = 280 + i++;
-            for (i = 0; i < 112; ) lt.trans[_24 + _144 + 8 + i] = _144 + i++;
-
-            /* build fixed distance tree */
-            for (i = 0; i < 5; ) dt.t[i++] = 0;
-
-            dt.t[5] = 32;
-
-            for (i = 0; i < 32; ) dt.trans[i] = i++;
-          };
-
-          /* given an array of code lengths, build a tree */
-          const offs = new uint16Array(_16);
-
-          const tinf_build_tree = (t, lengths, off, num) => {
-            let i, sum;
-
-            /* clear code length count table */
-            for (i = 0; i < _16; ) t.t[i++] = 0;
-
-            /* scan symbol lengths, and sum code length counts */
-            for (i = 0; i < num; ) t.t[lengths[off + i++]]++;
-
-            t.t[0] = 0;
-
-            /* compute offset table for distribution sort */
-            for (sum = 0, i = 0; i < _16; ) {
-              offs[i] = sum;
-              sum += t.t[i++];
-            }
-
-            /* create code->symbol translation table (symbols sorted by code) */
-            for (i = 0; i < num; ++i)
-              if (lengths[off + i]) t.trans[offs[lengths[off + i]]++] = i;
-          };
-
-          /* ---------------------- *
-           * -- decode functions -- *
-           * ---------------------- */
-
-          /* get one bit from source stream */
-          const tinf_getbit = (d) => {
-            /* check if tag is empty */
-            if (!d.bitcount--) {
-              /* load next tag */
-              d.t = d.s[d.i++];
-              d.bitcount = 7;
-            }
-
-            /* shift bit out of tag */
-            const bit = d.t & 1;
-            d.t >>>= 1;
-
-            return bit;
-          };
-
-          /* read a num bit value from a stream and add base */
-          const tinf_read_bits = (d, num, base) => {
-            if (!num) return base;
-
-            while (d.bitcount < _24) {
-              d.t |= d.s[d.i++] << d.bitcount;
-              d.bitcount += 8;
-            }
-
-            const val = d.t & (65535 >>> (_16 - num));
-            d.t >>>= num;
-            d.bitcount -= num;
-            return val + base;
-          };
-
-          /* given a data stream and a tree, decode a symbol */
-          const tinf_decode_symbol = (d, t) => {
-            while (d.bitcount < _24) {
-              d.t |= d.s[d.i++] << d.bitcount;
-              d.bitcount += 8;
-            }
-
-            let sum = 0,
-              cur = 0,
-              len = 0,
-              tag = d.t;
-
-            /* get more bits while code value is above sum */
-            do {
-              cur = 2 * cur + (tag & 1);
-              tag >>>= 1;
-              ++len;
-
-              sum += t.t[len];
-              cur -= t.t[len];
-            } while (cur >= 0);
-
-            d.t = tag;
-            d.bitcount -= len;
-
-            return t.trans[sum + cur];
-          };
-
-          /* given a data stream, decode dynamic trees from it */
-          const tinf_decode_trees = (d, lt, dt) => {
-            let i,
-              length,
-              num = 0;
-
-            /* get 5 bits HLIT (257-286) */
-            const hlit = tinf_read_bits(d, 5, 257);
-
-            /* get 5 bits HDIST (1-32) */
-            const hdist = tinf_read_bits(d, 5, 1);
-
-            /* get 4 bits HCLEN (4-19) */
-            const hclen = tinf_read_bits(d, 4, 4);
-
-            for (i = 0; i < 19; ) lengths[i++] = 0;
-
-            /* read code lengths for code length alphabet */
-            for (i = 0; i < hclen; ) {
-              /* get 3 bits code length (0-7) */
-              const clen = tinf_read_bits(d, 3, 0);
-              lengths[clcidx[i++]] = clen;
-            }
-
-            /* build code length tree */
-            tinf_build_tree(code_tree, lengths, 0, 19);
-
-            /* decode code lengths for the dynamic trees */
-            while (num < hlit + hdist) {
-              const sym = tinf_decode_symbol(d, code_tree);
-
-              switch (sym) {
-                case _16:
-                  /* copy previous code length 3-6 times (read 2 bits) */
-                  const prev = lengths[num - 1];
-                  length = tinf_read_bits(d, 2, 3);
-                  while (length--) lengths[num++] = prev;
-                  break;
-                case 17:
-                  /* repeat code length 0 for 3-10 times (read 3 bits) */
-                  length = tinf_read_bits(d, 3, 3);
-                  while (length--) lengths[num++] = 0;
-                  break;
-                case 18:
-                  /* repeat code length 0 for 11-138 times (read 7 bits) */
-                  length = tinf_read_bits(d, 7, 11);
-                  while (length--) lengths[num++] = 0;
-                  break;
-                default:
-                  /* values 0-15 represent the actual code lengths */
-                  lengths[num++] = sym;
-                  break;
-              }
-            }
-
-            /* build dynamic trees */
-            tinf_build_tree(lt, lengths, 0, hlit);
-            tinf_build_tree(dt, lengths, hlit, hdist);
-          };
-
-          /* ----------------------------- *
-           * -- block inflate functions -- *
-           * ----------------------------- */
-
-          /* given a stream and two trees, inflate a block of data */
-          const tinf_inflate_block_data = (d, lt, dt) => {
-            while (1) {
-              let sym = tinf_decode_symbol(d, lt);
-
-              /* check for end of block */
-              if (sym === _256) return TINF_OK;
-
-              if (sym < _256) {
-                d.dest[d.destLen++] = sym;
-              } else {
-                let length, dist, offs;
-
-                sym -= 257;
-
-                /* possibly get more bits from length code */
-                length = tinf_read_bits(d, length_bits[sym], length_base[sym]);
-
-                dist = tinf_decode_symbol(d, dt);
-
-                /* possibly get more bits from distance code */
-                offs =
-                  d.destLen -
-                  tinf_read_bits(d, dist_bits[dist], dist_base[dist]);
-
-                /* copy match */
-                for (let i = offs; i < offs + length; ) {
-                  d.dest[d.destLen++] = d.dest[i++];
-                }
-              }
-            }
-          };
-
-          /* inflate an uncompressed block of data */
-          const tinf_inflate_uncompressed_block = (d) => {
-            let length, invlength;
-
-            /* unread from bitbuffer */
-            while (d.bitcount > 8) {
-              d.i--;
-              d.bitcount -= 8;
-            }
-
-            /* get length */
-            length = d.s[d.i + 1];
-            length = _256 * length + d.s[d.i];
-
-            /* get one's complement of length */
-            invlength = d.s[d.i + 3];
-            invlength = _256 * invlength + d.s[d.i + 2];
-
-            /* check length */
-            if (length !== (~invlength & 65535)) return TINF_DATA_ERROR;
-
-            d.i += 4;
-
-            /* copy block */
-            while (length--) d.dest[d.destLen++] = d.s[d.i++];
-
-            /* make sure we start next block on a byte boundary */
-            d.bitcount = 0;
-
-            return TINF_OK;
-          };
-
-          /* -------------------- *
-           * -- initialization -- *
-           * -------------------- */
-
-          /* build fixed huffman trees */
-          tinf_build_fixed_trees(sltree, sdtree);
-
-          /* build extra bits and base tables */
           tinf_build_bits_base(length_bits, length_base, 4, 3);
           tinf_build_bits_base(dist_bits, dist_base, 2, 1);
 
@@ -439,41 +120,57 @@ export default function WASMAudioDecoderCommon(caller) {
           length_bits[28] = 0;
           length_base[28] = 258;
 
-          const d = new Data(source, dest);
-          let bfinal, btype, res;
+          source = WASMAudioDecoderCommon.decodeDynString(source);
 
-          do {
-            /* read final block flag */
-            bfinal = tinf_getbit(d);
+          return new Promise((resolve) => {
+            // prettier-ignore
+            const puffString = "dynEncode0024$%$$$%:'&££%£(££££%£'£££%£'*)$%$&%)'%$4*3&£%e´´(/£$e´´(/+C'*&$($(/'%.ê6)%(£D$L&@E&D$L&<E''dD%D&n(dD$D$L&8F(e%Z&8D(D$L&0Q$$E)D$D&e,F(Z&@D'D)D&E'D(E&0%//D$D&D%Z&@D$D'D%Z&<D'e£D%e£/â&%*£G$eDE+'£D(eDj(£D'e$D'e$n?F,E(D&E)'dD((dD$D)R%$e%F*D*S%$e%_%$D(e%E(D)e&E)0%//e$E*&dD$R%$D'j1$D$e&E)e$E(e%E*'dD(e&F'eDj(de$E)e&E('dD(D+D)_%$D(eBj(de$E('dD(D,j1)D&R%$F$(dD+D$e%F$D$R%$F$e%_%$D%D$e%D(_%$/D&e&E&D(e%E(0$/$)D$D(S%$D)E)D(e&E(0%/$/$/D(D)E-D'E(D*e%D-R%$F*e$r1$//D*)D$D(e$_%$D(e&E(0%///%)£e&E&'£D&eDj(de3/D(D$e%4$D'F'D%L&$D&R%$F)n(£D%L&(D*D(D'e%R%$)D&e&E&D'e%E'D)D*E*D(D)e%E(0%///Å'%)£eô3e$Z&$eø3E(&d'dD'e@j(d&dehE'e%E('dD'(dD'eð3D(_%$e%D'e°4S%$D(E(D'e&E'0%)'dD$D%4&F)e$l1*&d&d&dD)e#%q(dD$L&$F'(dD$L&,F(D$L&(j1,D'D(D)^$$/D$L&,e%E*0%/D)e¤&j1&D)eÁ&o(de3/D$D)e¥&e%F(eä,R%$4$E*D$D&4&F)e$l1-D)e%F'e´3R%$D$D'eô3R%$4$F+D$L&,F'o(de3/D'D*D(e¤,R%$F(E*D$L&$i1$D*D$L&(o1*'dD(i1&D$L&$F*D'D*D'D+Q$$^$$D$D$L&,e%F'Z&,D(e%E(0$/$/D$D*Z&,/D)e¤&k1%//e$3/$/$/)D(D'e%_%$D(e&E(D'e%E'0%//e%E)/D)/#.%0£G$e.F(H$D(D$Z&$D(D&Z&0D(e$Z&,D(e$Z&@D(f$[&8D(D%L&$Z&(D(D'L&$Z&4D(eÄ.E/D(e-E0D(e´,E1&d&d'dD(e%4$E2e£E$&d&d&d&d&d&d&dD(e&4$2'$%(,/D(f$['<e&E)D(L&8F$e(F&D(L&4F-o1,D(L&0F,D$F*Q$$E+D*Q$%E.D(D$e'F3Z&8e¢E$D*Q$&D+e#%k1+D(D&Z&8D,D3Q$$D.e,F*e£e,e#%k1+D*D+F$D&F+D-o1,D(L&,F)D$E*D(L&$F-(dD(L&(D*m(de%E)0./'dD$i1'D)D-D&D,Q$$^$$D)e%E)D&e%E&D$e%E$0$/$/D(D+Z&8D(D*Z&,0&/eÔ-Q$$1'e$E&e¤3e-Z&$e 2eä-Z&$e¬3eä2Z&$e¨3eÄ2Z&$'dD&eÄ&j(de$E&'dD&e%j(de$E&'dD&eTj(de$E&'dD&e4k(dD&D/e,_%$D&e&E&0%//eä-e-D(e)eÄ&4%>e$E&'dD&e`k(dD(e)D&e)_%$D&e&E&0%//e¨3L&$e¬3L&$D(e)eB4%>eÔ-e%^$$0-)D&D0e+_%$D&e&E&0%/$/$)D&D1e-_%$D&e&E&0%/$/$)D(e)D&e,_%$D&e&E&0%/$/$/D(D)Z&,D(D&Z&8/e$E$0&/D(D(e´%Z&PD(D(eô)Z&LD(D(eTZ&HD(D(e$Z&DD(e)4$E&D(e)4$E)e¡E$D(e(4$E+D&eAnD)eAn1%D&e¥&E,D)e%E*e¤-E$D+e(F&e$D&e$n?F)E&'dD&(dD(e'4$E+D(e)D$R%$e%D+_%$D&e%E&D$e&E$0%)e$e7D)F$D$e7o?E&D)e%e¤-E$'dD&(dD(e)D$R%$e%e$_%$D&e%E&D$e&E$0%//e E$D(eô)D(e´%D(e)e74%1'D*D,E+e$E)'dD)D+l(dD(D(eL4&F$e$l1)D$e3q(dD(e)D)e%D$_%$D)e%E)0&/e$E-e'E.e'E&&d&d&dD$e42&$&%/D)i(deE$0,/D)e%D(S%)E-e&E&0%/e/E.e+E&/D+D(D&4$D.F&D)l(deE$0*/D(e)D)e%E$'dD&i1&D$D-_%$D$e&E$D)e%E)D&e%E&0$/$//D(S%-i(deE$0(/D(eô)D(e´%D(e)D,4%F&(deE$D&e$l1(D,D(R%ö)D(R%ô)k1(/D(e$D(eTD(e)D,e%D*4%F&(deE$D&e$l1(D*D(R%D(R%k1(/D(D(eLD(eD4'E$0'/$/$/D(e 2e¨34'E$/D$D2i1$/D$E)D$e$n1%/D%D(L&,Z&$D'D(L&8Z&$D$E)/D(e.H$D)//½%'$e¤,/^'$($)$*$+$,$-$.$/$1$3$5$7$;$?$C$G$O$W$_$g$w$$$§$Ç$ç$$&%$eô,/K%$%$%$%$&$&$&$&$'$'$'$'$($($($($)$)$)$)$e¤-/I4$5$6$$$,$+$-$*$.$)$/$($0$'$1$&$2$%$3";
 
-            /* read block type (2 bits) */
-            btype = tinf_read_bits(d, 2, 0);
+            if (!WASMAudioDecoderCommon.puffCompiled)
+              Object.defineProperty(WASMAudioDecoderCommon, "puffCompiled", {
+                value: WebAssembly.compile(
+                  WASMAudioDecoderCommon.decodeDynString(puffString)
+                ),
+              });
 
-            /* decompress block */
-            switch (btype) {
-              case 0:
-                /* decompress uncompressed block */
-                res = tinf_inflate_uncompressed_block(d);
-                break;
-              case 1:
-                /* decompress block with fixed huffman trees */
-                res = tinf_inflate_block_data(d, sltree, sdtree);
-                break;
-              case 2:
-                /* decompress block with dynamic huffman trees */
-                tinf_decode_trees(d, d.ltree, d.dtree);
-                res = tinf_inflate_block_data(d, d.ltree, d.dtree);
-                break;
-              default:
-                res = TINF_DATA_ERROR;
-            }
+            WASMAudioDecoderCommon.puffCompiled
+              .then((wasm) => WebAssembly.instantiate(wasm, {}))
+              .then((instance) => {
+                const puff = instance.exports["puff"];
+                const buffer = instance.exports["memory"]["buffer"];
+                const heapView = new DataView(buffer);
+                let heapPos = instance.exports["__heap_base"];
 
-            if (res !== TINF_OK) throw new Error("Data error");
-          } while (!bfinal);
+                // allocate destination memory
+                const destPtr = heapPos;
+                const destBuf = new uint8Array(buffer, destPtr, destLength);
+                heapPos += destLength;
 
-          return d.destLen < d.dest.length
-            ? d.dest.subarray(0, d.destLen)
-            : d.dest;
+                // set destination length
+                const destLengthPtr = heapPos;
+                heapView.setUint32(destLengthPtr, destLength);
+                heapPos += 4;
+
+                // set source memory
+                const sourcePtr = heapPos;
+                const sourceLength = source.length;
+                new uint8Array(buffer).set(source, sourcePtr);
+                heapPos += sourceLength;
+
+                // set source length
+                const sourceLengthPtr = heapPos;
+                heapView.setUint32(sourceLengthPtr, sourceLength);
+
+                const ret = puff(
+                  destPtr,
+                  destLengthPtr,
+                  sourcePtr,
+                  sourceLengthPtr
+                );
+
+                resolve(destBuf);
+              });
+          });
         },
       },
     });

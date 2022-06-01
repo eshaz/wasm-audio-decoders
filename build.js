@@ -10,6 +10,7 @@ const searchFileSize = async (
   startIteration,
   stopIteration,
   sourcePath,
+  outputName,
   rollupOutput,
   terserOutput
 ) => {
@@ -23,29 +24,28 @@ const searchFileSize = async (
     iteration <= stopIteration;
     iteration++
   ) {
-    await buildWasm(sourcePath, iteration, rollupOutput, terserOutput).then(
-      (code) => {
-        sizes.push({
-          iteration,
-          size: code.length,
-        });
+    await buildWasm(
+      sourcePath,
+      outputName,
+      iteration,
+      rollupOutput,
+      terserOutput
+    ).then((code) => {
+      sizes.push({
+        iteration,
+        size: code.length,
+      });
 
-        if (code.length <= bestLength) {
-          if (code.length < bestLength || bestIteration > iteration) {
-            bestIteration = iteration;
-            console.log(
-              "new best iteration",
-              iteration,
-              sourcePath,
-              code.length
-            );
-          }
-          bestLength = code.length;
+      if (code.length <= bestLength) {
+        if (code.length < bestLength || bestIteration > iteration) {
+          bestIteration = iteration;
+          console.log("new best iteration", iteration, sourcePath, code.length);
         }
-
-        console.log(iteration, sourcePath, code.length);
+        bestLength = code.length;
       }
-    );
+
+      console.log(iteration, sourcePath, code.length);
+    });
   }
 
   sizes.sort((a, b) => a.size - b.size || a.iteration - b.iteration);
@@ -56,12 +56,13 @@ const searchFileSize = async (
 
 const buildWasm = async (
   sourcePath,
+  outputName,
   compressionIterations,
   rollupOutput,
   terserOutput
 ) => {
-  const emscriptenInputPath = sourcePath + "src/EmscriptenWasm.tmp.js";
-  const emscriptenOutputPath = sourcePath + "src/EmscriptenWasm.js";
+  const emscriptenInputPath = sourcePath + `src/${outputName}.tmp.js`;
+  const emscriptenOutputPath = sourcePath + `src/${outputName}.js`;
   const rollupConfigPath = sourcePath + "rollup.json";
   const rollupInput = sourcePath + "index.js";
   const terserConfigPath = sourcePath + "terser.json";
@@ -83,11 +84,15 @@ const buildWasm = async (
   const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
   // compressed buffer
   const wasmBuffer = Uint8Array.from(Buffer.from(wasmContent, "base64"));
-  const wasmBufferCompressed = Zopfli.deflateSync(wasmBuffer, {
-    numiterations: compressionIterations,
-    blocksplitting: true,
-    blocksplittingmax: 0,
-  });
+  let wasmBufferCompressed = wasmBuffer;
+
+  if (compressionIterations > 0) {
+    wasmBufferCompressed = Zopfli.deflateSync(wasmBuffer, {
+      numiterations: compressionIterations,
+      blocksplitting: true,
+      blocksplittingmax: 0,
+    });
+  }
 
   // yEnc encoded wasm
   const dynEncodedSingleWasm = {
@@ -114,11 +119,11 @@ const buildWasm = async (
     [
       decoder.substring(0, wasmStartIdx),
       'if (!EmscriptenWASM.compiled) Object.defineProperty(EmscriptenWASM, "compiled", {value: ',
-      "WebAssembly.compile(WASMAudioDecoderCommon.inflateDynEncodeString(",
+      "WASMAudioDecoderCommon.inflateDynEncodeString(",
       dynEncodedWasm.quote,
       dynEncodedWasm.wasm,
       dynEncodedWasm.quote,
-      `, new Uint8Array(${wasmBuffer.length})))})`,
+      `, ${wasmBuffer.length}).then(r => WebAssembly.compile(r))});`,
       decoder.substring(wasmEndIdx),
     ].map(Buffer.from)
   );
@@ -143,46 +148,58 @@ const buildWasm = async (
 
   fs.writeFileSync(emscriptenOutputPath, finalString, { encoding: "binary" });
 
-  // rollup
-  const rollupConfig = fs.readFileSync(rollupConfigPath).toString();
-  const rollupInputConfig = JSON.parse(rollupConfig);
-  rollupInputConfig.input = rollupInput;
-  rollupInputConfig.plugins = [nodeResolve()];
+  if (module && moduleMin) {
+    // rollup
+    const rollupConfig = fs.readFileSync(rollupConfigPath).toString();
+    const rollupInputConfig = JSON.parse(rollupConfig);
+    rollupInputConfig.input = rollupInput;
+    rollupInputConfig.plugins = [nodeResolve()];
 
-  const rollupOutputConfig = JSON.parse(rollupConfig);
-  rollupOutputConfig.output.file = rollupOutput;
+    const rollupOutputConfig = JSON.parse(rollupConfig);
+    rollupOutputConfig.output.file = rollupOutput;
 
-  const bundle = await rollup(rollupInputConfig);
-  const output = (await bundle.generate(rollupOutputConfig)).output[0];
+    const bundle = await rollup(rollupInputConfig);
+    const output = (await bundle.generate(rollupOutputConfig)).output[0];
 
-  // terser
-  const terserConfig = JSON.parse(fs.readFileSync(terserConfigPath).toString());
-  const minified = await minify(
-    { [output.fileName]: output.code },
-    terserConfig
-  );
+    // terser
+    const terserConfig = JSON.parse(
+      fs.readFileSync(terserConfigPath).toString()
+    );
+    const minified = await minify(
+      { [output.fileName]: output.code },
+      terserConfig
+    );
 
-  // write output files
-  await Promise.all([
-    bundle.write(rollupOutputConfig),
-    fs.promises.writeFile(terserOutput, minified.code),
-    fs.promises.writeFile(terserOutput + ".map", minified.map),
-  ]);
+    // write output files
+    await Promise.all([
+      bundle.write(rollupOutputConfig),
+      fs.promises.writeFile(terserOutput, minified.code),
+      fs.promises.writeFile(terserOutput + ".map", minified.map),
+    ]);
 
-  return fs.readFileSync(terserOutput);
+    return fs.readFileSync(terserOutput);
+  }
 };
 
 const sourcePath = process.argv[2];
-const compressionIterations = parseInt(process.argv[3]);
-const module = process.argv[4];
-const moduleMin = process.argv[5];
+const outputName = process.argv[3];
+const compressionIterations = parseInt(process.argv[4]);
+const module = process.argv[5];
+const moduleMin = process.argv[6];
 
-await buildWasm(sourcePath, compressionIterations, module, moduleMin);
+await buildWasm(
+  sourcePath,
+  outputName,
+  compressionIterations,
+  module,
+  moduleMin
+);
 
 /*
 await searchFileSize(
   50, // start iteration
   1000, // stop iteration
+  outputName,
   sourcePath,
   module,
   moduleMin

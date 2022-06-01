@@ -6,6 +6,7 @@ node_modules
 
 *.tmp.js
 *.sizes.json
+Puff.wasm
 
 coverage
 test/actual/*

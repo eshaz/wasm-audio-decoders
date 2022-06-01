@@ -11,3 +11,6 @@
 	path = modules/mpg123
 	url = https://github.com/madebr/mpg123
 	branch = master
+[submodule "modules/zlib"]
+	path = modules/zlib
+	url = git@github.com:madler/zlib.git
