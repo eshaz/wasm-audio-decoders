@@ -2,7 +2,7 @@ import Worker from "web-worker";
 import WASMAudioDecoderCommon from "./WASMAudioDecoderCommon.js";
 
 export default class WASMAudioDecoderWorker extends Worker {
-  constructor(options, Decoder, EmscriptenWASM) {
+  constructor(options, name, Decoder, EmscriptenWASM) {
     if (!WASMAudioDecoderCommon.modules) new WASMAudioDecoderCommon();
 
     let source = WASMAudioDecoderCommon.modules.get(Decoder);
@@ -103,7 +103,7 @@ export default class WASMAudioDecoderWorker extends Worker {
       }
     }
 
-    super(source);
+    super(source, {name});
 
     this._id = Number.MIN_SAFE_INTEGER;
     this._enqueuedOperations = new Map();

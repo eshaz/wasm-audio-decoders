@@ -6,11 +6,11 @@ const wasmCommonPath = "src/common/src/WASMAudioDecoderCommon.js";
 
 const puffWasm = fs.readFileSync(puffWasmPath);
 
-const puffEncoded = dynamicEncode(puffWasm, '"');
+const puffEncoded = dynamicEncode(puffWasm, '`');
 
 const wasmCommon = fs.readFileSync(wasmCommonPath).toString();
 
-const puffString = wasmCommon.match(/const puffString = ".*";/s)[0];
+const puffString = wasmCommon.match(/const puffString = String.raw`.*`;/s)[0];
 
 const wasmStartIdx = wasmCommon.indexOf(puffString);
 const wasmEndIdx = wasmStartIdx + puffString.length;
@@ -19,9 +19,9 @@ const wasmEndIdx = wasmStartIdx + puffString.length;
 const wasmCommonWithPuff = Buffer.concat(
   [
     wasmCommon.substring(0, wasmStartIdx),
-    'const puffString = "',
+    'const puffString = String.raw`',
     puffEncoded,
-    '";',
+    '`;',
     wasmCommon.substring(wasmEndIdx),
   ].map(Buffer.from)
 );

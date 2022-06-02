@@ -45,6 +45,9 @@ const searchFileSize = async (
       }
 
       console.log(iteration, sourcePath, code.length);
+    }).catch(e => {
+      console.error("failed", iteration, sourcePath)
+      console.error(e);
     });
   }
 
@@ -79,7 +82,7 @@ this.setModule = (data) => {
 };
 
 this.getModule = () =>
-  WASMAudioDecoderCommon.getModule(EmscriptenWASM, EmscriptenWASM.wasm);
+  WASMAudioDecoderCommon.getModule(EmscriptenWASM);
 
 this.instantiate = () => {
   this.getModule().then((wasm) => WebAssembly.instantiate(wasm, imports)).then((instance) => {
@@ -104,19 +107,10 @@ this.instantiate = () => {
     });
   }
 
-  // yEnc encoded wasm
-  const dynEncodedSingleWasm = {
-    wasm: yenc.dynamicEncode(wasmBufferCompressed, "'"),
-    quote: "'",
+  const dynEncodedWasm = {
+    wasm: yenc.dynamicEncode(wasmBufferCompressed, '`'),
+    quote: '`',
   };
-  const dynEncodedDoubleWasm = {
-    wasm: yenc.dynamicEncode(wasmBufferCompressed, '"'),
-    quote: '"',
-  };
-  const dynEncodedWasm =
-    dynEncodedDoubleWasm.wasm.length > dynEncodedSingleWasm.wasm.length
-      ? dynEncodedSingleWasm
-      : dynEncodedDoubleWasm;
 
   // code before the wasm
   const wasmStartIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
@@ -128,11 +122,11 @@ this.instantiate = () => {
   decoder = Buffer.concat(
     [
       decoder.substring(0, wasmStartIdx),
-      'if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {value: {string: ',
+      'if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {get: () => ({string: String.raw',
       dynEncodedWasm.quote,
       dynEncodedWasm.wasm,
       dynEncodedWasm.quote,
-      `, length: ${wasmBuffer.length}}})`,
+      `, length: ${wasmBuffer.length}})})`,
       decoder.substring(wasmEndIdx),
     ].map(Buffer.from)
   );
@@ -208,8 +202,8 @@ await buildWasm(
 await searchFileSize(
   50, // start iteration
   1000, // stop iteration
-  outputName,
   sourcePath,
+  outputName,
   module,
   moduleMin
 );

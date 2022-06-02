@@ -4,7 +4,7 @@ import OggOpusDecoder from "./OggOpusDecoder.js";
 
 export default class OggOpusDecoderWebWorker extends WASMAudioDecoderWorker {
   constructor(options) {
-    super(options, OggOpusDecoder, EmscriptenWASM);
+    super(options, "ogg-opus-decoder", OggOpusDecoder, EmscriptenWASM);
   }
 
   async decode(data) {

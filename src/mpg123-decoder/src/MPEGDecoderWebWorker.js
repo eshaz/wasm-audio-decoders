@@ -4,7 +4,7 @@ import MPEGDecoder from "./MPEGDecoder.js";
 
 export default class MPEGDecoderWebWorker extends WASMAudioDecoderWorker {
   constructor(options) {
-    super(options, MPEGDecoder, EmscriptenWASM);
+    super(options, "mpg123-decoder", MPEGDecoder, EmscriptenWASM);
   }
 
   async decode(data) {

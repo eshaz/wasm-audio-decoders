@@ -27,7 +27,7 @@ OGG_OPUS_DECODER_EMSCRIPTEN_BUILD=$(OGG_OPUS_DECODER_PATH)src/EmscriptenWasm.tmp
 OGG_OPUS_DECODER_MODULE=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.js
 OGG_OPUS_DECODER_MODULE_MIN=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.min.js
 
-# Iterations, 222 = 110314
+# Iterations, (single / double) 222 = 110314, (backtick) 222 = 109953
 ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(OGG_OPUS_DECODER_PATH) \
@@ -44,14 +44,14 @@ OPUS_DECODER_EMSCRIPTEN_BUILD=$(OPUS_DECODER_PATH)src/EmscriptenWasm.tmp.js
 OPUS_DECODER_MODULE=$(OPUS_DECODER_PATH)dist/opus-decoder.js
 OPUS_DECODER_MODULE_MIN=$(OPUS_DECODER_PATH)dist/opus-decoder.min.js
 
-# Iterations, 230 = 84392, 840 = 84384
+# Iterations, (single / double) 230 = 84392, 840 = 84384; (backtick) 116 = 84416
 opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(OPUS_DECODER_PATH) \
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OPUS_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=840 \
+	COMPRESSION_ITERATIONS=116 \
 	npm run minify
 	cp $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_MIN) $(OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -69,14 +69,14 @@ MPG123_EMSCRIPTEN_BUILD=$(MPG123_DECODER_PATH)src/EmscriptenWasm.tmp.js
 MPG123_MODULE=$(MPG123_DECODER_PATH)dist/mpg123-decoder.js
 MPG123_MODULE_MIN=$(MPG123_DECODER_PATH)dist/mpg123-decoder.min.js
 
-# Iterations, 108 = 72560, 729 = 72474
+# Iterations, (single / double) 108 = 72560, 729 = 72474; (backtick) 181 = 72714
 mpg123-decoder: mpg123-wasmlib mpg123-decoder-minify ${MPG123_EMSCRIPTEN_BUILD}
 mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(MPG123_DECODER_PATH) \
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(MPG123_MODULE) \
 	MODULE_MIN=$(MPG123_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=729 \
+	COMPRESSION_ITERATIONS=181 \
 	npm run minify
 	cp $(MPG123_MODULE) $(MPG123_MODULE_MIN) $(MPG123_MODULE_MIN).map $(DEMO_PATH)
 
@@ -115,7 +115,7 @@ endef
 # ----------------------
 # puff (inflate library)
 # ----------------------
-# llvm, clang, llc, binaryen
+# requires: llvm, clang, llc, binaryen
 puff-llvm:
 	@ clang \
 		--target=wasm32 \
