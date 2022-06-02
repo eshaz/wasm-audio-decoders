@@ -73,7 +73,17 @@ const buildWasm = async (
   const wasmInstantiateMatcher = /WebAssembly\.instantiate\(.*?exports;/s;
   decoder = decoder.replace(
     decoder.match(wasmInstantiateMatcher)[0],
-    "EmscriptenWASM.compiled.then((wasm) => WebAssembly.instantiate(wasm, imports)).then(function(instance) {\n var asm = instance.exports;"
+    `
+this.setModule = (data) => {
+  WASMAudioDecoderCommon.setModule(EmscriptenWASM, data);
+};
+
+this.getModule = () =>
+  WASMAudioDecoderCommon.getModule(EmscriptenWASM, EmscriptenWASM.wasm);
+
+this.instantiate = () => {
+  this.getModule().then((wasm) => WebAssembly.instantiate(wasm, imports)).then((instance) => {
+    var asm = instance.exports;`
   );
 
   const wasmBase64ContentMatcher =
@@ -118,12 +128,11 @@ const buildWasm = async (
   decoder = Buffer.concat(
     [
       decoder.substring(0, wasmStartIdx),
-      'if (!EmscriptenWASM.compiled) Object.defineProperty(EmscriptenWASM, "compiled", {value: ',
-      "WASMAudioDecoderCommon.inflateDynEncodeString(",
+      'if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {value: {string: ',
       dynEncodedWasm.quote,
       dynEncodedWasm.wasm,
       dynEncodedWasm.quote,
-      `, ${wasmBuffer.length}).then(r => WebAssembly.compile(r))});`,
+      `, length: ${wasmBuffer.length}}})`,
       decoder.substring(wasmEndIdx),
     ].map(Buffer.from)
   );
@@ -142,7 +151,7 @@ const buildWasm = async (
       "export default function EmscriptenWASM(WASMAudioDecoderCommon) {\n",
       decoder,
       "return this;\n",
-      "}",
+      "}}",
     ].map(Buffer.from)
   );
 

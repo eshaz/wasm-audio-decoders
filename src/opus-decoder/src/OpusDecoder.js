@@ -24,24 +24,26 @@ export default function OpusDecoder(options = {}) {
   // injects dependencies when running as a web worker
   // async
   this._init = () => {
-    return new this._WASMAudioDecoderCommon(this).then((common) => {
-      this._common = common;
+    return new this._WASMAudioDecoderCommon(this)
+      .instantiate()
+      .then((common) => {
+        this._common = common;
 
-      const mapping = this._common.allocateTypedArray(
-        this._channels,
-        Uint8Array
-      );
+        const mapping = this._common.allocateTypedArray(
+          this._channels,
+          Uint8Array
+        );
 
-      mapping.buf.set(this._channelMappingTable);
+        mapping.buf.set(this._channelMappingTable);
 
-      this._decoder = this._common.wasm._opus_frame_decoder_create(
-        this._channels,
-        this._streamCount,
-        this._coupledStreamCount,
-        mapping.ptr,
-        this._preSkip
-      );
-    });
+        this._decoder = this._common.wasm._opus_frame_decoder_create(
+          this._channels,
+          this._streamCount,
+          this._coupledStreamCount,
+          mapping.ptr,
+          this._preSkip
+        );
+      });
   };
 
   Object.defineProperty(this, "ready", {
@@ -133,6 +135,7 @@ export default function OpusDecoder(options = {}) {
   this._WASMAudioDecoderCommon =
     OpusDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
   this._EmscriptenWASM = OpusDecoder.EmscriptenWASM || EmscriptenWASM;
+  this._module = OpusDecoder.module;
 
   const isNumber = (param) => typeof param === "number";
 

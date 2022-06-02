@@ -29,15 +29,17 @@ export default function OggOpusDecoder(options = {}) {
   }
 
   this._init = () => {
-    return new this._WASMAudioDecoderCommon(this).then((common) => {
-      this._common = common;
+    return new this._WASMAudioDecoderCommon(this)
+      .instantiate()
+      .then((common) => {
+        this._common = common;
 
-      this._channelsDecoded = this._common.allocateTypedArray(1, Uint32Array);
+        this._channelsDecoded = this._common.allocateTypedArray(1, Uint32Array);
 
-      this._decoder = this._common.wasm._ogg_opus_decoder_create(
-        this._forceStereo
-      );
-    });
+        this._decoder = this._common.wasm._ogg_opus_decoder_create(
+          this._forceStereo
+        );
+      });
   };
 
   Object.defineProperty(this, "ready", {
@@ -127,6 +129,7 @@ export default function OggOpusDecoder(options = {}) {
   this._WASMAudioDecoderCommon =
     OggOpusDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
   this._EmscriptenWASM = OggOpusDecoder.EmscriptenWASM || EmscriptenWASM;
+  this._module = OggOpusDecoder.module;
 
   this._forceStereo = options.forceStereo || false;
 
