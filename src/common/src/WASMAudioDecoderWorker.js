@@ -103,7 +103,7 @@ export default class WASMAudioDecoderWorker extends Worker {
       }
     }
 
-    super(source, {name});
+    super(source, { name });
 
     this._id = Number.MIN_SAFE_INTEGER;
     this._enqueuedOperations = new Map();

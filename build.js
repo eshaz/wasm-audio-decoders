@@ -30,25 +30,32 @@ const searchFileSize = async (
       iteration,
       rollupOutput,
       terserOutput
-    ).then((code) => {
-      sizes.push({
-        iteration,
-        size: code.length,
-      });
+    )
+      .then((code) => {
+        sizes.push({
+          iteration,
+          size: code.length,
+        });
 
-      if (code.length <= bestLength) {
-        if (code.length < bestLength || bestIteration > iteration) {
-          bestIteration = iteration;
-          console.log("new best iteration", iteration, sourcePath, code.length);
+        if (code.length <= bestLength) {
+          if (code.length < bestLength || bestIteration > iteration) {
+            bestIteration = iteration;
+            console.log(
+              "new best iteration",
+              iteration,
+              sourcePath,
+              code.length
+            );
+          }
+          bestLength = code.length;
         }
-        bestLength = code.length;
-      }
 
-      console.log(iteration, sourcePath, code.length);
-    }).catch(e => {
-      console.error("failed", iteration, sourcePath)
-      console.error(e);
-    });
+        console.log(iteration, sourcePath, code.length);
+      })
+      .catch((e) => {
+        console.error("failed", iteration, sourcePath);
+        console.error(e);
+      });
   }
 
   sizes.sort((a, b) => a.size - b.size || a.iteration - b.iteration);
@@ -108,8 +115,8 @@ this.instantiate = () => {
   }
 
   const dynEncodedWasm = {
-    wasm: yenc.dynamicEncode(wasmBufferCompressed, '`'),
-    quote: '`',
+    wasm: yenc.dynamicEncode(wasmBufferCompressed, "`"),
+    quote: "`",
   };
 
   // code before the wasm

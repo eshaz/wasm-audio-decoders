@@ -142,11 +142,14 @@
 
               WASMAudioDecoderCommon.getModule(WASMAudioDecoderCommon, puffString)
                 .then((wasm) => WebAssembly.instantiate(wasm, {}))
-                .then((instance) => {
-                  const puff = instance.exports["puff"];
-                  const buffer = instance.exports["memory"]["buffer"];
+                .then(({ exports }) => {
+                  // required for minifiers that mangle the __heap_base property
+                  const instanceExports = new Map(Object.entries(exports));
+
+                  const puff = instanceExports.get("puff");
+                  const buffer = instanceExports.get("memory")["buffer"];
                   const heapView = new DataView(buffer);
-                  let heapPos = instance.exports["__heap_base"];
+                  let heapPos = instanceExports.get("__heap_base");
 
                   // allocate destination memory
                   const destPtr = heapPos;
@@ -346,7 +349,7 @@
         }
       }
 
-      super(source, {name});
+      super(source, { name });
 
       this._id = Number.MIN_SAFE_INTEGER;
       this._enqueuedOperations = new Map();
