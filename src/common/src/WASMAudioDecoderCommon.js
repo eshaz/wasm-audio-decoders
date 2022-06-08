@@ -6,7 +6,7 @@ export default function WASMAudioDecoderCommon(caller) {
   if (!WASMAudioDecoderCommon.modules) {
     Object.defineProperties(WASMAudioDecoderCommon, {
       modules: {
-        value: new Map(),
+        value: new WeakMap(),
       },
 
       setModule: {
@@ -161,12 +161,7 @@ export default function WASMAudioDecoderCommon(caller) {
                 const sourceLengthPtr = heapPos;
                 heapView.setUint32(sourceLengthPtr, sourceLength);
 
-                const ret = puff(
-                  destPtr,
-                  destLengthPtr,
-                  sourcePtr,
-                  sourceLengthPtr
-                );
+                puff(destPtr, destLengthPtr, sourcePtr, sourceLengthPtr);
 
                 resolve(destBuf);
               });
@@ -215,20 +210,23 @@ export default function WASMAudioDecoderCommon(caller) {
   };
 
   this.instantiate = () => {
-    if (caller._module)
-      WASMAudioDecoderCommon.setModule(caller._EmscriptenWASM, caller._module);
+    const _module = caller._module;
+    const _EmscriptenWASM = caller._EmscriptenWASM;
+    const _inputSize = caller._inputSize;
+    const _outputChannels = caller._outputChannels;
+    const _outputChannelSize = caller._outputChannelSize;
 
-    this._wasm = new caller._EmscriptenWASM(
-      WASMAudioDecoderCommon
-    ).instantiate();
+    if (_module) WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
+
+    this._wasm = new _EmscriptenWASM(WASMAudioDecoderCommon).instantiate();
     this._pointers = new Set();
 
     return this._wasm.ready.then(() => {
-      caller._input = this.allocateTypedArray(caller._inputSize, uint8Array);
+      caller._input = this.allocateTypedArray(_inputSize, uint8Array);
 
       // output buffer
       caller._output = this.allocateTypedArray(
-        caller._outputChannels * caller._outputChannelSize,
+        _outputChannels * _outputChannelSize,
         float32Array
       );
 
