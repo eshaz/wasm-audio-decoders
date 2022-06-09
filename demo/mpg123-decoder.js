@@ -26,19 +26,18 @@
         },
 
         getModule: {
-          value(Ref, wasm) {
+          value(Ref, wasmString) {
             let module = WASMAudioDecoderCommon.modules.get(Ref);
 
             if (!module) {
-              if (!wasm) {
-                wasm = Ref.wasm;
+              if (!wasmString) {
+                wasmString = Ref.wasm;
                 module = WASMAudioDecoderCommon.inflateDynEncodeString(
-                  wasm.string,
-                  wasm.length
+                  wasmString
                 ).then((data) => WebAssembly.compile(data));
               } else {
                 module = WebAssembly.compile(
-                  WASMAudioDecoderCommon.decodeDynString(wasm)
+                  WASMAudioDecoderCommon.decodeDynString(wasmString)
                 );
               }
 
@@ -133,7 +132,7 @@
         },
 
         inflateDynEncodeString: {
-          value(source, destLength) {
+          value(source) {
             source = WASMAudioDecoderCommon.decodeDynString(source);
 
             return new Promise((resolve) => {
@@ -147,38 +146,41 @@
                   const instanceExports = new Map(Object.entries(exports));
 
                   const puff = instanceExports.get("puff");
-                  const buffer = instanceExports.get("memory")["buffer"];
-                  const heapView = new DataView(buffer);
+                  const memory = instanceExports.get("memory")["buffer"];
+                  const dataArray = new uint8Array(memory);
+                  const heapView = new DataView(memory);
+
                   let heapPos = instanceExports.get("__heap_base");
 
-                  // allocate destination memory
-                  const destPtr = heapPos;
-                  const destBuf = new uint8Array(buffer, destPtr, destLength);
-                  heapPos += destLength;
-
-                  // set destination length
-                  const destLengthPtr = heapPos;
-                  heapView.setUint32(destLengthPtr, destLength);
-                  heapPos += 4;
-
-                  // set source memory
-                  const sourcePtr = heapPos;
+                  // source length
                   const sourceLength = source.length;
-                  new uint8Array(buffer).set(source, sourcePtr);
-                  heapPos += sourceLength;
-
-                  // set source length
                   const sourceLengthPtr = heapPos;
-                  heapView.setUint32(sourceLengthPtr, sourceLength);
+                  heapPos += 4;
+                  heapView.setInt32(sourceLengthPtr, sourceLength, true);
 
-                  puff(
-                    destPtr,
+                  // source data
+                  const sourcePtr = heapPos;
+                  heapPos += sourceLength;
+                  dataArray.set(source, sourcePtr);
+
+                  // destination length
+                  const destLengthPtr = heapPos;
+                  heapPos += 4;
+                  heapView.setInt32(
                     destLengthPtr,
-                    sourcePtr,
-                    sourceLengthPtr
+                    dataArray.byteLength - heapPos,
+                    true
                   );
 
-                  resolve(destBuf);
+                  // destination data fills in the rest of the heap
+                  puff(heapPos, destLengthPtr, sourcePtr, sourceLengthPtr);
+
+                  resolve(
+                    dataArray.slice(
+                      heapPos,
+                      heapPos + heapView.getInt32(destLengthPtr, true)
+                    )
+                  );
                 });
             });
           },
@@ -231,12 +233,9 @@
       const _outputChannels = caller._outputChannels;
       const _outputChannelSize = caller._outputChannelSize;
 
-      if (_module)
-        WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
+      if (_module) WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
 
-      this._wasm = new _EmscriptenWASM(
-        WASMAudioDecoderCommon
-      ).instantiate();
+      this._wasm = new _EmscriptenWASM(WASMAudioDecoderCommon).instantiate();
       this._pointers = new Set();
 
       return this._wasm.ready.then(() => {
@@ -429,7 +428,7 @@
 
   base64ReverseLookup[47] = 63;
 
-  if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {get: () => ({string: String.raw`dynEncode0093¿ ÄUÃ8åbózæÁ®¦þõ#Ê4»K7ÝY¦ROW4=}ëTxÌVH6ö8=}8±ÚD½fTa±ÿUé±)ãüþ­.Ê@k_±þýYþ*âGù×I8jL¡/@FL1KX®ÉÑ/Ï= ª³»©þÃqpNuã&Á Á&óTp°)ó«Éô£³ºB¸k®ò[Ó©µ7¼%qQ"ÉSûãÝû´(>ÞY´¡æ{+Ä*Øã÷ÇÒ¶YÔ!ýÃ¿*õºvQn ¢¥£¹TïvÒ ¦&µïIì»K±:Î´L@k2ë©ëÔ(è×?4_Íñ[ñ\¹q[©¤Á¦þz
+  if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {get: () => String.raw`dynEncode0093¿ ÄUÃ8åbózæÁ®¦þõ#Ê4»K7ÝY¦ROW4=}ëTxÌVH6ö8=}8±ÚD½fTa±ÿUé±)ãüþ­.Ê@k_±þýYþ*âGù×I8jL¡/@FL1KX®ÉÑ/Ï= ª³»©þÃqpNuã&Á Á&óTp°)ó«Éô£³ºB¸k®ò[Ó©µ7¼%qQ"ÉSûãÝû´(>ÞY´¡æ{+Ä*Øã÷ÇÒ¶YÔ!ýÃ¿*õºvQn ¢¥£¹TïvÒ ¦&µïIì»K±:Î´L@k2ë©ëÔ(è×?4_Íñ[ñ\¹q[©¤Á¦þz
 Ý yõ~{w&]Yaá Në?¯10òÿññðroq"È>~[iÝEÚE¨ý/»'%ÅÐjòÊî/§åßJü),8m©¯Î<0?*
 ¸¨²x¨QÿT^O\ÅÆÆÆ)ÙeºúøpÌaSÌ
 7bNÙb{ìPîR×RëRßqQ÷"%Äyg+¤å~(ÑpáÅÕ¼
@@ -579,7 +578,7 @@ g~¤NöEFrêFâ8mr$ÆCÒ&7ù,L= 1gP[ÈD,v±{-ae{ü×ý)�
 Ï2Uo³5©gev!%áíû©~?d2Öâ¹5ä
 &fàtê¹fÇ}í¿!6é»0S¿Üj/Úäéîí­µMÊd¢«KT_Ô_¶ICÊÓ4V;,tuø§	¢Q^ø¡#øq6Np¹Ø1ûlÃpøÉâJç5î	.Ú.Ût.ÑEIt¯&ÊbZè
 iô^Õ¯-ÌQõ^ +© Ø[Ëv7$Pm,Ré[Ö8}¾§¹cz¶=}VÔ"³qå8¨z+'=M/~ªñ5v·Ýñ2ÈÅHøÑY\ME(±ã=MôªUQ~dIêÕ¨Uxîº§O+ÎÚ?ulC$m´ 9r·Ë=M©°RL{qQÞì7$Te5HûqzmöÑÜÙUÁ1Ü9ü7ËÍ¶(v÷]º óþÖ§â®ûöª	±Å£¶Ý¡j±ÒöL¹Û%O@#ùÏI/ óÃ= ^ì5qb.emôØ¶ºp><;Ú]dÕéRUzÖÄ@HoÈ]Crt_ð·'#67âY,îvåG¢4fT'#åÉ²1 ÄVvb(4¥¥m!òÈ½áöQÀ+¥¬ò=M=}Åä>®âxOR¹TNf§M$hÄÛ»ûEÞì/Ãb·Ù;¾	ú³ÖÖ¢+nÕà+´h[¤¡ØÚd^ã8À3#7õÖ=}Æ¯[^KÔèL·Edíÿ	/9ÖÇZ¾Òùe°É÷ôA¬zW©AùO"ewn>Ðyøe~ÌmF25öu÷îYi^AÔä©5ÆA-(ëÏ!èæ]dCBz\®Wç!Ãù^ %p,D	¶©¾¤Á¶Øz ¬^M+ò~Xê:­ÉÿW~SÜ¥í=}®*hºz2x$¸ç.ÞfCív­K?1\-ëf)-0ZËF}ÄÞ6£¯wfÒ*1õ§O¥~D-X¬Y'Ì\§!®ï¸@·ÑKiÝ'QzßáKáØ¯>-xl=M}znN¼ñÒ?M B/ÝtaáNÂÃç?mF¹Ó+\­ä+_"·VúÑ0XUÞ°QÄá=}'uÈÄ·bwøÄåXèg@PWu»mKÅÌ]= %#	lY2T×û!Ty$¿ú¯uÒ5\»[:Móß+d0±B«·¥±t¹¥B³×'x;ÉKtA¦Ü½÷;ºvð<[bÏÿbáõ\DåI	¶¿÷½å
-ÜÍOVª¹JvG.VÛèìa Qÿ	ÊPtÛ¶¼ÅÐÞwÿ|"Üá	raWâÐçjT?2O³TáÙ?D6þé²EÙ0©CòèZI ÿn­Ezÿ®æyOøba	= Lyÿn. Ib?tKÕ ´¸®@Ø ,p{Ô Mö^p¶>föYZç8~÷!AÕ"\ ÎðÜÛ	Bù$ çûcôS¾ÿCVºïVÂ¶³Õ¶»õ¶·åÛÖ×é-×	-4Ó°¿CUÎ¯óïG®µ! ¹ÇÖ½!ÖÕ1ÿW÷éçàÊ¿iÊ¶ÿ	fxÓÃ§!×ö×Å(a÷².2V;5þÕ[48= XYÿxyæUÉYXØWæë÷·&g<z)ÄÆú/O>Ø+é¤ch_JEí¬æî÷®×!ÎS¿÷îCZô¹×rRBx:àýÜp|^ß	@!Eç ñïlVÂ¶³Õ¶»õ£¥Ú	·$Õ­¬÷$Ö±Ñ12k$Ó4¢yÂ3{ªóXRQr-ò&M.é+9¥I*÷ï¼¼üu¢¬öÅÞpZGjpIe÷ê©* `, length: 96365})});
+ÜÍOVª¹JvG.VÛèìa Qÿ	ÊPtÛ¶¼ÅÐÞwÿ|"Üá	raWâÐçjT?2O³TáÙ?D6þé²EÙ0©CòèZI ÿn­Ezÿ®æyOøba	= Lyÿn. Ib?tKÕ ´¸®@Ø ,p{Ô Mö^p¶>föYZç8~÷!AÕ"\ ÎðÜÛ	Bù$ çûcôS¾ÿCVºïVÂ¶³Õ¶»õ¶·åÛÖ×é-×	-4Ó°¿CUÎ¯óïG®µ! ¹ÇÖ½!ÖÕ1ÿW÷éçàÊ¿iÊ¶ÿ	fxÓÃ§!×ö×Å(a÷².2V;5þÕ[48= XYÿxyæUÉYXØWæë÷·&g<z)ÄÆú/O>Ø+é¤ch_JEí¬æî÷®×!ÎS¿÷îCZô¹×rRBx:àýÜp|^ß	@!Eç ñïlVÂ¶³Õ¶»õ£¥Ú	·$Õ­¬÷$Ö±Ñ12k$Ó4¢yÂ3{ªóXRQr-ò&M.é+9¥I*÷ï¼¼üu¢¬öÅÞpZGjpIe÷ê©* `});
 
   var UTF8Decoder = new TextDecoder("utf8");
 

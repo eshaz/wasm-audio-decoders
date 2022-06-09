@@ -129,11 +129,11 @@ this.instantiate = () => {
   decoder = Buffer.concat(
     [
       decoder.substring(0, wasmStartIdx),
-      'if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {get: () => ({string: String.raw',
+      'if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {get: () => String.raw',
       dynEncodedWasm.quote,
       dynEncodedWasm.wasm,
       dynEncodedWasm.quote,
-      `, length: ${wasmBuffer.length}})})`,
+      `})`,
       decoder.substring(wasmEndIdx),
     ].map(Buffer.from)
   );

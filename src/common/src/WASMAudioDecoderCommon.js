@@ -16,19 +16,18 @@ export default function WASMAudioDecoderCommon(caller) {
       },
 
       getModule: {
-        value(Ref, wasm) {
+        value(Ref, wasmString) {
           let module = WASMAudioDecoderCommon.modules.get(Ref);
 
           if (!module) {
-            if (!wasm) {
-              wasm = Ref.wasm;
+            if (!wasmString) {
+              wasmString = Ref.wasm;
               module = WASMAudioDecoderCommon.inflateDynEncodeString(
-                wasm.string,
-                wasm.length
+                wasmString
               ).then((data) => WebAssembly.compile(data));
             } else {
               module = WebAssembly.compile(
-                WASMAudioDecoderCommon.decodeDynString(wasm)
+                WASMAudioDecoderCommon.decodeDynString(wasmString)
               );
             }
 
@@ -123,7 +122,7 @@ export default function WASMAudioDecoderCommon(caller) {
       },
 
       inflateDynEncodeString: {
-        value(source, destLength) {
+        value(source) {
           source = WASMAudioDecoderCommon.decodeDynString(source);
 
           return new Promise((resolve) => {
@@ -137,33 +136,41 @@ export default function WASMAudioDecoderCommon(caller) {
                 const instanceExports = new Map(Object.entries(exports));
 
                 const puff = instanceExports.get("puff");
-                const buffer = instanceExports.get("memory")["buffer"];
-                const heapView = new DataView(buffer);
+                const memory = instanceExports.get("memory")["buffer"];
+                const dataArray = new uint8Array(memory);
+                const heapView = new DataView(memory);
+
                 let heapPos = instanceExports.get("__heap_base");
 
-                // allocate destination memory
-                const destPtr = heapPos;
-                const destBuf = new uint8Array(buffer, destPtr, destLength);
-                heapPos += destLength;
-
-                // set destination length
-                const destLengthPtr = heapPos;
-                heapView.setUint32(destLengthPtr, destLength);
-                heapPos += 4;
-
-                // set source memory
-                const sourcePtr = heapPos;
+                // source length
                 const sourceLength = source.length;
-                new uint8Array(buffer).set(source, sourcePtr);
-                heapPos += sourceLength;
-
-                // set source length
                 const sourceLengthPtr = heapPos;
-                heapView.setUint32(sourceLengthPtr, sourceLength);
+                heapPos += 4;
+                heapView.setInt32(sourceLengthPtr, sourceLength, true);
 
-                puff(destPtr, destLengthPtr, sourcePtr, sourceLengthPtr);
+                // source data
+                const sourcePtr = heapPos;
+                heapPos += sourceLength;
+                dataArray.set(source, sourcePtr);
 
-                resolve(destBuf);
+                // destination length
+                const destLengthPtr = heapPos;
+                heapPos += 4;
+                heapView.setInt32(
+                  destLengthPtr,
+                  dataArray.byteLength - heapPos,
+                  true
+                );
+
+                // destination data fills in the rest of the heap
+                puff(heapPos, destLengthPtr, sourcePtr, sourceLengthPtr);
+
+                resolve(
+                  dataArray.slice(
+                    heapPos,
+                    heapPos + heapView.getInt32(destLengthPtr, true)
+                  )
+                );
               });
           });
         },
