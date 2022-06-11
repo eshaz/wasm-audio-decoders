@@ -10,6 +10,7 @@ const searchFileSize = async (
   startIteration,
   stopIteration,
   sourcePath,
+  outputName,
   rollupOutput,
   terserOutput
 ) => {
@@ -23,8 +24,14 @@ const searchFileSize = async (
     iteration <= stopIteration;
     iteration++
   ) {
-    await buildWasm(sourcePath, iteration, rollupOutput, terserOutput).then(
-      (code) => {
+    await buildWasm(
+      sourcePath,
+      outputName,
+      iteration,
+      rollupOutput,
+      terserOutput
+    )
+      .then((code) => {
         sizes.push({
           iteration,
           size: code.length,
@@ -44,8 +51,11 @@ const searchFileSize = async (
         }
 
         console.log(iteration, sourcePath, code.length);
-      }
-    );
+      })
+      .catch((e) => {
+        console.error("failed", iteration, sourcePath);
+        console.error(e);
+      });
   }
 
   sizes.sort((a, b) => a.size - b.size || a.iteration - b.iteration);
@@ -56,12 +66,13 @@ const searchFileSize = async (
 
 const buildWasm = async (
   sourcePath,
+  outputName,
   compressionIterations,
   rollupOutput,
   terserOutput
 ) => {
-  const emscriptenInputPath = sourcePath + "src/EmscriptenWasm.tmp.js";
-  const emscriptenOutputPath = sourcePath + "src/EmscriptenWasm.js";
+  const emscriptenInputPath = sourcePath + `src/${outputName}.tmp.js`;
+  const emscriptenOutputPath = sourcePath + `src/${outputName}.js`;
   const rollupConfigPath = sourcePath + "rollup.json";
   const rollupInput = sourcePath + "index.js";
   const terserConfigPath = sourcePath + "terser.json";
@@ -72,7 +83,17 @@ const buildWasm = async (
   const wasmInstantiateMatcher = /WebAssembly\.instantiate\(.*?exports;/s;
   decoder = decoder.replace(
     decoder.match(wasmInstantiateMatcher)[0],
-    "EmscriptenWASM.compiled.then((wasm) => WebAssembly.instantiate(wasm, imports)).then(function(instance) {\n var asm = instance.exports;"
+    `
+this.setModule = (data) => {
+  WASMAudioDecoderCommon.setModule(EmscriptenWASM, data);
+};
+
+this.getModule = () =>
+  WASMAudioDecoderCommon.getModule(EmscriptenWASM);
+
+this.instantiate = () => {
+  this.getModule().then((wasm) => WebAssembly.instantiate(wasm, imports)).then((instance) => {
+    var asm = instance.exports;`
   );
 
   const wasmBase64ContentMatcher =
@@ -83,25 +104,20 @@ const buildWasm = async (
   const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
   // compressed buffer
   const wasmBuffer = Uint8Array.from(Buffer.from(wasmContent, "base64"));
-  const wasmBufferCompressed = Zopfli.deflateSync(wasmBuffer, {
-    numiterations: compressionIterations,
-    blocksplitting: true,
-    blocksplittingmax: 0,
-  });
+  let wasmBufferCompressed = wasmBuffer;
 
-  // yEnc encoded wasm
-  const dynEncodedSingleWasm = {
-    wasm: yenc.dynamicEncode(wasmBufferCompressed, "'"),
-    quote: "'",
+  if (compressionIterations > 0) {
+    wasmBufferCompressed = Zopfli.deflateSync(wasmBuffer, {
+      numiterations: compressionIterations,
+      blocksplitting: true,
+      blocksplittingmax: 0,
+    });
+  }
+
+  const dynEncodedWasm = {
+    wasm: yenc.dynamicEncode(wasmBufferCompressed, "`"),
+    quote: "`",
   };
-  const dynEncodedDoubleWasm = {
-    wasm: yenc.dynamicEncode(wasmBufferCompressed, '"'),
-    quote: '"',
-  };
-  const dynEncodedWasm =
-    dynEncodedDoubleWasm.wasm.length > dynEncodedSingleWasm.wasm.length
-      ? dynEncodedSingleWasm
-      : dynEncodedDoubleWasm;
 
   // code before the wasm
   const wasmStartIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
@@ -113,12 +129,11 @@ const buildWasm = async (
   decoder = Buffer.concat(
     [
       decoder.substring(0, wasmStartIdx),
-      'if (!EmscriptenWASM.compiled) Object.defineProperty(EmscriptenWASM, "compiled", {value: ',
-      "WebAssembly.compile(WASMAudioDecoderCommon.inflateDynEncodeString(",
+      'if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {get: () => String.raw',
       dynEncodedWasm.quote,
       dynEncodedWasm.wasm,
       dynEncodedWasm.quote,
-      `, new Uint8Array(${wasmBuffer.length})))})`,
+      `})`,
       decoder.substring(wasmEndIdx),
     ].map(Buffer.from)
   );
@@ -137,53 +152,65 @@ const buildWasm = async (
       "export default function EmscriptenWASM(WASMAudioDecoderCommon) {\n",
       decoder,
       "return this;\n",
-      "}",
+      "}}",
     ].map(Buffer.from)
   );
 
   fs.writeFileSync(emscriptenOutputPath, finalString, { encoding: "binary" });
 
-  // rollup
-  const rollupConfig = fs.readFileSync(rollupConfigPath).toString();
-  const rollupInputConfig = JSON.parse(rollupConfig);
-  rollupInputConfig.input = rollupInput;
-  rollupInputConfig.plugins = [nodeResolve()];
+  if (module && moduleMin) {
+    // rollup
+    const rollupConfig = fs.readFileSync(rollupConfigPath).toString();
+    const rollupInputConfig = JSON.parse(rollupConfig);
+    rollupInputConfig.input = rollupInput;
+    rollupInputConfig.plugins = [nodeResolve()];
 
-  const rollupOutputConfig = JSON.parse(rollupConfig);
-  rollupOutputConfig.output.file = rollupOutput;
+    const rollupOutputConfig = JSON.parse(rollupConfig);
+    rollupOutputConfig.output.file = rollupOutput;
 
-  const bundle = await rollup(rollupInputConfig);
-  const output = (await bundle.generate(rollupOutputConfig)).output[0];
+    const bundle = await rollup(rollupInputConfig);
+    const output = (await bundle.generate(rollupOutputConfig)).output[0];
 
-  // terser
-  const terserConfig = JSON.parse(fs.readFileSync(terserConfigPath).toString());
-  const minified = await minify(
-    { [output.fileName]: output.code },
-    terserConfig
-  );
+    // terser
+    const terserConfig = JSON.parse(
+      fs.readFileSync(terserConfigPath).toString()
+    );
+    const minified = await minify(
+      { [output.fileName]: output.code },
+      terserConfig
+    );
 
-  // write output files
-  await Promise.all([
-    bundle.write(rollupOutputConfig),
-    fs.promises.writeFile(terserOutput, minified.code),
-    fs.promises.writeFile(terserOutput + ".map", minified.map),
-  ]);
+    // write output files
+    await Promise.all([
+      bundle.write(rollupOutputConfig),
+      fs.promises.writeFile(terserOutput, minified.code),
+      fs.promises.writeFile(terserOutput + ".map", minified.map),
+    ]);
 
-  return fs.readFileSync(terserOutput);
+    return fs.readFileSync(terserOutput);
+  }
 };
 
 const sourcePath = process.argv[2];
-const compressionIterations = parseInt(process.argv[3]);
-const module = process.argv[4];
-const moduleMin = process.argv[5];
+const outputName = process.argv[3];
+const compressionIterations = parseInt(process.argv[4]);
+const module = process.argv[5];
+const moduleMin = process.argv[6];
 
-await buildWasm(sourcePath, compressionIterations, module, moduleMin);
+await buildWasm(
+  sourcePath,
+  outputName,
+  compressionIterations,
+  module,
+  moduleMin
+);
 
 /*
 await searchFileSize(
   50, // start iteration
   1000, // stop iteration
   sourcePath,
+  outputName,
   module,
   moduleMin
 );

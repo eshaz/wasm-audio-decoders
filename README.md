@@ -22,7 +22,7 @@ Decodes MPEG Layer I/II/III into PCM
 
 ### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 107.7 KiB minified bundle size
+  * 107.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
@@ -31,7 +31,7 @@ Decodes Ogg Opus data into PCM
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
 Decodes raw Opus audio frames into PCM
-  * 82.4 KiB minified bundle size
+  * 82.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
@@ -68,7 +68,7 @@ Decodes raw Opus audio frames into PCM
     * Everything is bundled in a single minified Javascript file for ease of use.
     * WASM binary is encoded inline using yEnc binary encoding and compressed using DEFLATE to significantly reduce bundle size.
     * WASM compiler, minifier, and bundler options are tuned for best possible size and performance.
-* `tiny-inflate` is included from [foliojs/tiny-inflate](https://github.com/foliojs/tiny-inflate) and is used to decompress the WASM binary.
+* `puff` is included as a WASM build from [madler/zlib](https://github.com/madler/zlib/tree/master/contrib/puff) and is used to decompress the WASM binary.
 
 ## Licensing
 

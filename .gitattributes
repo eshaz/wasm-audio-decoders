@@ -8,3 +8,5 @@ modules/opusfile/* linguist-vendored
 src/mpg123-decoder/dist/* linguist-generated
 src/ogg-opus-decoder/dist/* linguist-generated
 src/opus-decoder/dist/* linguist-generated
+
+*.js diff

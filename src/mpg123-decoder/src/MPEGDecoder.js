@@ -6,16 +6,18 @@ export default function MPEGDecoder(options = {}) {
   // injects dependencies when running as a web worker
   // async
   this._init = () => {
-    return new this._WASMAudioDecoderCommon(this).then((common) => {
-      this._common = common;
+    return new this._WASMAudioDecoderCommon(this)
+      .instantiate()
+      .then((common) => {
+        this._common = common;
 
-      this._sampleRate = 0;
+        this._sampleRate = 0;
 
-      this._decodedBytes = this._common.allocateTypedArray(1, Uint32Array);
-      this._sampleRateBytes = this._common.allocateTypedArray(1, Uint32Array);
+        this._decodedBytes = this._common.allocateTypedArray(1, Uint32Array);
+        this._sampleRateBytes = this._common.allocateTypedArray(1, Uint32Array);
 
-      this._decoder = this._common.wasm._mpeg_frame_decoder_create();
-    });
+        this._decoder = this._common.wasm._mpeg_frame_decoder_create();
+      });
   };
 
   Object.defineProperty(this, "ready", {
@@ -125,6 +127,7 @@ export default function MPEGDecoder(options = {}) {
   this._WASMAudioDecoderCommon =
     MPEGDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
   this._EmscriptenWASM = MPEGDecoder.EmscriptenWASM || EmscriptenWASM;
+  this._module = MPEGDecoder.module;
 
   this._inputSize = 2 ** 18;
   this._outputChannelSize = 1152 * 512;

@@ -2,88 +2,89 @@ import Worker from "web-worker";
 import WASMAudioDecoderCommon from "./WASMAudioDecoderCommon.js";
 
 export default class WASMAudioDecoderWorker extends Worker {
-  constructor(options, Decoder, EmscriptenWASM) {
-    const webworkerSourceCode =
-      "'use strict';" +
-      // dependencies need to be manually resolved when stringifying this function
-      `(${((_options, _Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
-        // We're in a Web Worker
-        Object.defineProperties(_Decoder, {
-          WASMAudioDecoderCommon: { value: _WASMAudioDecoderCommon },
-          EmscriptenWASM: { value: _EmscriptenWASM },
-          isWebWorker: { value: true },
-        });
+  constructor(options, name, Decoder, EmscriptenWASM) {
+    if (!WASMAudioDecoderCommon.modules) new WASMAudioDecoderCommon();
 
-        const decoder = new _Decoder(_options);
+    let source = WASMAudioDecoderCommon.modules.get(Decoder);
 
-        self.onmessage = ({ data: { id, command, data } }) => {
-          switch (command) {
-            case "ready":
-              decoder.ready.then(() => {
-                self.postMessage({
-                  id,
-                });
+    if (!source) {
+      const webworkerSourceCode =
+        "'use strict';" +
+        // dependencies need to be manually resolved when stringifying this function
+        `(${((_options, _Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
+          // We're in a Web Worker
+
+          // setup Promise that will be resolved once the WebAssembly Module is received
+          let decoder,
+            moduleResolve,
+            modulePromise = new Promise((resolve) => {
+              moduleResolve = resolve;
+            });
+
+          self.onmessage = ({ data: { id, command, data } }) => {
+            let messagePromise = modulePromise,
+              messagePayload = { id },
+              transferList;
+
+            if (command === "module") {
+              Object.defineProperties(_Decoder, {
+                WASMAudioDecoderCommon: { value: _WASMAudioDecoderCommon },
+                EmscriptenWASM: { value: _EmscriptenWASM },
+                module: { value: data },
+                isWebWorker: { value: true },
               });
-              break;
-            case "free":
+
+              decoder = new _Decoder(_options);
+              moduleResolve();
+            } else if (command === "free") {
               decoder.free();
-              self.postMessage({
-                id,
-              });
-              break;
-            case "reset":
-              decoder.reset().then(() => {
-                self.postMessage({
-                  id,
-                });
-              });
-              break;
-            case "decode":
-            case "decodeFrame":
-            case "decodeFrames":
-              const { channelData, samplesDecoded, sampleRate } = decoder[
-                command
-              ](
-                // detach buffers
-                Array.isArray(data)
-                  ? data.map((data) => new Uint8Array(data))
-                  : new Uint8Array(data)
+            } else if (command === "ready") {
+              messagePromise = messagePromise.then(() => decoder.ready);
+            } else if (command === "reset") {
+              messagePromise = messagePromise.then(() => decoder.reset());
+            } else {
+              // "decode":
+              // "decodeFrame":
+              // "decodeFrames":
+              Object.assign(
+                messagePayload,
+                decoder[command](
+                  // detach buffers
+                  Array.isArray(data)
+                    ? data.map((data) => new Uint8Array(data))
+                    : new Uint8Array(data)
+                )
               );
-
-              self.postMessage(
-                {
-                  id,
-                  channelData,
-                  samplesDecoded,
-                  sampleRate,
-                },
-                // The "transferList" parameter transfers ownership of channel data to main thread,
-                // which avoids copying memory.
-                channelData.map((channel) => channel.buffer)
+              // The "transferList" parameter transfers ownership of channel data to main thread,
+              // which avoids copying memory.
+              transferList = messagePayload.channelData.map(
+                (channel) => channel.buffer
               );
-              break;
-            default:
-              this.console.error("Unknown command sent to worker: " + command);
-          }
-        };
-      }).toString()})(${JSON.stringify(
-        options
-      )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
+            }
 
-    const type = "text/javascript";
-    let source;
+            messagePromise.then(() =>
+              self.postMessage(messagePayload, transferList)
+            );
+          };
+        }).toString()})(${JSON.stringify(
+          options
+        )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
 
-    try {
-      // browser
-      source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
-    } catch {
-      // nodejs
-      source = `data:${type};base64,${Buffer.from(webworkerSourceCode).toString(
-        "base64"
-      )}`;
+      const type = "text/javascript";
+
+      try {
+        // browser
+        source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
+        WASMAudioDecoderCommon.modules.set(Decoder, source);
+      } catch {
+        // nodejs
+        source = `data:${type};base64,${Buffer.from(
+          webworkerSourceCode
+        ).toString("base64")}`;
+      }
     }
 
-    super(source);
+    super(source, { name });
 
     this._id = Number.MIN_SAFE_INTEGER;
     this._enqueuedOperations = new Map();
@@ -93,6 +94,10 @@ export default class WASMAudioDecoderWorker extends Worker {
       this._enqueuedOperations.get(id)(rest);
       this._enqueuedOperations.delete(id);
     };
+
+    new EmscriptenWASM(WASMAudioDecoderCommon).getModule().then((compiled) => {
+      this._postToDecoder("module", compiled);
+    });
   }
 
   async _postToDecoder(command, data) {
