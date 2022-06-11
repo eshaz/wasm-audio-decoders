@@ -68,7 +68,7 @@ Decodes raw Opus audio frames into PCM
     * Everything is bundled in a single minified Javascript file for ease of use.
     * WASM binary is encoded inline using yEnc binary encoding and compressed using DEFLATE to significantly reduce bundle size.
     * WASM compiler, minifier, and bundler options are tuned for best possible size and performance.
-* `tiny-inflate` is included from [foliojs/tiny-inflate](https://github.com/foliojs/tiny-inflate) and is used to decompress the WASM binary.
+* `puff` is included as a WASM build from [madler/zlib](https://github.com/madler/zlib/tree/master/contrib/puff) and is used to decompress the WASM binary.
 
 ## Licensing
 
