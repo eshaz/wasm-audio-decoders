@@ -14,17 +14,17 @@
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@types/jest": "^27.5.1",
     "@wpdas/wave-header": "^1.0.1",
-    "codec-parser": "2.0.2",
+    "codec-parser": "2.1.0",
     "gh-pages": "^4.0.0",
     "jest": "^27.5.1",
     "mpg123-decoder": "file:src/mpg123-decoder",
     "node-zopfli": "^2.1.4",
     "ogg-opus-decoder": "file:src/ogg-opus-decoder",
     "opus-decoder": "file:src/opus-decoder",
-    "prettier": "^2.6.2",
-    "rollup": "^2.75.3",
+    "prettier": "^2.7.1",
+    "rollup": "^2.76.0",
     "simple-yenc": "0.2.1",
-    "terser": "^5.13.1",
+    "terser": "^5.14.1",
     "web-worker": "^1.1.0"
   }
 }
