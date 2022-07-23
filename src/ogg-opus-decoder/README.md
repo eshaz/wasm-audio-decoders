@@ -126,9 +126,17 @@ const decoder = new OggOpusDecoder({ forceStereo: true });
 
 ### Methods
 
-* `decoder.decode(oggOpusData)`
+* `decoder.decode(oggOpusData)` *async*
   * `opusFrame` Uint8Array containing Ogg Opus data.
-  * Returns decoded audio.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when streaming audio into the decoder.
+* `decoder.decodeFile(oggOpusData)` *async*
+  * `oggOpusData` Uint8Array containing Ogg Opus data.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when decoding an entire file.
+* `decoder.flush()` *async*
+  * Returns a promise that resolves with any remaining data in the buffer.
+  * Use this when you are finished piping audio in through the `decode` method to retrieve any remaining data in the buffer.
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Ogg Opus data can be decoded.
 * `decoder.free()`
@@ -157,6 +165,14 @@ const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
 * `decoder.decode(oggOpusData)` *async*
   * `oggOpusData` Uint8Array containing Ogg Opus data.
   * Returns a promise that resolves with the decoded audio.
+  * Use this when streaming audio into the decoder.
+* `decoder.decodeFile(oggOpusData)` *async*
+  * `oggOpusData` Uint8Array containing Ogg Opus data.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when decoding an entire file.
+* `decoder.flush()` *async*
+  * Returns a promise that resolves with any remaining data in the buffer.
+  * Use this when you are finished piping audio in through the `decode` method to retrieve any remaining data in the buffer.
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Ogg Opus data can be decoded.
 * `decoder.free()` *async*

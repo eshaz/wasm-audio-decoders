@@ -118,6 +118,7 @@ export const testDecoder_decodeFrames = async (
 
 export const testDecoder_decode = async (
   decoder,
+  method,
   fileName,
   inputPath,
   outputPath
@@ -161,7 +162,7 @@ export const testDecoder_decode = async (
         channelData,
         samplesDecoded,
         sampleRate: rate,
-      } = await decoder.decode(buffer.subarray(0, bytesRead));
+      } = await decoder[method](buffer.subarray(0, bytesRead));
       decodeEnd = performance.now();
 
       const interleaved = getInterleaved(channelData, samplesDecoded);

@@ -16,6 +16,7 @@ export default class OggOpusDecoder {
 
     // instantiate to create static properties
     new WASMAudioDecoderCommon();
+    this._decoderClass = OpusDecoder;
     this._init();
   }
 
@@ -45,18 +46,39 @@ export default class OggOpusDecoder {
     this._init();
   }
 
-  async _decode(oggOpusData, DecoderClass) {
+  async _flush() {
     let decoded = [],
-      channelsDecoded,
+      channelsDecoded = 0,
       totalSamples = 0;
 
-    for await (const { codecFrames } of this._codecParser.parseAll(
+    for await (const { codecFrames } of this._codecParser.flush()) {
+      if (codecFrames.length) {
+        const { channelData, samplesDecoded } =
+          await this._decoder.decodeFrames(codecFrames.map((f) => f.data));
+
+        decoded.push(channelData);
+        totalSamples += samplesDecoded;
+        channelsDecoded = channelData.length;
+      }
+    }
+
+    this._init();
+
+    return [decoded, channelsDecoded, totalSamples];
+  }
+
+  async _decode(oggOpusData) {
+    let decoded = [],
+      channelsDecoded = 0,
+      totalSamples = 0;
+
+    for await (const { codecFrames } of this._codecParser.parseChunk(
       oggOpusData
     )) {
       if (codecFrames.length) {
         if (!this._decoder && codecFrames[0].header) {
           this._header = codecFrames[0].header;
-          this._decoder = new DecoderClass({
+          this._decoder = new this._decoderClass({
             ...this._header,
             forceStereo: this._forceStereo,
           });
@@ -74,15 +96,40 @@ export default class OggOpusDecoder {
       }
     }
 
+    return [decoded, channelsDecoded, totalSamples];
+  }
+
+  async decode(oggOpusData) {
+    const decoded = await this._decode(oggOpusData);
+
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      decoded,
-      channelsDecoded,
-      totalSamples,
+      decoded[0],
+      decoded[1],
+      decoded[2],
       48000
     );
   }
 
-  async decode(oggOpusData) {
-    return this._decode(oggOpusData, OpusDecoder);
+  async decodeFile(oggOpusData) {
+    const decoded = await this._decode(oggOpusData);
+    const flushed = await this._flush();
+
+    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      decoded[0].concat(flushed[0]),
+      decoded[1],
+      decoded[2] + flushed[2],
+      48000
+    );
+  }
+
+  async flush() {
+    const decoded = await this._flush();
+
+    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      decoded[0],
+      decoded[1],
+      decoded[2],
+      48000
+    );
   }
 }
