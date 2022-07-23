@@ -730,7 +730,7 @@
       }
 
       async getDecoder(mimeType, fileSize) {
-        let DecoderClass, decoderStats;
+        let DecoderClass, decoderStats, decoderMethod;
 
         switch (mimeType) {
           case "audio/mpeg":
@@ -738,6 +738,7 @@
               ? MPEGDecoder
               : MPEGDecoderWebWorker;
             decoderStats = this._mpegDecoderStats;
+            decoderMethod = "decode";
             break;
           case "video/ogg":
           case "audio/ogg":
@@ -745,6 +746,7 @@
               ? OggOpusDecoder
               : OggOpusDecoderWebWorker;
             decoderStats = this._opusDecoderStats;
+            decoderMethod = "decodeFile";
             break;
           default:
             throw new Error(`Unsupported file type ${mimeType}`);
@@ -760,6 +762,7 @@
         ) {
           decoderEntry = {
             decoder: new DecoderClass(),
+            decoderMethod,
             allocated: fileSize,
             index: this._decoderPool.length,
           };
@@ -872,13 +875,13 @@
           buffer.then((data) =>
             decoderPool
               .getDecoder(type, size)
-              .then(async ({ decoder, index, allocated }) => {
+              .then(async ({ decoder, decoderMethod, index, allocated }) => {
                 rowEl.style = "background-color: rgba(255, 255, 0, .5)";
                 statusEl.innerHTML = `queued`;
                 decoderEl.innerHTML = `${decoder.constructor.name}[${index}]`;
 
                 const { samplesDecoded, sampleRate, channelData } =
-                  await decoder.decode(new Uint8Array(data));
+                  await decoder[decoderMethod](new Uint8Array(data));
 
                 stats.decodeEnd = performance.now();
                 stats.sampleRates.push(sampleRate);

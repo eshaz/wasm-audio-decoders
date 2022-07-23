@@ -23,6 +23,8 @@
         "OggOpusDecoderWebWorker",
         "instance",
         "decode",
+        "decodeFile",
+        "flush",
         "decodeFrame",
         "decodeFrames",
         "free",

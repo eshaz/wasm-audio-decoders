@@ -27,6 +27,7 @@ export default class OggOpusDecoder {
 
     this._codecParser = new CodecParser("application/ogg", {
       onCodec: this._onCodec,
+      enableFrameCRC32: false,
     });
 
     this._header = {};
@@ -68,9 +69,20 @@ export default class OggOpusDecoder {
   }
 
   async _decode(oggOpusData) {
-    let decoded = [],
+    let decodeOperations = [],
+      decoded = [],
       channelsDecoded = 0,
       totalSamples = 0;
+
+    const decode = async (codecFrames) => {
+      const { channelData, samplesDecoded } = await this._decoder.decodeFrames(
+        codecFrames.map((f) => f.data)
+      );
+
+      decoded.push(channelData);
+      totalSamples += samplesDecoded;
+      channelsDecoded = channelData.length;
+    };
 
     for await (const { codecFrames } of this._codecParser.parseChunk(
       oggOpusData
@@ -87,14 +99,11 @@ export default class OggOpusDecoder {
           await this._decoder.ready;
         }
 
-        const { channelData, samplesDecoded } =
-          await this._decoder.decodeFrames(codecFrames.map((f) => f.data));
-
-        decoded.push(channelData);
-        totalSamples += samplesDecoded;
-        channelsDecoded = channelData.length;
+        decodeOperations.push(decode(codecFrames));
       }
     }
+
+    await Promise.all(decodeOperations);
 
     return [decoded, channelsDecoded, totalSamples];
   }
