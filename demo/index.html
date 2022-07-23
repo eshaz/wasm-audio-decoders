@@ -272,9 +272,9 @@
         <ul>
           <li>
             Runs using a Web Assembly build of
-            <a href="https://github.com/xiph/opusfile">libopusfile</a>.
+            <a href="https://github.com/xiph/opus">libopus</a>.
           </li>
-          <li>Decodes up to 8 discrete channels of audio.</li>
+          <li>Decodes up to 255 discrete channels of audio.</li>
           <li>
             Runs in the main thread or a separate thread using the Web Worker
             api.
@@ -317,6 +317,11 @@
           <li>
             This option may download a lot of files all at once depending on how
             many files and workers are selected.
+          </li>
+          <li>
+            Multichannel Ogg Opus files may be downloaded and verified in a tool
+            that supports multichannel WAVE files such as
+            <a href="https://www.audacityteam.org/">Audacity</a>.
           </li>
         </ul>
       </li>

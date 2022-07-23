@@ -25,8 +25,8 @@ Decodes Ogg Opus data into PCM
   * 107.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
-  * Multichannel decoding (up to 8 channels)
-  * Based on [`libopusfile`](https://github.com/xiph/opusfile)
+  * Multichannel decoding (up to 255 channels)
+  * Based on [`libopus`](https://github.com/xiph/opus) and [`codec-parser`](https://github.com/eshaz/codec-parser)
   * Install using [NPM](https://www.npmjs.com/package/ogg-opus-decoder)
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
@@ -35,6 +35,7 @@ Decodes raw Opus audio frames into PCM
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
+  * Intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4))
   * Based on [`libopus`](https://github.com/xiph/opus)
   * Install using [NPM](https://www.npmjs.com/package/opus-decoder)
 

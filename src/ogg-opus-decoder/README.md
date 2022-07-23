@@ -4,8 +4,8 @@
   * 107.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
-  * Multichannel decoding (up to 8 channels)
-  * Based on [`libopusfile`](https://github.com/xiph/opusfile)
+  * Multichannel decoding (up to 255 channels)
+  * Based on [`libopus`](https://github.com/xiph/opus) and [`codec-parser`](https://github.com/eshaz/codec-parser)
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
@@ -103,6 +103,7 @@ Each channel is assigned to a speaker location in a conventional surround arrang
 * 6 channels: 5.1 surround (front left, front center, front right, rear left, rear right, LFE).
 * 7 channels: 6.1 surround (front left, front center, front right, side left, side right, rear center, LFE).
 * 8 channels: 7.1 surround (front left, front center, front right, side left, side right, rear left, rear right, LFE).
+* 9-255 channels: No mapping is defined.
 
 See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
 
@@ -116,7 +117,8 @@ const decoder = new OggOpusDecoder({ forceStereo: true });
 ```
 
 * `forceStereo` *optional, defaults to `false`*
-  * Set to `true` to forces stereo output when decoding mono or multichannel Ogg Opus.
+  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
+  * If there are more than 8 channels, this option is ignored.
 
 ### Getters
 * `decoder.ready` *async*
@@ -143,7 +145,8 @@ const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
 ```
 
 * `forceStereo` *optional, defaults to `false`*
-  * Set to `true` to forces stereo output when decoding mono or multichannel Ogg Opus.
+  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
+  * If there are more than 8 channels, this option is ignored.
 
 ### Getters
 * `decoder.ready` *async*

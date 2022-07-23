@@ -6,6 +6,8 @@
   * Built in Web Worker support
   * Based on [`libopus`](https://github.com/xiph/opus)
 
+This library is intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4)). See [`ogg-opus-decoder`](https://github.com/eshaz/ogg-opus-decoder) if you have an Ogg Opus file to decode.
+
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
 ### [Checkout the demo here](https://eshaz.github.io/wasm-audio-decoders/)
@@ -102,6 +104,7 @@ Each channel is assigned to a speaker location in a conventional surround arrang
 * 6 channels: 5.1 surround (front left, front center, front right, rear left, rear right, LFE).
 * 7 channels: 6.1 surround (front left, front center, front right, side left, side right, rear center, LFE).
 * 8 channels: 7.1 surround (front left, front center, front right, side left, side right, rear left, rear right, LFE).
+* 9-255 channels: No mapping is defined.
 
 See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
 

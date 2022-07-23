@@ -1,13 +1,12 @@
-import { WASMAudioDecoderWorker } from "@wasm-audio-decoders/common";
-import EmscriptenWASM from "./EmscriptenWasm.js";
+import { OpusDecoderWebWorker } from "opus-decoder";
 import OggOpusDecoder from "./OggOpusDecoder.js";
 
-export default class OggOpusDecoderWebWorker extends WASMAudioDecoderWorker {
+export default class OggOpusDecoderWebWorker extends OggOpusDecoder {
   constructor(options) {
-    super(options, "ogg-opus-decoder", OggOpusDecoder, EmscriptenWASM);
+    super(options);
   }
 
-  async decode(data) {
-    return this._postToDecoder("decode", data);
+  async decode(oggOpusData) {
+    return super._decode(oggOpusData, OpusDecoderWebWorker);
   }
 }
