@@ -41,7 +41,8 @@ export default function OpusDecoder(options = {}) {
           this._streamCount,
           this._coupledStreamCount,
           mapping.ptr,
-          this._preSkip
+          this._preSkip,
+          this._forceStereo
         );
       });
   };
@@ -96,7 +97,7 @@ export default function OpusDecoder(options = {}) {
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
       this._output.buf,
-      this._channels,
+      this._outputChannels,
       samplesDecoded,
       48000
     );
@@ -113,7 +114,7 @@ export default function OpusDecoder(options = {}) {
       outputBuffers.push(
         this._common.getOutputChannels(
           this._output.buf,
-          this._channels,
+          this._outputChannels,
           samplesDecoded
         )
       );
@@ -122,7 +123,7 @@ export default function OpusDecoder(options = {}) {
 
     const data = this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
       outputBuffers,
-      this._channels,
+      this._outputChannels,
       outputSamples,
       48000
     );
@@ -137,6 +138,7 @@ export default function OpusDecoder(options = {}) {
   this._EmscriptenWASM = OpusDecoder.EmscriptenWASM || EmscriptenWASM;
   this._module = OpusDecoder.module;
 
+  const MAX_FORCE_STEREO_CHANNELS = 8;
   const isNumber = (param) => typeof param === "number";
 
   const channels = options.channels;
@@ -144,6 +146,7 @@ export default function OpusDecoder(options = {}) {
   const coupledStreamCount = options.coupledStreamCount;
   const channelMappingTable = options.channelMappingTable;
   const preSkip = options.preSkip;
+  const forceStereo = options.forceStereo ? 1 : 0;
 
   // channel mapping family >= 1
   if (
@@ -165,9 +168,12 @@ export default function OpusDecoder(options = {}) {
     channelMappingTable || (this._channels === 2 ? [0, 1] : [0]);
   this._preSkip = preSkip || 0;
 
+  this._forceStereo =
+    channels <= MAX_FORCE_STEREO_CHANNELS && channels != 2 ? forceStereo : 0;
+
   this._inputSize = 32000 * 0.12 * this._channels; // 256kbs per channel
   this._outputChannelSize = 120 * 48;
-  this._outputChannels = this._channels;
+  this._outputChannels = this._forceStereo ? 2 : this._channels;
 
   this._ready = this._init();
 

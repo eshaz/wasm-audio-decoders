@@ -114,6 +114,7 @@ Class that decodes Opus frames synchronously on the main thread.
 ### Options
 ```javascript
 const decoder = new OpusDecoder({ 
+  forceStereo: false,
   preSkip: 0,
   channels: 2,
   streamCount: 1,
@@ -125,6 +126,9 @@ const decoder = new OpusDecoder({
 #### **The below options should be obtained from the Opus Header.**
 See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus header for more information. If you don't have access to the Opus header, the default values will successfully decode most stereo Opus streams.
 
+* `forceStereo` *optional, defaults to `false`*
+  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
+  * If there are more than 8 channels, this option is ignored.
 * `preSkip` *optional, defaults to `0`*
   * Number of samples to skip at the beginning reported by the Opus header.
 #### ***Required for Multichannel Decoding.** (Channel Mapping Family >= 1)*
@@ -162,7 +166,7 @@ Class that decodes Opus frames asynchronously within a web worker. Decoding is p
 ### Options
 ```javascript
 const decoder = new OpusDecoderWebWorker({ 
-  preSkip: 0,
+  forceStereo: false,
   channels: 2,
   streamCount: 1,
   coupledStreamCount: 1,
@@ -173,6 +177,9 @@ const decoder = new OpusDecoderWebWorker({
 #### **The below options should be obtained from the Opus Header.**
 See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus header for more information. If you don't have access to the Opus header, the default values will successfully decode most stereo Opus streams.
 
+* `forceStereo` *optional, defaults to `false`*
+  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
+  * If there are more than 8 channels, this option is ignored.
 * `preSkip` *optional, defaults to `0`*
   * Number of samples to skip at the beginning reported by the Opus header.
 #### ***Required for Multichannel Decoding.** (Channel Mapping Family >= 1)*

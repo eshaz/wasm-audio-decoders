@@ -1,7 +1,99 @@
 #include "opus_frame_decoder.h"
 // #include "stdio.h"
 
-OpusFrameDecoder *opus_frame_decoder_create(int channels, int streams, int coupled_streams, unsigned char *mapping, int pre_skip) {
+static const int MAX_FORCE_STEREO_CHANNELS = 8;
+
+/*
+  *** Opus stereo downmix code copied from opusfile. ***
+  See: https://github.com/xiph/opusfile/blob/cf218fb54929a1f54e30e2cb208a22d08b08c889/src/opusfile.c#L2982
+
+  Copyright (c) 1994-2013 Xiph.Org Foundation and contributors
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  
+  - Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+  
+  - Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+  
+  - Neither the name of the Xiph.Org Foundation nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+  
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+  A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION
+  OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+  Matrices for downmixing from the supported channel counts to stereo.
+  The matrices with 5 or more channels are normalized to a total volume of 2.0,
+  since most mixes sound too quiet if normalized to 1.0 (as there is generally
+  little volume in the side/rear channels).
+*/
+static const float OP_STEREO_DOWNMIX[MAX_FORCE_STEREO_CHANNELS-2][MAX_FORCE_STEREO_CHANNELS][2]={
+  /*3.0*/
+  {
+    {0.5858F,0.0F},{0.4142F,0.4142F},{0.0F,0.5858F}
+  },
+  /*quadrophonic*/
+  {
+    {0.4226F,0.0F},{0.0F,0.4226F},{0.366F,0.2114F},{0.2114F,0.336F}
+  },
+  /*5.0*/
+  {
+    {0.651F,0.0F},{0.46F,0.46F},{0.0F,0.651F},{0.5636F,0.3254F},
+    {0.3254F,0.5636F}
+  },
+  /*5.1*/
+  {
+    {0.529F,0.0F},{0.3741F,0.3741F},{0.0F,0.529F},{0.4582F,0.2645F},
+    {0.2645F,0.4582F},{0.3741F,0.3741F}
+  },
+  /*6.1*/
+  {
+    {0.4553F,0.0F},{0.322F,0.322F},{0.0F,0.4553F},{0.3943F,0.2277F},
+    {0.2277F,0.3943F},{0.2788F,0.2788F},{0.322F,0.322F}
+  },
+  /*7.1*/
+  {
+    {0.3886F,0.0F},{0.2748F,0.2748F},{0.0F,0.3886F},{0.3366F,0.1943F},
+    {0.1943F,0.3366F},{0.3366F,0.1943F},{0.1943F,0.3366F},{0.2748F,0.2748F}
+  }
+};
+
+static float* stereo_downmix(OpusFrameDecoder *decoder, float *pcm, int samples_decoded) {
+  if (decoder->channels == 1) {
+    for(int i=0; i<samples_decoded; i++)
+      decoder->stereo_buffer[2*i+0] = decoder->stereo_buffer[2*i+1] = pcm[i];
+  } else {
+    for(int i=0; i<samples_decoded; i++) {
+      float l = 0;
+      float r = 0;
+      
+      for(int ci=0; ci<decoder->channels; ci++){
+        l += OP_STEREO_DOWNMIX[decoder->channels-3][ci][0]*pcm[decoder->channels*i+ci];
+        r += OP_STEREO_DOWNMIX[decoder->channels-3][ci][1]*pcm[decoder->channels*i+ci];
+      }
+      decoder->stereo_buffer[2*i+0] = l;
+      decoder->stereo_buffer[2*i+1] = r;
+    }
+  }
+
+  return decoder->stereo_buffer;
+}
+
+OpusFrameDecoder *opus_frame_decoder_create(int channels, int streams, int coupled_streams, unsigned char *mapping, int pre_skip, int force_stereo) {
     /*fprintf(stdout, "\nparams: ");
     for (int i = 0; i < sizeof(op->data); i++) {
       fprintf(stdout, "0x%02x ", op->data[i]);
@@ -22,6 +114,14 @@ OpusFrameDecoder *opus_frame_decoder_create(int channels, int streams, int coupl
     OpusFrameDecoder decoder;
     decoder.pre_skip = pre_skip;
     decoder.channels = channels;
+    decoder.output_channels = channels;
+    decoder.force_stereo = force_stereo;
+    
+    if (decoder.force_stereo) {
+      decoder.stereo_buffer = malloc(5760*2*sizeof(float));
+      decoder.output_channels = 2;
+    }
+
     decoder.pcm = malloc(5760*channels*sizeof(float));
     decoder.st = opus_multistream_decoder_create(
       48000, 
@@ -65,11 +165,16 @@ int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned ch
       // set samples to decode
       samples_decoded = -decoder->pre_skip;
     }
+    
+    // downmix to stereo
+    if (decoder->force_stereo) {
+      pcm = stereo_downmix(decoder, pcm, samples_decoded);
+    } 
 
     // deinterleave
-    for (int in_idx=(samples_decoded * decoder->channels) -1; in_idx >= 0; in_idx--) {
-      int sample = in_idx / decoder->channels;
-      int channel = (in_idx % decoder->channels) * samples_decoded;
+    for (int in_idx=(samples_decoded * decoder->output_channels) -1; in_idx >= 0; in_idx--) {
+      int sample = in_idx / decoder->output_channels;
+      int channel = (in_idx % decoder->output_channels) * samples_decoded;
       out[sample+channel] = pcm[in_idx];
     }
 
