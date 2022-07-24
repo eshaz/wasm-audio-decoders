@@ -148,7 +148,9 @@
 
           return decoded.length;
         } else {
-          return samplesDecoded * 2 * Int16Array.BYTES_PER_ELEMENT;
+          return (
+            samplesDecoded * channelData.length * Int16Array.BYTES_PER_ELEMENT
+          );
         }
       };
 
