@@ -2,6 +2,58 @@ import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import { OpusDecoder } from "opus-decoder";
 import CodecParser from "codec-parser";
 
+class DecoderState {
+  constructor(instance) {
+    this._instance = instance;
+
+    this._decoderOperations = [];
+    this._decoded = [];
+    this._channelsDecoded = 0;
+    this._totalSamples = 0;
+  }
+
+  get decoded() {
+    return this._instance.ready
+      .then(() => Promise.all(this._decoderOperations))
+      .then(() => [
+        this._decoded,
+        this._channelsDecoded,
+        this._totalSamples,
+        48000,
+      ]);
+  }
+
+  async _instantiateDecoder(header) {
+    this._instance._decoder = new this._instance._decoderClass({
+      ...header,
+      forceStereo: this._instance._forceStereo,
+    });
+    this._instance._ready = this._instance._decoder.ready;
+  }
+
+  async _sendToDecoder(frames) {
+    const { channelData, samplesDecoded } =
+      await this._instance._decoder.decodeFrames(frames);
+
+    this._decoded.push(channelData);
+    this._totalSamples += samplesDecoded;
+    this._channelsDecoded = channelData.length;
+  }
+
+  async _decode(codecFrames) {
+    if (codecFrames.length) {
+      if (!this._instance._decoder && codecFrames[0].header)
+        this._instantiateDecoder(codecFrames[0].header);
+
+      await this._instance.ready;
+
+      this._decoderOperations.push(
+        this._sendToDecoder(codecFrames.map((f) => f.data))
+      );
+    }
+  }
+}
+
 export default class OggOpusDecoder {
   constructor(options = {}) {
     this._forceStereo =
@@ -17,22 +69,19 @@ export default class OggOpusDecoder {
     // instantiate to create static properties
     new WASMAudioDecoderCommon();
     this._decoderClass = OpusDecoder;
+
     this._init();
   }
 
   _init() {
-    if (this._decoder) {
-      this._decoder.free();
-    }
+    if (this._decoder) this._decoder.free();
+    this._decoder = null;
+    this._ready = Promise.resolve();
 
     this._codecParser = new CodecParser("application/ogg", {
       onCodec: this._onCodec,
       enableFrameCRC32: false,
     });
-
-    this._header = {};
-    this._decoder = null;
-    this._ready = Promise.resolve();
   }
 
   get ready() {
@@ -47,102 +96,44 @@ export default class OggOpusDecoder {
     this._init();
   }
 
-  async _flush() {
-    let decoded = [],
-      channelsDecoded = 0,
-      totalSamples = 0;
-
-    for await (const { codecFrames } of this._codecParser.flush()) {
-      if (codecFrames.length) {
-        const { channelData, samplesDecoded } =
-          await this._decoder.decodeFrames(codecFrames.map((f) => f.data));
-
-        decoded.push(channelData);
-        totalSamples += samplesDecoded;
-        channelsDecoded = channelData.length;
-      }
+  async _flush(decoderState) {
+    for (const { codecFrames } of this._codecParser.flush()) {
+      decoderState._decode(codecFrames);
     }
 
+    const decoded = await decoderState.decoded;
     this._init();
 
-    return [decoded, channelsDecoded, totalSamples];
+    return decoded;
   }
 
-  async _decode(oggOpusData) {
-    let decodeOperations = [],
-      decoded = [],
-      channelsDecoded = 0,
-      totalSamples = 0;
-
-    const decode = async (codecFrames) => {
-      const { channelData, samplesDecoded } = await this._decoder.decodeFrames(
-        codecFrames.map((f) => f.data)
-      );
-
-      decoded.push(channelData);
-      totalSamples += samplesDecoded;
-      channelsDecoded = channelData.length;
-    };
-
-    for await (const { codecFrames } of this._codecParser.parseChunk(
-      oggOpusData
-    )) {
-      if (codecFrames.length) {
-        if (!this._decoder && codecFrames[0].header) {
-          this._header = codecFrames[0].header;
-          this._decoder = new this._decoderClass({
-            ...this._header,
-            forceStereo: this._forceStereo,
-          });
-          this._ready = this._decoder.ready;
-
-          await this._decoder.ready;
-        }
-
-        decodeOperations.push(decode(codecFrames));
-      }
+  async _decode(oggOpusData, decoderState) {
+    for (const { codecFrames } of this._codecParser.parseChunk(oggOpusData)) {
+      decoderState._decode(codecFrames);
     }
 
-    await Promise.all(decodeOperations);
-
-    return [decoded, channelsDecoded, totalSamples];
+    return decoderState.decoded;
   }
 
   async decode(oggOpusData) {
-    const [decoded, channelsDecoded, totalSamples] = await this._decode(
-      oggOpusData
-    );
-
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      decoded,
-      channelsDecoded,
-      totalSamples,
-      48000
+      ...(await this._decode(oggOpusData, new DecoderState(this)))
     );
   }
 
   async decodeFile(oggOpusData) {
-    const [decoded, channelsDecoded, totalSamples] = await this._decode(
-      oggOpusData
-    );
-    const flushed = await this._flush();
+    const decoderState = new DecoderState(this);
 
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      decoded.concat(flushed[0]),
-      channelsDecoded,
-      totalSamples + flushed[2],
-      48000
+      ...(await this._decode(oggOpusData, decoderState).then(() =>
+        this._flush(decoderState)
+      ))
     );
   }
 
   async flush() {
-    const [decoded, channelsDecoded, totalSamples] = await this._flush();
-
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      decoded,
-      channelsDecoded,
-      totalSamples,
-      48000
+      ...(await this._flush(oggOpusData, new DecoderState(this)))
     );
   }
 }
