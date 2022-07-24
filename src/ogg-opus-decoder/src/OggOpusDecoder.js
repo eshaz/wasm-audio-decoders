@@ -109,35 +109,39 @@ export default class OggOpusDecoder {
   }
 
   async decode(oggOpusData) {
-    const decoded = await this._decode(oggOpusData);
+    const [decoded, channelsDecoded, totalSamples] = await this._decode(
+      oggOpusData
+    );
 
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      decoded[0],
-      decoded[1],
-      decoded[2],
+      decoded,
+      channelsDecoded,
+      totalSamples,
       48000
     );
   }
 
   async decodeFile(oggOpusData) {
-    const decoded = await this._decode(oggOpusData);
+    const [decoded, channelsDecoded, totalSamples] = await this._decode(
+      oggOpusData
+    );
     const flushed = await this._flush();
 
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      decoded[0].concat(flushed[0]),
-      decoded[1],
-      decoded[2] + flushed[2],
+      decoded.concat(flushed[0]),
+      channelsDecoded,
+      totalSamples + flushed[2],
       48000
     );
   }
 
   async flush() {
-    const decoded = await this._flush();
+    const [decoded, channelsDecoded, totalSamples] = await this._flush();
 
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      decoded[0],
-      decoded[1],
-      decoded[2],
+      decoded,
+      channelsDecoded,
+      totalSamples,
       48000
     );
   }
