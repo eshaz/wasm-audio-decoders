@@ -925,7 +925,6 @@
     let audioCtx;
     const PLAY = "▶";
     const STOP = "■";
-    const PROGRESS_FACTOR = 100;
 
     const webAudioPlayers = new Map();
     const resetWebAudioPlayers = () => {
@@ -963,10 +962,10 @@
             if (this.action === STOP) {
               const currentTime =
                 this.offset +
-                (audioCtx.currentTime * PROGRESS_FACTOR - this.start);
+                (audioCtx.currentTime * this.progressFactor - this.start);
               this.progressBarEl.value = currentTime;
               this.timeEl.innerHTML = this.getTime(
-                currentTime / PROGRESS_FACTOR
+                currentTime / this.progressFactor
               );
             }
           }, 2);
@@ -975,6 +974,7 @@
           clearInterval(this.progressInterval);
         };
 
+        this.progressFactor = 1000;
         this.decodePromise = this.decode();
       }
 
@@ -1021,17 +1021,20 @@
           this.source = audioCtx.createBufferSource();
           this.source.buffer = this.audioBuffer;
           this.source.connect(audioCtx.destination);
-          this.source.start(0, offset / PROGRESS_FACTOR);
+          this.source.start(0, offset / this.progressFactor);
           this.source.onended = () => {
+            this.timeEl.innerHTML = this.getTime(this.audioBuffer.duration);
+            this.progressBarEl.value = this.progressBarEl.max;
             this.stop();
           };
 
           // setup progress bar
-          this.start = audioCtx.currentTime * PROGRESS_FACTOR;
+          this.start = audioCtx.currentTime * this.progressFactor;
           this.offset = offset;
           this.progressBarEl.disabled = false;
           this.progressBarEl.min = 0;
-          this.progressBarEl.max = this.audioBuffer.duration * PROGRESS_FACTOR;
+          this.progressBarEl.max =
+            this.audioBuffer.duration * this.progressFactor;
           this.progressBarEl.value = offset;
 
           // start progress bar and add event listeners
