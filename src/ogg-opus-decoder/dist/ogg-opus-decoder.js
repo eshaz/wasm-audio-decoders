@@ -262,7 +262,7 @@
         const webworkerSourceCode =
           "'use strict';" +
           // dependencies need to be manually resolved when stringifying this function
-          `(${((_options, _Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
+          `(${((_Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
           // We're in a Web Worker
 
           // setup Promise that will be resolved once the WebAssembly Module is received
@@ -277,15 +277,15 @@
               messagePayload = { id },
               transferList;
 
-            if (command === "module") {
+            if (command === "init") {
               Object.defineProperties(_Decoder, {
                 WASMAudioDecoderCommon: { value: _WASMAudioDecoderCommon },
                 EmscriptenWASM: { value: _EmscriptenWASM },
-                module: { value: data },
+                module: { value: data.module },
                 isWebWorker: { value: true },
               });
 
-              decoder = new _Decoder(_options);
+              decoder = new _Decoder(data.options);
               moduleResolve();
             } else if (command === "free") {
               decoder.free();
@@ -317,22 +317,21 @@
               self.postMessage(messagePayload, transferList)
             );
           };
-        }).toString()})(${JSON.stringify(
-          options
-        )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
+        }).toString()})(${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
 
         const type = "text/javascript";
 
         try {
           // browser
           source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
-          WASMAudioDecoderCommon.modules.set(Decoder, source);
         } catch {
           // nodejs
           source = `data:${type};base64,${Buffer.from(
           webworkerSourceCode
         ).toString("base64")}`;
         }
+
+        WASMAudioDecoderCommon.modules.set(Decoder, source);
       }
 
       super(source, { name });
@@ -346,8 +345,8 @@
         this._enqueuedOperations.delete(id);
       };
 
-      new EmscriptenWASM(WASMAudioDecoderCommon).getModule().then((compiled) => {
-        this._postToDecoder("module", compiled);
+      new EmscriptenWASM(WASMAudioDecoderCommon).getModule().then((module) => {
+        this._postToDecoder("init", { module, options });
       });
     }
 
@@ -3957,6 +3956,32 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
     }
   }
 
+  class DecodeState {
+    constructor(sendToDecoder) {
+      this._sendToDecoder = sendToDecoder;
+
+      this._decodePromiseChain = Promise.resolve();
+      this._decoded = [];
+      this._channelsDecoded = 0;
+      this._totalSamples = 0;
+    }
+
+    get decoded() {
+      return this._decodePromiseChain.then(() => [
+        this._decoded,
+        this._channelsDecoded,
+        this._totalSamples,
+        48000,
+      ]);
+    }
+
+    _decode(codecFrames) {
+      this._decodePromiseChain = this._decodePromiseChain.then(() =>
+        this._sendToDecoder(this, codecFrames)
+      );
+    }
+  }
+
   class OggOpusDecoder {
     constructor(options = {}) {
       this._forceStereo =
@@ -3969,9 +3994,31 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
           );
       };
 
+      this._sendToDecoder = async (decoderState, codecFrames) => {
+        if (codecFrames.length) {
+          if (!this._decoder && codecFrames[0].header) {
+            this._decoder = new this._decoderClass({
+              ...codecFrames[0].header,
+              forceStereo: this._forceStereo,
+            });
+            this._ready = this._decoder.ready;
+
+            await this.ready;
+          }
+
+          const { channelData, samplesDecoded } =
+            await this._decoder.decodeFrames(codecFrames.map((f) => f.data));
+
+          decoderState._decoded.push(channelData);
+          decoderState._totalSamples += samplesDecoded;
+          decoderState._channelsDecoded = channelData.length;
+        }
+      };
+
       // instantiate to create static properties
       new WASMAudioDecoderCommon();
       this._decoderClass = OpusDecoder;
+
       this._init();
     }
 
@@ -3985,7 +4032,6 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
         enableFrameCRC32: false,
       });
 
-      this._header = {};
       this._decoder = null;
       this._ready = Promise.resolve();
     }
@@ -4002,102 +4048,44 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
       this._init();
     }
 
-    async _flush() {
-      let decoded = [],
-        channelsDecoded = 0,
-        totalSamples = 0;
-
-      for await (const { codecFrames } of this._codecParser.flush()) {
-        if (codecFrames.length) {
-          const { channelData, samplesDecoded } =
-            await this._decoder.decodeFrames(codecFrames.map((f) => f.data));
-
-          decoded.push(channelData);
-          totalSamples += samplesDecoded;
-          channelsDecoded = channelData.length;
-        }
+    async _flush(decoderState) {
+      for (const { codecFrames } of this._codecParser.flush()) {
+        decoderState._decode(codecFrames);
       }
 
+      const decoded = await decoderState.decoded;
       this._init();
 
-      return [decoded, channelsDecoded, totalSamples];
+      return decoded;
     }
 
-    async _decode(oggOpusData) {
-      let decodeOperations = [],
-        decoded = [],
-        channelsDecoded = 0,
-        totalSamples = 0;
-
-      const decode = async (codecFrames) => {
-        const { channelData, samplesDecoded } = await this._decoder.decodeFrames(
-          codecFrames.map((f) => f.data)
-        );
-
-        decoded.push(channelData);
-        totalSamples += samplesDecoded;
-        channelsDecoded = channelData.length;
-      };
-
-      for await (const { codecFrames } of this._codecParser.parseChunk(
-        oggOpusData
-      )) {
-        if (codecFrames.length) {
-          if (!this._decoder && codecFrames[0].header) {
-            this._header = codecFrames[0].header;
-            this._decoder = new this._decoderClass({
-              ...this._header,
-              forceStereo: this._forceStereo,
-            });
-            this._ready = this._decoder.ready;
-
-            await this._decoder.ready;
-          }
-
-          decodeOperations.push(decode(codecFrames));
-        }
+    async _decode(oggOpusData, decoderState) {
+      for (const { codecFrames } of this._codecParser.parseChunk(oggOpusData)) {
+        decoderState._decode(codecFrames);
       }
 
-      await Promise.all(decodeOperations);
-
-      return [decoded, channelsDecoded, totalSamples];
+      return decoderState.decoded;
     }
 
     async decode(oggOpusData) {
-      const [decoded, channelsDecoded, totalSamples] = await this._decode(
-        oggOpusData
-      );
-
       return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        decoded,
-        channelsDecoded,
-        totalSamples,
-        48000
+        ...(await this._decode(oggOpusData, new DecodeState(this._sendToDecoder)))
       );
     }
 
     async decodeFile(oggOpusData) {
-      const [decoded, channelsDecoded, totalSamples] = await this._decode(
-        oggOpusData
-      );
-      const flushed = await this._flush();
+      const decoderState = new DecodeState(this._sendToDecoder);
 
       return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        decoded.concat(flushed[0]),
-        channelsDecoded,
-        totalSamples + flushed[2],
-        48000
+        ...(await this._decode(oggOpusData, decoderState).then(() =>
+          this._flush(decoderState)
+        ))
       );
     }
 
     async flush() {
-      const [decoded, channelsDecoded, totalSamples] = await this._flush();
-
       return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        decoded,
-        channelsDecoded,
-        totalSamples,
-        48000
+        ...(await this._flush(oggOpusData, new DecodeState(this._sendToDecoder)))
       );
     }
   }

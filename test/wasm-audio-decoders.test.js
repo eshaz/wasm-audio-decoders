@@ -1125,5 +1125,61 @@ describe("wasm-audio-decoders", () => {
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     });
+
+    describe("File decoding", () => {
+      it("should decode opus frames if they are only returned on flush() 1", async () => {
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder(),
+          "decodeFile",
+          "should decode opus frames if they are only returned on flush() 1",
+          "ogg.opus.flush.1.opus"
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(11208); // 11520 without preskip
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode opus frames if they are only returned on flush() 2", async () => {
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder(),
+          "decodeFile",
+          "should decode opus frames if they are only returned on flush() 2",
+          "ogg.opus.flush.2.opus"
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3528); // 3840 without preskip
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode opus frames if they are only returned on flush() 3", async () => {
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder(),
+          "decodeFile",
+          "should decode opus frames if they are only returned on flush() 3",
+          "ogg.opus.flush.3.opus"
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3528); // 3840 without preskip
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
   });
 });
