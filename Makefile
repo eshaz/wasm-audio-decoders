@@ -12,7 +12,6 @@ dist-clean:
 	rm -rf $(MPG123_DECODER_PATH)dist/*
 	rm -rf $(PUFF_EMSCRIPTEN_BUILD)
 	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
-	rm -rf $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 
 # puff
@@ -23,15 +22,14 @@ PUFF_EMSCRIPTEN_BUILD=$(COMMON_PATH)src/puff/Puff.wasm
 
 # ogg-opus-decoder
 OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder/
-OGG_OPUS_DECODER_EMSCRIPTEN_BUILD=$(OGG_OPUS_DECODER_PATH)src/EmscriptenWasm.tmp.js
 OGG_OPUS_DECODER_MODULE=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.js
 OGG_OPUS_DECODER_MODULE_MIN=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.min.js
 
 # Iterations, (single / double) 222 = 110314, (backtick) 222 = 109953
-ogg-opus-decoder: opus-wasmlib ogg-opus-decoder-minify $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
-ogg-opus-decoder-minify: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)
+ogg-opus-decoder: ogg-opus-decoder-minify
+ogg-opus-decoder-minify:
 	SOURCE_PATH=$(OGG_OPUS_DECODER_PATH) \
-	OUTPUT_NAME=EmscriptenWasm \
+	OUTPUT_NAME=none \
 	MODULE=$(OGG_OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OGG_OPUS_DECODER_MODULE_MIN) \
 	COMPRESSION_ITERATIONS=222 \
@@ -44,14 +42,14 @@ OPUS_DECODER_EMSCRIPTEN_BUILD=$(OPUS_DECODER_PATH)src/EmscriptenWasm.tmp.js
 OPUS_DECODER_MODULE=$(OPUS_DECODER_PATH)dist/opus-decoder.js
 OPUS_DECODER_MODULE_MIN=$(OPUS_DECODER_PATH)dist/opus-decoder.min.js
 
-# Iterations, (single / double) 230 = 84392, 840 = 84384; (backtick) 116 = 84416
+# Iterations, (backtick) 233 = 84624
 opus-decoder: opus-wasmlib opus-decoder-minify $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(OPUS_DECODER_PATH) \
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OPUS_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=116 \
+	COMPRESSION_ITERATIONS=233 \
 	npm run minify
 	cp $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_MIN) $(OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -86,14 +84,9 @@ mpg123-wasmlib-clean: dist-clean
 
 # configures
 CONFIGURE_LIBOPUS=modules/opus/configure
-CONFIGURE_LIBOGG=modules/ogg/configure
-CONFIGURE_LIBOPUSFILE=modules/opusfile/configure
-OGG_CONFIG_TYPES=modules/ogg/include/ogg/config_types.h
-configures: $(CONFIGURE_LIBOGG) $(CONFIGURE_LIBOPUS) $(CONFIGURE_LIBOPUSFILE) $(OGG_CONFIG_TYPES)
+configures: $(CONFIGURE_LIBOGG) 
 configures-clean: opus-wasmlib-clean
-	rm -rf $(CONFIGURE_LIBOPUSFILE)
 	rm -rf $(CONFIGURE_LIBOPUS)
-	rm -rf $(CONFIGURE_LIBOGG)
 
 # common EMCC options
 define EMCC_OPTS
@@ -174,39 +167,6 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-# ------------
-# ogg-opus-decoder
-# ------------
-define OGG_OPUS_DECODER_EMCC_OPTS
--s JS_MATH \
--s EXPORTED_FUNCTIONS="[ \
-    '_free', '_malloc' \
-  , '_ogg_opus_decoder_create' \
-  , '_ogg_opus_decoder_free' \
-  , '_ogg_opus_decoder_decode' \
-]" \
---pre-js '$(OGG_OPUS_DECODER_PATH)src/emscripten-pre.js' \
---post-js '$(OGG_OPUS_DECODER_PATH)src/emscripten-post.js' \
--I modules/opusfile/include \
--I "modules/ogg/include" \
--I "modules/opus/include" \
-$(OGG_OPUS_DECODER_PATH)src/ogg_opus_decoder.c
-endef
-
-$(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
-	@ mkdir -p $(OGG_OPUS_DECODER_PATH)dist
-	@ echo "Building Emscripten WebAssembly module $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)..."
-	@ emcc \
-		-o "$(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)" \
-	  ${EMCC_OPTS} \
-	  $(OGG_OPUS_DECODER_EMCC_OPTS) \
-	  $(OPUS_WASM_LIB)
-	@ echo "+-------------------------------------------------------------------------------"
-	@ echo "|"
-	@ echo "|  Successfully built JS Module: $(OGG_OPUS_DECODER_EMSCRIPTEN_BUILD)"
-	@ echo "|"
-	@ echo "+-------------------------------------------------------------------------------"
-
 # -------------------
 # Shared Opus library
 # -------------------
@@ -228,10 +188,6 @@ $(OPUS_WASM_LIB): configures
 	     '_op_read_float_stereo' \
 	  ]" \
 	  -s STRICT=1 \
-	  -I "modules/opusfile/" \
-	  -I "modules/opusfile/include" \
-	  -I "modules/opusfile/src" \
-	  -I "modules/ogg/include" \
 	  -I "modules/opus/include" \
 	  -I "modules/opus/celt" \
 	  -I "modules/opus/silk" \
@@ -241,9 +197,7 @@ $(OPUS_WASM_LIB): configures
 	  modules/opus/src/opus_multistream_decoder.c \
 	  modules/opus/src/opus_decoder.c \
 	  modules/opus/silk/*.c \
-	  modules/opus/celt/*.c \
-	  modules/ogg/src/*.c \
-	  modules/opusfile/src/*.c
+	  modules/opus/celt/*.c
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(OPUS_WASM_LIB)"

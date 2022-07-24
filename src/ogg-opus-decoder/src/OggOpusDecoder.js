@@ -1,145 +1,148 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
+import { OpusDecoder } from "opus-decoder";
+import CodecParser from "codec-parser";
 
-import EmscriptenWASM from "./EmscriptenWasm.js";
+export default class OggOpusDecoder {
+  constructor(options = {}) {
+    this._forceStereo =
+      options.forceStereo !== undefined ? options.forceStereo : false;
 
-export default function OggOpusDecoder(options = {}) {
-  // static properties
-  if (!OggOpusDecoder.errors) {
-    // prettier-ignore
-    Object.defineProperties(OggOpusDecoder, {
-      errors: {
-        value: new Map([
-          [-1, "OP_FALSE: A request did not succeed."],
-          [-3, "OP_HOLE: There was a hole in the page sequence numbers (e.g., a page was corrupt or missing)."],
-          [-128, "OP_EREAD: An underlying read, seek, or tell operation failed when it should have succeeded."],
-          [-129, "OP_EFAULT: A NULL pointer was passed where one was unexpected, or an internal memory allocation failed, or an internal library error was encountered."],
-          [-130, "OP_EIMPL: The stream used a feature that is not implemented, such as an unsupported channel family."],
-          [-131, "OP_EINVAL: One or more parameters to a function were invalid."],
-          [-132, "OP_ENOTFORMAT: A purported Ogg Opus stream did not begin with an Ogg page, a purported header packet did not start with one of the required strings, \"OpusHead\" or \"OpusTags\", or a link in a chained file was encountered that did not contain any logical Opus streams."],
-          [-133, "OP_EBADHEADER: A required header packet was not properly formatted, contained illegal values, or was missing altogether."],
-          [-134, "OP_EVERSION: The ID header contained an unrecognized version number."],
-          [-136, "OP_EBADPACKET: An audio packet failed to decode properly. This is usually caused by a multistream Ogg packet where the durations of the individual Opus packets contained in it are not all the same."],
-          [-137, "OP_EBADLINK: We failed to find data we had seen before, or the bitstream structure was sufficiently malformed that seeking to the target destination was impossible."],
-          [-138, "OP_ENOSEEK: An operation that requires seeking was requested on an unseekable stream."],
-          [-139, "OP_EBADTIMESTAMP: The first or last granule position of a link failed basic validity checks."],
-          [-140, "Input buffer overflow"],
-        ]),
-      },
-    });
+    this._onCodec = (codec) => {
+      if (codec !== "opus")
+        throw new Error(
+          "ogg-opus-decoder does not support this codec " + codec
+        );
+    };
+
+    // instantiate to create static properties
+    new WASMAudioDecoderCommon();
+    this._decoderClass = OpusDecoder;
+    this._init();
   }
 
-  this._init = () => {
-    return new this._WASMAudioDecoderCommon(this)
-      .instantiate()
-      .then((common) => {
-        this._common = common;
-
-        this._channelsDecoded = this._common.allocateTypedArray(1, Uint32Array);
-
-        this._decoder = this._common.wasm._ogg_opus_decoder_create(
-          this._forceStereo
-        );
-      });
-  };
-
-  Object.defineProperty(this, "ready", {
-    enumerable: true,
-    get: () => this._ready,
-  });
-
-  this.reset = () => {
-    this.free();
-    return this._init();
-  };
-
-  this.free = () => {
-    this._common.wasm._ogg_opus_decoder_free(this._decoder);
-    this._common.free();
-  };
-
-  this.decode = (data) => {
-    if (!(data instanceof Uint8Array))
-      throw Error(
-        "Data to decode must be Uint8Array. Instead got " + typeof data
-      );
-
-    let output = [],
-      decodedSamples = 0,
-      offset = 0;
-
-    try {
-      const dataLength = data.length;
-
-      while (offset < dataLength) {
-        const dataToSend = data.subarray(
-          offset,
-          offset +
-            (this._input.len > dataLength - offset
-              ? dataLength - offset
-              : this._input.len)
-        );
-
-        const dataToSendLength = dataToSend.length;
-        offset += dataToSendLength;
-
-        this._input.buf.set(dataToSend);
-
-        const samplesDecoded = this._common.wasm._ogg_opus_decoder_decode(
-          this._decoder,
-          this._input.ptr,
-          dataToSendLength,
-          this._channelsDecoded.ptr,
-          this._output.ptr
-        );
-
-        if (samplesDecoded < 0) throw { code: samplesDecoded };
-
-        decodedSamples += samplesDecoded;
-        output.push(
-          this._common.getOutputChannels(
-            this._output.buf,
-            this._channelsDecoded.buf[0],
-            samplesDecoded
-          )
-        );
-      }
-    } catch (e) {
-      const errorCode = e.code;
-
-      if (errorCode)
-        throw new Error(
-          "libopusfile " +
-            errorCode +
-            " " +
-            (OggOpusDecoder.errors.get(errorCode) || "Unknown Error")
-        );
-      throw e;
+  _init() {
+    if (this._decoder) {
+      this._decoder.free();
     }
 
-    return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      output,
-      this._channelsDecoded.buf[0],
-      decodedSamples,
+    this._codecParser = new CodecParser("application/ogg", {
+      onCodec: this._onCodec,
+      enableFrameCRC32: false,
+    });
+
+    this._header = {};
+    this._decoder = null;
+    this._ready = Promise.resolve();
+  }
+
+  get ready() {
+    return this._ready;
+  }
+
+  async reset() {
+    this._init();
+  }
+
+  free() {
+    this._init();
+  }
+
+  async _flush() {
+    let decoded = [],
+      channelsDecoded = 0,
+      totalSamples = 0;
+
+    for await (const { codecFrames } of this._codecParser.flush()) {
+      if (codecFrames.length) {
+        const { channelData, samplesDecoded } =
+          await this._decoder.decodeFrames(codecFrames.map((f) => f.data));
+
+        decoded.push(channelData);
+        totalSamples += samplesDecoded;
+        channelsDecoded = channelData.length;
+      }
+    }
+
+    this._init();
+
+    return [decoded, channelsDecoded, totalSamples];
+  }
+
+  async _decode(oggOpusData) {
+    let decodeOperations = [],
+      decoded = [],
+      channelsDecoded = 0,
+      totalSamples = 0;
+
+    const decode = async (codecFrames) => {
+      const { channelData, samplesDecoded } = await this._decoder.decodeFrames(
+        codecFrames.map((f) => f.data)
+      );
+
+      decoded.push(channelData);
+      totalSamples += samplesDecoded;
+      channelsDecoded = channelData.length;
+    };
+
+    for await (const { codecFrames } of this._codecParser.parseChunk(
+      oggOpusData
+    )) {
+      if (codecFrames.length) {
+        if (!this._decoder && codecFrames[0].header) {
+          this._header = codecFrames[0].header;
+          this._decoder = new this._decoderClass({
+            ...this._header,
+            forceStereo: this._forceStereo,
+          });
+          this._ready = this._decoder.ready;
+
+          await this._decoder.ready;
+        }
+
+        decodeOperations.push(decode(codecFrames));
+      }
+    }
+
+    await Promise.all(decodeOperations);
+
+    return [decoded, channelsDecoded, totalSamples];
+  }
+
+  async decode(oggOpusData) {
+    const [decoded, channelsDecoded, totalSamples] = await this._decode(
+      oggOpusData
+    );
+
+    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      decoded,
+      channelsDecoded,
+      totalSamples,
       48000
     );
-  };
+  }
 
-  // injects dependencies when running as a web worker
-  this._isWebWorker = OggOpusDecoder.isWebWorker;
-  this._WASMAudioDecoderCommon =
-    OggOpusDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-  this._EmscriptenWASM = OggOpusDecoder.EmscriptenWASM || EmscriptenWASM;
-  this._module = OggOpusDecoder.module;
+  async decodeFile(oggOpusData) {
+    const [decoded, channelsDecoded, totalSamples] = await this._decode(
+      oggOpusData
+    );
+    const flushed = await this._flush();
 
-  this._forceStereo = options.forceStereo || false;
+    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      decoded.concat(flushed[0]),
+      channelsDecoded,
+      totalSamples + flushed[2],
+      48000
+    );
+  }
 
-  this._inputSize = 32 * 1024;
-  // 120ms buffer recommended per http://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html
-  // per channel
-  this._outputChannelSize = 120 * 48 * 32; // 120ms @ 48 khz.
-  this._outputChannels = 8; // max opus output channels
+  async flush() {
+    const [decoded, channelsDecoded, totalSamples] = await this._flush();
 
-  this._ready = this._init();
-
-  return this;
+    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      decoded,
+      channelsDecoded,
+      totalSamples,
+      48000
+    );
+  }
 }

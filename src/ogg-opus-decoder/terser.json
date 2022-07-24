@@ -22,10 +22,14 @@
         "OggOpusDecoder",
         "OggOpusDecoderWebWorker",
         "instance",
+        "decode",
+        "decodeFile",
+        "flush",
+        "decodeFrame",
+        "decodeFrames",
         "free",
         "ready",
         "reset",
-        "decode",
         "channelData",
         "samplesDecoded"
       ]

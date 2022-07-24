@@ -272,9 +272,9 @@
         <ul>
           <li>
             Runs using a Web Assembly build of
-            <a href="https://github.com/xiph/opusfile">libopusfile</a>.
+            <a href="https://github.com/xiph/opus">libopus</a>.
           </li>
-          <li>Decodes up to 8 discrete channels of audio.</li>
+          <li>Decodes up to 255 discrete channels of audio.</li>
           <li>
             Runs in the main thread or a separate thread using the Web Worker
             api.
@@ -317,6 +317,11 @@
           <li>
             This option may download a lot of files all at once depending on how
             many files and workers are selected.
+          </li>
+          <li>
+            Multichannel Ogg Opus files may be downloaded and verified in a tool
+            that supports multichannel WAVE files such as
+            <a href="https://www.audacityteam.org/">Audacity</a>.
           </li>
         </ul>
       </li>
@@ -725,7 +730,7 @@
       }
 
       async getDecoder(mimeType, fileSize) {
-        let DecoderClass, decoderStats;
+        let DecoderClass, decoderStats, decoderMethod;
 
         switch (mimeType) {
           case "audio/mpeg":
@@ -733,6 +738,7 @@
               ? MPEGDecoder
               : MPEGDecoderWebWorker;
             decoderStats = this._mpegDecoderStats;
+            decoderMethod = "decode";
             break;
           case "video/ogg":
           case "audio/ogg":
@@ -740,6 +746,7 @@
               ? OggOpusDecoder
               : OggOpusDecoderWebWorker;
             decoderStats = this._opusDecoderStats;
+            decoderMethod = "decodeFile";
             break;
           default:
             throw new Error(`Unsupported file type ${mimeType}`);
@@ -755,6 +762,7 @@
         ) {
           decoderEntry = {
             decoder: new DecoderClass(),
+            decoderMethod,
             allocated: fileSize,
             index: this._decoderPool.length,
           };
@@ -867,13 +875,13 @@
           buffer.then((data) =>
             decoderPool
               .getDecoder(type, size)
-              .then(async ({ decoder, index, allocated }) => {
+              .then(async ({ decoder, decoderMethod, index, allocated }) => {
                 rowEl.style = "background-color: rgba(255, 255, 0, .5)";
                 statusEl.innerHTML = `queued`;
                 decoderEl.innerHTML = `${decoder.constructor.name}[${index}]`;
 
                 const { samplesDecoded, sampleRate, channelData } =
-                  await decoder.decode(new Uint8Array(data));
+                  await decoder[decoderMethod](new Uint8Array(data));
 
                 stats.decodeEnd = performance.now();
                 stats.sampleRates.push(sampleRate);

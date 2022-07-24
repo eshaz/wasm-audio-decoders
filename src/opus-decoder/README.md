@@ -1,10 +1,12 @@
 # `opus-decoder`
 
 `opus-decoder` is a Web Assembly Opus audio decoder.
-  * 82.2 KiB minified bundle size
+  * 82.6 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`libopus`](https://github.com/xiph/opus)
+
+This library is intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4)). See [`ogg-opus-decoder`](https://github.com/eshaz/ogg-opus-decoder) if you have an Ogg Opus file to decode.
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
@@ -102,6 +104,7 @@ Each channel is assigned to a speaker location in a conventional surround arrang
 * 6 channels: 5.1 surround (front left, front center, front right, rear left, rear right, LFE).
 * 7 channels: 6.1 surround (front left, front center, front right, side left, side right, rear center, LFE).
 * 8 channels: 7.1 surround (front left, front center, front right, side left, side right, rear left, rear right, LFE).
+* 9-255 channels: No mapping is defined.
 
 See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
 
@@ -114,6 +117,7 @@ Class that decodes Opus frames synchronously on the main thread.
 ### Options
 ```javascript
 const decoder = new OpusDecoder({ 
+  forceStereo: false,
   preSkip: 0,
   channels: 2,
   streamCount: 1,
@@ -125,6 +129,9 @@ const decoder = new OpusDecoder({
 #### **The below options should be obtained from the Opus Header.**
 See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus header for more information. If you don't have access to the Opus header, the default values will successfully decode most stereo Opus streams.
 
+* `forceStereo` *optional, defaults to `false`*
+  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
+  * If there are more than 8 channels, this option is ignored.
 * `preSkip` *optional, defaults to `0`*
   * Number of samples to skip at the beginning reported by the Opus header.
 #### ***Required for Multichannel Decoding.** (Channel Mapping Family >= 1)*
@@ -162,7 +169,7 @@ Class that decodes Opus frames asynchronously within a web worker. Decoding is p
 ### Options
 ```javascript
 const decoder = new OpusDecoderWebWorker({ 
-  preSkip: 0,
+  forceStereo: false,
   channels: 2,
   streamCount: 1,
   coupledStreamCount: 1,
@@ -173,6 +180,9 @@ const decoder = new OpusDecoderWebWorker({
 #### **The below options should be obtained from the Opus Header.**
 See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus header for more information. If you don't have access to the Opus header, the default values will successfully decode most stereo Opus streams.
 
+* `forceStereo` *optional, defaults to `false`*
+  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
+  * If there are more than 8 channels, this option is ignored.
 * `preSkip` *optional, defaults to `0`*
   * Number of samples to skip at the beginning reported by the Opus header.
 #### ***Required for Multichannel Decoding.** (Channel Mapping Family >= 1)*

@@ -1,11 +1,11 @@
 # `ogg-opus-decoder`
 
 `ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder.
-  * 107.2 KiB minified bundle size
+  * 104.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
-  * Multichannel decoding (up to 8 channels)
-  * Based on [`libopusfile`](https://github.com/xiph/opusfile)
+  * Multichannel decoding (up to 255 channels)
+  * Based on [`libopus`](https://github.com/xiph/opus) and [`codec-parser`](https://github.com/eshaz/codec-parser)
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
@@ -61,8 +61,6 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
    const {channelData, samplesDecoded, sampleRate} = decoder.decode(oggOpusData);
    ```
 
-   * **NOTE:** When decoding chained Ogg files (i.e. streaming) the first two Ogg packets of the next chain must be present when decoding. Errors will be returned by libopusfile if these initial Ogg packets are incomplete. 
-
 1. When done decoding, reset the decoder to decode a new stream, or free up the memory being used by the WASM module if you have no more audio to decode. 
 
    ```javascript
@@ -103,6 +101,7 @@ Each channel is assigned to a speaker location in a conventional surround arrang
 * 6 channels: 5.1 surround (front left, front center, front right, rear left, rear right, LFE).
 * 7 channels: 6.1 surround (front left, front center, front right, side left, side right, rear center, LFE).
 * 8 channels: 7.1 surround (front left, front center, front right, side left, side right, rear left, rear right, LFE).
+* 9-255 channels: No mapping is defined.
 
 See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
 
@@ -116,7 +115,8 @@ const decoder = new OggOpusDecoder({ forceStereo: true });
 ```
 
 * `forceStereo` *optional, defaults to `false`*
-  * Set to `true` to forces stereo output when decoding mono or multichannel Ogg Opus.
+  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
+  * If there are more than 8 channels, this option is ignored.
 
 ### Getters
 * `decoder.ready` *async*
@@ -124,9 +124,17 @@ const decoder = new OggOpusDecoder({ forceStereo: true });
 
 ### Methods
 
-* `decoder.decode(oggOpusData)`
+* `decoder.decode(oggOpusData)` *async*
   * `opusFrame` Uint8Array containing Ogg Opus data.
-  * Returns decoded audio.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when streaming audio into the decoder.
+* `decoder.decodeFile(oggOpusData)` *async*
+  * `oggOpusData` Uint8Array containing Ogg Opus data.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when decoding an entire file.
+* `decoder.flush()` *async*
+  * Returns a promise that resolves with any remaining data in the buffer.
+  * Use this when you are finished piping audio in through the `decode` method to retrieve any remaining data in the buffer.
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Ogg Opus data can be decoded.
 * `decoder.free()`
@@ -143,7 +151,8 @@ const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
 ```
 
 * `forceStereo` *optional, defaults to `false`*
-  * Set to `true` to forces stereo output when decoding mono or multichannel Ogg Opus.
+  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
+  * If there are more than 8 channels, this option is ignored.
 
 ### Getters
 * `decoder.ready` *async*
@@ -154,6 +163,14 @@ const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
 * `decoder.decode(oggOpusData)` *async*
   * `oggOpusData` Uint8Array containing Ogg Opus data.
   * Returns a promise that resolves with the decoded audio.
+  * Use this when streaming audio into the decoder.
+* `decoder.decodeFile(oggOpusData)` *async*
+  * `oggOpusData` Uint8Array containing Ogg Opus data.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when decoding an entire file.
+* `decoder.flush()` *async*
+  * Returns a promise that resolves with any remaining data in the buffer.
+  * Use this when you are finished piping audio in through the `decode` method to retrieve any remaining data in the buffer.
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Ogg Opus data can be decoded.
 * `decoder.free()` *async*
@@ -172,22 +189,22 @@ Each method call on a `OggOpusDecoderWebWorker` instance will queue up an operat
       // does something to play the audio data.
     }
 
-    decoder.decodeFrame(data1).then(playAudio);
-    decoder.decodeFrame(data2).then(playAudio);
-    decoder.decodeFrame(data3).then(playAudio);
+    decoder.decode(data1).then(playAudio);
+    decoder.decode(data2).then(playAudio);
+    decoder.decode(data3).then(playAudio);
 
     // do some other operations while the audio is decoded
     ```
 
   * **Bad** Main thread is being blocked by `await` during each decode operation. Synchronous code is halted while decoding completes, negating the benefits of using a webworker.
     ```javascript
-    const decoded1 = await decoder.decodeFrame(data1); // blocks the main thread
+    const decoded1 = await decoder.decode(data1); // blocks the main thread
     playAudio(decoded1);
 
-    const decoded2 = await decoder.decodeFrame(data2); // blocks the main thread
+    const decoded2 = await decoder.decode(data2); // blocks the main thread
     playAudio(decoded2);
 
-    const decoded3 = await decoder.decodeFrame(data3); // blocks the main thread
+    const decoded3 = await decoder.decode(data3); // blocks the main thread
     playAudio(decoded3);
     ```
 ## Examples

@@ -7,6 +7,7 @@ declare module "opus-decoder" {
 
   export class OpusDecoder {
     constructor(options?: {
+      forceStereo?: boolean;
       preSkip?: number;
       channels?: number;
       streamCount?: number;
@@ -22,6 +23,7 @@ declare module "opus-decoder" {
 
   export class OpusDecoderWebWorker {
     constructor(options?: {
+      forceStereo?: boolean;
       preSkip?: number;
       channels?: number;
       streamCount?: number;
