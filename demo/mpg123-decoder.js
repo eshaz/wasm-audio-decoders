@@ -262,7 +262,7 @@
         const webworkerSourceCode =
           "'use strict';" +
           // dependencies need to be manually resolved when stringifying this function
-          `(${((_options, _Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
+          `(${((_Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
           // We're in a Web Worker
 
           // setup Promise that will be resolved once the WebAssembly Module is received
@@ -277,15 +277,15 @@
               messagePayload = { id },
               transferList;
 
-            if (command === "module") {
+            if (command === "init") {
               Object.defineProperties(_Decoder, {
                 WASMAudioDecoderCommon: { value: _WASMAudioDecoderCommon },
                 EmscriptenWASM: { value: _EmscriptenWASM },
-                module: { value: data },
+                module: { value: data.module },
                 isWebWorker: { value: true },
               });
 
-              decoder = new _Decoder(_options);
+              decoder = new _Decoder(data.options);
               moduleResolve();
             } else if (command === "free") {
               decoder.free();
@@ -317,22 +317,21 @@
               self.postMessage(messagePayload, transferList)
             );
           };
-        }).toString()})(${JSON.stringify(
-          options
-        )}, ${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
+        }).toString()})(${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
 
         const type = "text/javascript";
 
         try {
           // browser
           source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
-          WASMAudioDecoderCommon.modules.set(Decoder, source);
         } catch {
           // nodejs
           source = `data:${type};base64,${Buffer.from(
           webworkerSourceCode
         ).toString("base64")}`;
         }
+
+        WASMAudioDecoderCommon.modules.set(Decoder, source);
       }
 
       super(source, { name });
@@ -346,8 +345,8 @@
         this._enqueuedOperations.delete(id);
       };
 
-      new EmscriptenWASM(WASMAudioDecoderCommon).getModule().then((compiled) => {
-        this._postToDecoder("module", compiled);
+      new EmscriptenWASM(WASMAudioDecoderCommon).getModule().then((module) => {
+        this._postToDecoder("init", { module, options });
       });
     }
 
@@ -602,7 +601,6 @@ iô^Õ¯-ÌQõ^ +© Ø[Ëv7$Pm,Ré[Ö8}¾§¹cz¶=}
 
   function _emscripten_resize_heap(requestedSize) {
    HEAPU8.length;
-   requestedSize = requestedSize >>> 0;
    abortOnCannotGrowMemory();
   }
 
@@ -697,6 +695,7 @@ iô^Õ¯-ÌQõ^ +© Ø[Ëv7$Pm,Ré[Ö8}¾§¹cz¶=}
    _mpeg_frame_decoder_create = asm["l"];
    _mpeg_decode_interleaved = asm["m"];
    _mpeg_frame_decoder_destroy = asm["n"];
+   asm["o"];
    wasmMemory = asm["h"];
    updateGlobalBufferAndViews(wasmMemory.buffer);
    initRuntime(asm);
