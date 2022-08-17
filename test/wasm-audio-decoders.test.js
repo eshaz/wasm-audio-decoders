@@ -7,6 +7,7 @@ import {
   getInterleaved,
   getWaveFileHeader,
   testDecoder_decode,
+  testDecoder_decodeFrame,
   testDecoder_decodeFrames,
 } from "./utilities";
 
@@ -101,6 +102,31 @@ const test_decode_multipleFiles = async (DecoderClass, testParams) => {
       };
     })
   );
+};
+
+const test_decodeFrame = async (
+  decoder,
+  testName,
+  fileName,
+  frames,
+  framesLength
+) => {
+  const isWorker = decoder.constructor.name.match(/WebWorker/);
+  const paths = getTestPaths(fileName, null, isWorker);
+
+  const result = await decoder.ready.then(() =>
+    testDecoder_decodeFrame(
+      decoder,
+      testName,
+      frames,
+      framesLength,
+      paths.actualPath
+    )
+  );
+
+  decoder.free();
+
+  return { paths, result };
 };
 
 const test_decodeFrames = async (
@@ -558,49 +584,98 @@ describe("wasm-audio-decoders", () => {
       expect(OpusDecoderWebWorker.name).toEqual("OpusDecoderWebWorker");
     });
 
-    it("should decode opus frames", async () => {
-      const { preSkip } = opusStereoHeader;
+    describe("decodeFrame", () => {
+      it("should decode opus frames", async () => {
+        const { preSkip } = opusStereoHeader;
 
-      const { paths, result } = await test_decodeFrames(
-        new OpusDecoder({
-          preSkip,
-        }),
-        "should decode opus frames",
-        opusStereoTestFile,
-        opusStereoFrames,
-        opusStereoFramesLength
-      );
+        const { paths, result } = await test_decodeFrame(
+          new OpusDecoder({
+            preSkip,
+          }),
+          "should decode opus frames",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength
+        );
 
-      const [actual, expected] = await Promise.all([
-        fs.readFile(paths.actualPath),
-        fs.readFile(paths.expectedPath),
-      ]);
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
 
-      expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
-      expect(result.sampleRate).toEqual(48000);
-      expect(Buffer.compare(actual, expected)).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode opus frames in a web worker", async () => {
+        const { preSkip } = opusStereoHeader;
+        const { paths, result } = await test_decodeFrame(
+          new OpusDecoderWebWorker({
+            preSkip,
+          }),
+          "should decode opus frames in a web worker",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
     });
 
-    it("should decode opus frames in a web worker", async () => {
-      const { preSkip } = opusStereoHeader;
-      const { paths, result } = await test_decodeFrames(
-        new OpusDecoderWebWorker({
-          preSkip,
-        }),
-        "should decode opus frames in a web worker",
-        opusStereoTestFile,
-        opusStereoFrames,
-        opusStereoFramesLength
-      );
+    describe("decodeFrames", () => {
+      it("should decode opus frames", async () => {
+        const { preSkip } = opusStereoHeader;
 
-      const [actual, expected] = await Promise.all([
-        fs.readFile(paths.actualPath),
-        fs.readFile(paths.expectedPath),
-      ]);
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoder({
+            preSkip,
+          }),
+          "should decode opus frames",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength
+        );
 
-      expect(result.samplesDecoded).toEqual(3807048); //3807154
-      expect(result.sampleRate).toEqual(48000);
-      expect(Buffer.compare(actual, expected)).toEqual(0);
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode opus frames in a web worker", async () => {
+        const { preSkip } = opusStereoHeader;
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoderWebWorker({
+            preSkip,
+          }),
+          "should decode opus frames in a web worker",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
     });
 
     describe("5.1 Channels", () => {

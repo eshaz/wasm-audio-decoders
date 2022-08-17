@@ -89,16 +89,24 @@ export default function OpusDecoder(options = {}) {
       );
       return 0;
     }
-    return samplesDecoded;
+
+    return {
+      outputBuffer: this._common.getOutputChannels(
+        this._output.buf,
+        this._outputChannels,
+        samplesDecoded
+      ),
+      samplesDecoded: samplesDecoded,
+    };
   };
 
   this.decodeFrame = (opusFrame) => {
-    const samplesDecoded = this._decode(opusFrame);
+    const decoded = this._decode(opusFrame);
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      this._output.buf,
+      [decoded.outputBuffer],
       this._outputChannels,
-      samplesDecoded,
+      decoded.samplesDecoded,
       48000
     );
   };
@@ -109,26 +117,17 @@ export default function OpusDecoder(options = {}) {
       i = 0;
 
     while (i < opusFrames.length) {
-      const samplesDecoded = this._decode(opusFrames[i++]);
-
-      outputBuffers.push(
-        this._common.getOutputChannels(
-          this._output.buf,
-          this._outputChannels,
-          samplesDecoded
-        )
-      );
-      outputSamples += samplesDecoded;
+      const decoded = this._decode(opusFrames[i++]);
+      outputBuffers.push(decoded.outputBuffer);
+      outputSamples += decoded.samplesDecoded;
     }
 
-    const data = this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+    return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
       outputBuffers,
       this._outputChannels,
       outputSamples,
       48000
     );
-
-    return data;
   };
 
   // injects dependencies when running as a web worker
