@@ -22,7 +22,7 @@
     "ogg-opus-decoder": "file:src/ogg-opus-decoder",
     "opus-decoder": "file:src/opus-decoder",
     "prettier": "^2.7.1",
-    "rollup": "^2.77.0",
+    "rollup": "^2.78.0",
     "simple-yenc": "0.2.1",
     "terser": "^5.14.2",
     "web-worker": "^1.1.0"
