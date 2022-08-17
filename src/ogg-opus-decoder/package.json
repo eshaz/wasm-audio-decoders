@@ -1,6 +1,6 @@
 {
   "name": "ogg-opus-decoder",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Web Assembly streaming Ogg Opus decoder",
   "type": "module",
   "main": "./index.js",
@@ -51,6 +51,6 @@
   "dependencies": {
     "@wasm-audio-decoders/common": "5.0.2",
     "codec-parser": "2.2.0",
-    "opus-decoder": "0.5.1"
+    "opus-decoder": "0.5.2"
   }
 }
