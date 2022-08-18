@@ -21,6 +21,19 @@ export const getInterleaved = (channelData, samples) => {
   return new Uint8Array(interleaved.buffer);
 };
 
+export const concatFloat32 = (buffers, length) => {
+  let ret = new Float32Array(length),
+    i = 0,
+    offset = 0;
+
+  while (i < buffers.length) {
+    ret.set(buffers[i], offset);
+    offset += buffers[i++].length;
+  }
+
+  return ret;
+};
+
 export const getWaveFileHeader = ({ bitDepth, sampleRate, length, channels }) =>
   waveHeader.generateHeader(length, {
     channels,
@@ -56,6 +69,84 @@ const printStats = ({
       "MiB/s)" +
       "\n"
   );
+};
+
+export const testDecoder_decodeFrame = async (
+  decoder,
+  fileName,
+  frames,
+  framesLength,
+  outputPath
+) => {
+  const output = await fs.open(outputPath, "w+");
+  try {
+    // allocate space for the wave header
+    await output.writeFile(Buffer.alloc(44));
+
+    // print the initial stats header
+    process.stderr.write(
+      "\n" + decoder.constructor.name + " " + fileName + "\n"
+    );
+
+    const decodeStart = performance.now();
+    const decodeResults = [];
+
+    let channelData = [],
+      samplesDecoded = 0,
+      sampleRate = 0;
+
+    for await (const frame of frames) {
+      const decodeResult = await decoder.decodeFrame(frame);
+
+      decodeResults.push(decodeResult.channelData);
+      samplesDecoded += decodeResult.samplesDecoded;
+      sampleRate = decodeResult.sampleRate;
+    }
+    const decodeEnd = performance.now();
+
+    const channelsDecoded = decodeResults[0].length;
+
+    for (let i = 0; i < channelsDecoded; i++) {
+      const channel = [];
+      for (let j = 0; j < decodeResults.length; )
+        channel.push(decodeResults[j++][i]);
+      channelData.push(concatFloat32(channel, samplesDecoded));
+    }
+
+    const interleaved = getInterleaved(channelData, samplesDecoded);
+
+    await output.writeFile(interleaved);
+
+    const decodeTime = (decodeEnd - decodeStart) / 1000;
+
+    printStats({
+      decodeTime,
+      samplesDecoded,
+      sampleRate,
+      totalSamplesDecoded: samplesDecoded,
+      bytesRead: framesLength,
+      totalBytesRead: framesLength,
+      bytesWritten: interleaved.length,
+      totalBytesWritten: interleaved.length,
+    });
+
+    const header = getWaveFileHeader({
+      bitDepth: 16,
+      sampleRate,
+      length: interleaved.length,
+      channels: channelData.length,
+    });
+
+    await output.write(header, 0, header.length, 0);
+    await output.close();
+
+    return {
+      samplesDecoded,
+      sampleRate,
+    };
+  } finally {
+    await output.close();
+  }
 };
 
 export const testDecoder_decodeFrames = async (
