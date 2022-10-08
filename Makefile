@@ -1,16 +1,18 @@
 default: dist
 
-clean: dist-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
+clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
 DEMO_PATH=demo/
 
-dist: opus-decoder ogg-opus-decoder mpg123-decoder
+dist: flac-decoder opus-decoder ogg-opus-decoder mpg123-decoder
 dist-clean:
 	rm -rf $(DEMO_PATH)*.js
+	rm -rf $(FLAC_DECODER_PATH)dist/*
 	rm -rf $(OPUS_DECODER_PATH)dist/*
 	rm -rf $(OGG_OPUS_DECODER_PATH)dist/*
 	rm -rf $(MPG123_DECODER_PATH)dist/*
 	rm -rf $(PUFF_EMSCRIPTEN_BUILD)
+	rm -rf $(FLAC_EMSCRIPTEN_BUILD)
 	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 
@@ -19,6 +21,29 @@ COMMON_PATH=src/common/
 PUFF_SRC=$(COMMON_PATH)src/puff/
 PUFF_WASM_LIB=tmp/puff.bc
 PUFF_EMSCRIPTEN_BUILD=$(COMMON_PATH)src/puff/Puff.wasm
+
+# @wasm-audio-decoders/flac
+FLAC_SRC=modules/flac/
+FLAC_WASM_LIB=tmp/flac.bc
+FLAC_DECODER_PATH=src/flac/
+FLAC_EMSCRIPTEN_BUILD=$(FLAC_DECODER_PATH)src/EmscriptenWasm.tmp.js
+FLAC_DECODER_MODULE=$(FLAC_DECODER_PATH)dist/flac-decoder.js
+FLAC_DECODER_MODULE_MIN=$(FLAC_DECODER_PATH)dist/flac-decoder.min.js
+
+# Iterations, (single / double) 222 = 110314, (backtick) 222 = 109953
+flac-decoder: flac-wasmlib flac-decoder-minify $(FLAC_EMSCRIPTEN_BUILD)
+flac-decoder-minify: $(FLAC_EMSCRIPTEN_BUILD)
+	SOURCE_PATH=$(FLAC_DECODER_PATH) \
+	OUTPUT_NAME=none \
+	MODULE=$(FLAC_DECODER_MODULE) \
+	MODULE_MIN=$(FLAC_DECODER_MODULE_MIN) \
+	COMPRESSION_ITERATIONS=1 \
+	npm run minify
+	cp $(FLAC_DECODER_MODULE) $(FLAC_DECODER_MODULE_MIN) $(FLAC_DECODER_MODULE_MIN).map $(DEMO_PATH)
+
+flac-wasmlib: $(FLAC_WASM_LIB)
+flac-wasmlib-clean: dist-clean
+	rm -rf $(FLAC_WASM_LIB)
 
 # ogg-opus-decoder
 OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder/
@@ -84,7 +109,7 @@ mpg123-wasmlib-clean: dist-clean
 
 # configures
 CONFIGURE_LIBOPUS=modules/opus/configure
-configures: $(CONFIGURE_LIBOGG) 
+configures: $(CONFIGURE_LIBOPUS) 
 configures-clean: opus-wasmlib-clean
 	rm -rf $(CONFIGURE_LIBOPUS)
 
@@ -135,6 +160,86 @@ puff-llvm:
 		-o $(PUFF_EMSCRIPTEN_BUILD)
 	@ npm run build-puff
 
+
+# -------------------------
+# @wasm-audio-decoders/flac
+# -------------------------
+define FLAC_EMCC_OPTS
+-s JS_MATH \
+--no-entry \
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  , '_create_decoder' \
+  , '_destroy_decoder' \
+  , '_decode' \
+]" \
+--pre-js '$(FLAC_DECODER_PATH)src/emscripten-pre.js' \
+--post-js '$(FLAC_DECODER_PATH)src/emscripten-post.js' \
+-I "$(FLAC_SRC)include/FLAC" \
+$(FLAC_DECODER_PATH)src/flac_decoder.c
+endef
+
+$(FLAC_EMSCRIPTEN_BUILD): $(FLAC_WASM_LIB)
+	@ mkdir -p $(FLAC_DECODER_PATH)dist
+	@ echo "Building Emscripten WebAssembly module $(FLAC_EMSCRIPTEN_BUILD)..."
+	@ emcc \
+		-o "$(FLAC_EMSCRIPTEN_BUILD)" \
+	  ${EMCC_OPTS} \
+	  $(FLAC_EMCC_OPTS) \
+	  $(FLAC_WASM_LIB)
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built JS Module: $(FLAC_EMSCRIPTEN_BUILD)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+$(FLAC_WASM_LIB):
+	@ mkdir -p tmp
+	@ echo "Building FLAC Emscripten Library $(FLAC_WASM_LIB)..."
+	@ emcc \
+	  -o "$(FLAC_WASM_LIB)" \
+	  -r \
+	  -Os \
+	  -flto \
+	  -s JS_MATH \
+	  -s NO_DYNAMIC_EXECUTION=1 \
+	  -s NO_FILESYSTEM=1 \
+	  -s STRICT=1 \
+	  -D HAVE_CONFIG_H=1 \
+	  -I "$(FLAC_SRC)" \
+	  -I "$(FLAC_SRC)include" \
+	  -I "$(FLAC_SRC)src/libFLAC/include" \
+	  $(FLAC_SRC)src/libFLAC/stream_decoder.c \
+	  $(FLAC_SRC)src/libFLAC/format.c \
+	  $(FLAC_SRC)src/libFLAC/crc.c \
+	  $(FLAC_SRC)src/libFLAC/bitreader.c \
+	  $(FLAC_SRC)src/libFLAC/bitmath.c \
+	  $(FLAC_SRC)src/libFLAC/fixed.c \
+	  $(FLAC_SRC)src/libFLAC/lpc.c \
+	  $(FLAC_SRC)src/libFLAC/memory.c \
+	  $(FLAC_SRC)src/libFLAC/md5.c
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built: $(FLAC_WASM_LIB)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+flac-configure:
+	cd $(FLAC_SRC); ./autogen.sh
+	cd $(FLAC_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
+	  --disable-doxygen-docs \
+	  --disable-cpplibs \
+	  --disable-ogg \
+	  --disable-programs \
+	  --disable-examples \
+	  --disable-asm-optimizations \
+	  --disable-sse \
+	  --disable-altivec \
+	  --disable-vsx \
+	  --disable-avx \
+	  --host=wasm32-unknown-emscripten
+	cd $(FLAC_SRC); rm a.wasm 
+
 # ------------------
 # opus-decoder
 # ------------------
@@ -167,12 +272,9 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-# -------------------
-# Shared Opus library
-# -------------------
 $(OPUS_WASM_LIB): configures
 	@ mkdir -p tmp
-	@ echo "Building Ogg/Opus Emscripten Library $(OPUS_WASM_LIB)..."
+	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
 	@ emcc \
 	  -o "$(OPUS_WASM_LIB)" \
 	  -r \
@@ -208,12 +310,6 @@ $(CONFIGURE_LIBOPUSFILE):
 	cd modules/opusfile; ./autogen.sh
 $(CONFIGURE_LIBOPUS):
 	cd modules/opus; ./autogen.sh
-$(CONFIGURE_LIBOGG):
-	cd modules/ogg; ./autogen.sh
-$(OGG_CONFIG_TYPES): $(CONFIGURE_LIBOGG)
-	cd modules/ogg; emconfigure ./configure --host=none-none-none
-	# Remove a.wasm* files created by emconfigure
-	cd modules/ogg; rm a.wasm*
 
 # -----------
 # mpg123-decoder

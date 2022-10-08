@@ -5,3 +5,6 @@
 	path = modules/mpg123
 	url = https://github.com/madebr/mpg123
 	branch = master
+[submodule "modules/flac"]
+	path = modules/flac
+	url = https://github.com/xiph/flac.git

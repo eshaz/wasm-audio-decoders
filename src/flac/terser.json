@@ -1,0 +1,39 @@
+{
+  "sourceMap": {
+    "url": "flac-decoder.min.js.map"
+  },
+  "output": {
+    "preamble": "/* Copyright 2021-2022 Ethan Halsall. This file is part of wasm-audio-decoders. https://github.com/eshaz/wasm-audio-decoders */"
+  },
+  "compress": {
+    "ecma": 2021,
+    "passes": 5,
+    "toplevel": true,
+    "unsafe": true,
+    "unsafe_methods": true,
+    "unsafe_arrows": true
+  },
+  "mangle": {
+    "module": true,
+    "properties": {
+      "keep_quoted": true,
+      "debug": false,
+      "reserved": [
+        "FLACDecoder",
+        "FLACDecoderWebWorker",
+        "instance",
+        "decode",
+        "decodeFrame",
+        "decodeFrames",
+        "free",
+        "ready",
+        "reset",
+        "channelData",
+        "samplesDecoded"
+      ]
+    }
+  },
+  "ecma": 2021,
+  "safari10": true,
+  "module": true
+}
