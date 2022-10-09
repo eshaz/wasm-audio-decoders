@@ -31,7 +31,8 @@
         "ready",
         "reset",
         "channelData",
-        "samplesDecoded"
+        "samplesDecoded",
+        "bitDepth"
       ]
     }
   },
