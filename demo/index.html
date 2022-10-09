@@ -11,6 +11,7 @@
     <meta name="theme-color" content="#000000" />
     <meta name="title" content="WASM Audio Decoders" />
     <script src="mpg123-decoder.min.js"></script>
+    <script src="flac-decoder.min.js"></script>
     <script src="opus-decoder.min.js"></script>
     <script src="ogg-opus-decoder.min.js"></script>
     <script>
@@ -285,6 +286,24 @@
       </li>
       <li>
         <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac-decoder"
+          ><b>flac-decoder</b></a
+        >
+        is used to decode FLAC data.
+        <ul>
+          <li>
+            Runs using a Web Assembly build of
+            <a href="https://github.com/xiph/flac">libflac</a>.
+          </li>
+          <li>Decodes up to 8 discrete channels of audio.</li>
+          <li>
+            Runs in the main thread or a separate thread using the Web Worker
+            api.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <a
           href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder"
           ><b>mpg123-decoder</b></a
         >
@@ -310,7 +329,8 @@
     <h3>How to use the demo</h3>
     <ol>
       <li>
-        Select a couple MPEG Layer I/II/III (MP3) or Ogg Opus files to decode.
+        Select a couple MPEG Layer I/II/III (MP3), Ogg Opus, or FLAC files to
+        decode.
       </li>
       <li>
         If you want to download a WAVE file for each file that you decode, check
@@ -321,8 +341,8 @@
             many files and workers are selected.
           </li>
           <li>
-            Multichannel Ogg Opus files may be downloaded and verified in a tool
-            that supports multichannel WAVE files such as
+            Multichannel Ogg Opus and FLAC files may be downloaded and verified
+            in a tool that supports multichannel WAVE files such as
             <a href="https://www.audacityteam.org/">Audacity</a>.
           </li>
         </ul>
@@ -365,7 +385,7 @@
                     <input
                       type="file"
                       id="file-selector"
-                      accept=".mp3, .mp2, .mp1, .mpg, .ogg, .opus"
+                      accept=".mp3, .mp2, .mp1, .mpg, .ogg, .opus, .flac"
                       multiple="true"
                       style="display: none"
                     />
@@ -646,7 +666,7 @@
     };
 
     // file selector
-    let fileList, totalLength, mpegLength, opusLength;
+    let fileList, totalLength, mpegLength, opusLength, flacLength;
 
     const fileSelector = document.getElementById("file-selector");
 
@@ -693,13 +713,14 @@
   <script>
     "use strict";
     const { MPEGDecoderWebWorker, MPEGDecoder } = window["mpg123-decoder"];
+    const { FLACDecoderWebWorker, FLACDecoder } = window["flac-decoder"];
     const { OpusDecoderWebWorker, OpusDecoder } = window["opus-decoder"];
     const { OggOpusDecoderWebWorker, OggOpusDecoder } =
       window["ogg-opus-decoder"];
 
     class DecoderPool {
-      constructor(numberOfDecoders, bytesMPEG, bytesOpus) {
-        const totalBytes = bytesMPEG + bytesOpus;
+      constructor(numberOfDecoders, bytesMPEG, bytesOpus, bytesFLAC) {
+        const totalBytes = bytesMPEG + bytesOpus + bytesFLAC;
 
         this._useMainThread = numberOfDecoders === "main";
         this._numberOfDecoders = numberOfDecoders;
@@ -707,6 +728,11 @@
         this._mpegDecoderStats = {
           maxDecoders:
             Math.round((bytesMPEG / totalBytes) * numberOfDecoders) || 1,
+          numberDecoders: 0,
+        };
+        this._flacDecoderStats = {
+          maxDecoders:
+            Math.round((bytesFLAC / totalBytes) * numberOfDecoders) || 1,
           numberDecoders: 0,
         };
         this._opusDecoderStats = {
@@ -741,6 +767,13 @@
               : MPEGDecoderWebWorker;
             decoderStats = this._mpegDecoderStats;
             decoderMethod = "decode";
+            break;
+          case "audio/flac":
+            DecoderClass = this._useMainThread
+              ? FLACDecoder
+              : FLACDecoderWebWorker;
+            decoderStats = this._flacDecoderStats;
+            decoderMethod = "decodeFile";
             break;
           case "video/ogg":
           case "audio/ogg":
@@ -795,7 +828,8 @@
     let decoderPool = new DecoderPool(
       numberOfDecodersEl.value,
       mpegLength,
-      opusLength
+      opusLength,
+      flacLength
     );
 
     const createDecoderPool = () => {
@@ -803,7 +837,8 @@
       decoderPool = new DecoderPool(
         numberOfDecodersEl.value,
         mpegLength,
-        opusLength
+        opusLength,
+        flacLength
       );
     };
 
@@ -1115,6 +1150,7 @@
       totalLength = 0;
       mpegLength = 0;
       opusLength = 0;
+      flacLength = 0;
 
       resetWebAudioPlayers();
 
@@ -1134,6 +1170,7 @@
       [...fileList].forEach(({ name, type, size }) => {
         totalLength += size;
         if (type === "audio/mpeg") mpegLength += size;
+        if (type === "audio/flac") flacLength += size;
         if (type === "audio/ogg") opusLength += size;
         filesToDecodeEl.innerHTML += `
         <tr id="_row-${name}">
