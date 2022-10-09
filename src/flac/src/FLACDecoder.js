@@ -75,7 +75,11 @@ export function Decoder(options = {}) {
         "Data to decode must be Uint8Array. Instead got " + typeof data
       );
 
-    const input = this._common.allocateTypedArray(data.length, Uint8Array);
+    const input = this._common.allocateTypedArray(
+      data.length,
+      Uint8Array,
+      false
+    );
     input.buf.set(data);
 
     const error = this._common.wasm._decode_frame(
@@ -116,18 +120,22 @@ export function Decoder(options = {}) {
     return decoded;
   };
 
-  this.decodeFrame = (data) => {
+  this.decodeFrames = (frames) => {
     let outputBuffers = [],
-      outputSamples = 0,
-      i = 0;
+      outputSamples = 0;
 
-    while (i < data.length) {
-      const chunk = data.subarray(i, i + this._MAX_INPUT_SIZE);
-      i += chunk.length;
+    for (let i = 0; i < frames.length; i++) {
+      let offset = 0;
+      const data = frames[i];
 
-      const decoded = this._decode(chunk);
-      outputBuffers.push(decoded.outputBuffer);
-      outputSamples += decoded.samplesDecoded;
+      while (offset < data.length) {
+        const chunk = data.subarray(offset, offset + this._MAX_INPUT_SIZE);
+        offset += chunk.length;
+
+        const decoded = this._decode(chunk);
+        outputBuffers.push(decoded.outputBuffer);
+        outputSamples += decoded.samplesDecoded;
+      }
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
@@ -188,9 +196,9 @@ class DecoderState {
     this._instance._ready = this._instance._decoder.ready;
   }
 
-  async _sendToDecoder(frame) {
+  async _sendToDecoder(frames) {
     const { channelData, samplesDecoded, sampleRate } =
-      await this._instance._decoder.decodeFrame(frame);
+      await this._instance._decoder.decodeFrames(frames);
 
     this._decoded.push(channelData);
     this._totalSamples += samplesDecoded;
@@ -198,27 +206,22 @@ class DecoderState {
     this._channelsDecoded = channelData.length;
   }
 
-  async _decode(frame) {
-    if (frame) {
-      if (!this._instance._decoder)
-        this._instantiateDecoder();
+  async _decode(frames) {
+    if (frames) {
+      if (!this._instance._decoder && frames.length) this._instantiateDecoder();
 
       await this._instance.ready;
 
-      this._decoderOperations.push(
-        this._sendToDecoder(frame.data)
-      );
+      this._decoderOperations.push(this._sendToDecoder(frames));
     }
   }
 }
 
 export default class FLACDecoder {
-  constructor(options = {}) {
+  constructor() {
     this._onCodec = (codec) => {
       if (codec !== "flac")
-        throw new Error(
-          "flac-decoder does not support this codec " + codec
-        );
+        throw new Error("flac-decoder does not support this codec " + codec);
     };
 
     // instantiate to create static properties
@@ -251,10 +254,16 @@ export default class FLACDecoder {
     this._init();
   }
 
+  async _decodeFrames(flacFrames, decoderState) {
+    decoderState._decode(flacFrames);
+
+    return decoderState.decoded;
+  }
+
   async _flush(decoderState) {
-    for (const frame of this._codecParser.flush()) {
-      decoderState._decode(frame);
-    }
+    const frames = [...this._codecParser.flush()].map((f) => f.data);
+
+    decoderState._decode(frames);
 
     const decoded = await decoderState.decoded;
     this._init();
@@ -263,11 +272,16 @@ export default class FLACDecoder {
   }
 
   async _decode(flacData, decoderState) {
-    for (const frame of this._codecParser.parseChunk(flacData)) {
-      decoderState._decode(frame);
-    }
+    return this._decodeFrames(
+      [...this._codecParser.parseChunk(flacData)].map((f) => f.data),
+      decoderState
+    );
+  }
 
-    return decoderState.decoded;
+  async decodeFrames(flacFrames) {
+    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      ...(await this._decodeFrames(flacFrames, new DecoderState(this)))
+    );
   }
 
   async decode(flacData) {
