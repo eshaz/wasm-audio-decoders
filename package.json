@@ -17,6 +17,7 @@
     "codec-parser": "2.2.0",
     "gh-pages": "^4.0.0",
     "jest": "^27.5.1",
+    "@wasm-audio-decoders/flac": "file:src/flac",
     "mpg123-decoder": "file:src/mpg123-decoder",
     "node-zopfli": "^2.1.4",
     "ogg-opus-decoder": "file:src/ogg-opus-decoder",

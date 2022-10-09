@@ -34,7 +34,7 @@ FLAC_DECODER_MODULE_MIN=$(FLAC_DECODER_PATH)dist/flac-decoder.min.js
 flac-decoder: flac-wasmlib flac-decoder-minify $(FLAC_EMSCRIPTEN_BUILD)
 flac-decoder-minify: $(FLAC_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(FLAC_DECODER_PATH) \
-	OUTPUT_NAME=none \
+	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(FLAC_DECODER_MODULE) \
 	MODULE_MIN=$(FLAC_DECODER_MODULE_MIN) \
 	COMPRESSION_ITERATIONS=1 \

@@ -14,6 +14,7 @@ import {
 import { MPEGDecoder, MPEGDecoderWebWorker } from "mpg123-decoder";
 import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
 import { OggOpusDecoder, OggOpusDecoderWebWorker } from "ogg-opus-decoder";
+import { FLACDecoder } from "@wasm-audio-decoders/flac";
 
 const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
@@ -200,6 +201,7 @@ const decompressExpectedFiles = async () => {
 };
 
 describe("wasm-audio-decoders", () => {
+  const flacStereoTestFile = "flac.flac";
   const opusStereoTestFile = "ogg.opus";
   const opusSurroundTestFile = "ogg.opus.surround";
   const opus32TestFile = "ogg.opus.32.ogg";
@@ -209,7 +211,7 @@ describe("wasm-audio-decoders", () => {
   beforeAll(async () => {
     await decompressExpectedFiles();
   });
-
+  /*
   describe("mpg123-decoder", () => {
     it("should have name as an instance and static property for MPEGDecoder", () => {
       const decoder = new MPEGDecoder();
@@ -1253,6 +1255,53 @@ describe("wasm-audio-decoders", () => {
 
         expect(result.samplesDecoded).toEqual(3528); // 3840 without preskip
         expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+  });
+*/
+  describe("flac-decoder", () => {
+    let flacStereoFrames, flacStereoFramesLength;
+
+    const getFrames = (codecFrames) => {
+      let length = 0,
+        frames;
+
+      frames = codecFrames.map((codecFrame) => {
+        length += codecFrame.data.length;
+        return codecFrame.data;
+      });
+
+      return [frames, length];
+    };
+
+    beforeAll(async () => {
+      const parser = new CodecParser("audio/flac");
+
+      [flacStereoFrames, flacStereoFramesLength] = getFrames(
+        parser.parseAll(
+          await fs.readFile(getTestPaths(flacStereoTestFile).inputPath)
+        )
+      );
+    });
+
+    describe("decodeFrame", () => {
+      it("should decode flac frames", async () => {
+        const { paths, result } = await test_decodeFrame(
+          new FLACDecoder(),
+          "should decode flac frames",
+          flacStereoTestFile,
+          flacStereoFrames,
+          flacStereoFramesLength
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     });

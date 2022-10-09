@@ -1,11 +1,52 @@
 {
   "name": "@wasm-audio-decoders/flac",
   "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "Web Assembly streaming FLAC decoder",
+  "type": "module",
+  "main": "./index.js",
+  "exports": "./index.js",
+  "types": "types.d.ts",
+  "files": [
+    "index.js",
+    "types.d.ts",
+    "src/EmscriptenWasm.js",
+    "src/FLACDecoder.js",
+    "src/FLACDecoderWebWorker.js",
+    "dist/flac-decoder.min.js",
+    "dist/flac-decoder.min.js.map"
+  ],
+  "keywords": [
+    "FLAC",
+    "audio",
+    "decoder",
+    "multichannel",
+    "surround",
+    "stream",
+    "streams",
+    "libopus",
+    "Web Assembly",
+    "Wasm",
+    "Web Worker"
+  ],
+  "author": {
+    "name": "Ethan Halsall",
+    "email": "ethanhalsall@pm.me"
   },
-  "author": "",
-  "license": "ISC"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
+  },
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eshaz/wasm-audio-decoders.git",
+    "directory": "src/flac"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/eshaz"
+  },
+  "dependencies": {
+    "@wasm-audio-decoders/common": "../common"
+  }
 }
