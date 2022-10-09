@@ -199,7 +199,7 @@ $(FLAC_WASM_LIB):
 	@ emcc \
 	  -o "$(FLAC_WASM_LIB)" \
 	  -r \
-	  -Os \
+	  -O3 \
 	  -flto \
 	  -s JS_MATH \
 	  -s NO_DYNAMIC_EXECUTION=1 \
@@ -286,9 +286,6 @@ $(OPUS_WASM_LIB): configures
 	  -s JS_MATH \
 	  -s NO_DYNAMIC_EXECUTION=1 \
 	  -s NO_FILESYSTEM=1 \
-	  -s EXPORTED_FUNCTIONS="[ \
-	     '_op_read_float_stereo' \
-	  ]" \
 	  -s STRICT=1 \
 	  -I "modules/opus/include" \
 	  -I "modules/opus/celt" \

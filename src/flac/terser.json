@@ -23,13 +23,15 @@
         "FLACDecoderWebWorker",
         "instance",
         "decode",
-        "decodeFrame",
         "decodeFrames",
+        "decodeFile",
+        "flush",
         "free",
         "ready",
         "reset",
         "channelData",
-        "samplesDecoded"
+        "samplesDecoded",
+        "bitDepth"
       ]
     }
   },

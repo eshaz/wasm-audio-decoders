@@ -142,7 +142,8 @@ export function Decoder(options = {}) {
       outputBuffers,
       this._channels.buf[0],
       outputSamples,
-      this._sampleRate.buf[0]
+      this._sampleRate.buf[0],
+      this._bitsPerSample.buf[0]
     );
   };
 
@@ -152,16 +153,6 @@ export function Decoder(options = {}) {
     Decoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
   this._EmscriptenWASM = Decoder.EmscriptenWASM || EmscriptenWASM;
   this._module = Decoder.module;
-
-  const MAX_FORCE_STEREO_CHANNELS = 8;
-
-  const forceStereo = options.forceStereo ? 1 : 0;
-
-  //this._forceStereo = channels <= MAX_FORCE_STEREO_CHANNELS && channels != 2 ? forceStereo : 0;
-
-  //this._inputSize = 65535; // Max FLAC blocksize
-  //this._outputChannelSize = 120 * 48;
-  //this._outputChannels = this._forceStereo ? 2 : this._channels;
 
   this._MAX_INPUT_SIZE = 65535 * 8;
 
@@ -188,6 +179,7 @@ class DecoderState {
         this._channelsDecoded,
         this._totalSamples,
         this._sampleRate,
+        this._bitDepth
       ]);
   }
 
@@ -197,13 +189,14 @@ class DecoderState {
   }
 
   async _sendToDecoder(frames) {
-    const { channelData, samplesDecoded, sampleRate } =
+    const { channelData, samplesDecoded, sampleRate, bitDepth } =
       await this._instance._decoder.decodeFrames(frames);
 
     this._decoded.push(channelData);
     this._totalSamples += samplesDecoded;
     this._sampleRate = sampleRate;
     this._channelsDecoded = channelData.length;
+    this._bitDepth = bitDepth;
   }
 
   async _decode(frames) {
@@ -221,7 +214,7 @@ export default class FLACDecoder {
   constructor() {
     this._onCodec = (codec) => {
       if (codec !== "flac")
-        throw new Error("flac-decoder does not support this codec " + codec);
+        throw new Error("@wasm-audio-decoders/flac does not support this codec " + codec);
     };
 
     // instantiate to create static properties
@@ -278,15 +271,15 @@ export default class FLACDecoder {
     );
   }
 
-  async decodeFrames(flacFrames) {
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._decodeFrames(flacFrames, new DecoderState(this)))
-    );
-  }
-
   async decode(flacData) {
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
       ...(await this._decode(flacData, new DecoderState(this)))
+    );
+  }
+
+  async flush() {
+    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      ...(await this._flush(new DecoderState(this)))
     );
   }
 
@@ -300,9 +293,9 @@ export default class FLACDecoder {
     );
   }
 
-  async flush() {
+  async decodeFrames(flacFrames) {
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._flush(new DecoderState(this)))
+      ...(await this._decodeFrames(flacFrames, new DecoderState(this)))
     );
   }
 }

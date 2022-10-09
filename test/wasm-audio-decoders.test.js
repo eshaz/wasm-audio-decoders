@@ -213,7 +213,7 @@ describe("wasm-audio-decoders", () => {
   beforeAll(async () => {
     await decompressExpectedFiles();
   });
-  /*
+
   describe("mpg123-decoder", () => {
     it("should have name as an instance and static property for MPEGDecoder", () => {
       const decoder = new MPEGDecoder();
@@ -1261,7 +1261,7 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-*/
+
   describe("flac-decoder", () => {
     let flacStereoFrames, flacStereoFramesLength;
 
@@ -1322,6 +1322,7 @@ describe("wasm-audio-decoders", () => {
 
         expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
@@ -1341,6 +1342,7 @@ describe("wasm-audio-decoders", () => {
 
         expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
@@ -1362,6 +1364,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.channelsDecoded).toEqual(8);
         expect(result.samplesDecoded).toEqual(106380); //3807154, 204
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(24);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
@@ -1382,6 +1385,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.channelsDecoded).toEqual(2);
         expect(result.samplesDecoded).toEqual(5758976); //3807154, 204
         expect(result.sampleRate).toEqual(96000);
+        expect(result.bitDepth).toEqual(24);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     });
@@ -1422,6 +1426,7 @@ describe("wasm-audio-decoders", () => {
 
         expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
@@ -1442,6 +1447,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.channelsDecoded).toEqual(8);
         expect(result.samplesDecoded).toEqual(106380); //3807154, 204
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(24);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
@@ -1462,6 +1468,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.channelsDecoded).toEqual(2);
         expect(result.samplesDecoded).toEqual(5758976); //3807154, 204
         expect(result.sampleRate).toEqual(96000);
+        expect(result.bitDepth).toEqual(24);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     });

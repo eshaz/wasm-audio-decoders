@@ -23,7 +23,7 @@
     "surround",
     "stream",
     "streams",
-    "libopus",
+    "libflac",
     "Web Assembly",
     "Wasm",
     "Web Worker"
@@ -47,7 +47,7 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "@wasm-audio-decoders/common": "../common",
+    "@wasm-audio-decoders/common": "5.1.0",
     "codec-parser": "2.2.0"
   }
 }
