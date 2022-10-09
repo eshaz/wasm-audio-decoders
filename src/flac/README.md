@@ -1,44 +1,45 @@
-# `ogg-opus-decoder`
+# `@wasm-audio-decoders/flac`
 
-`ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder.
-  * 104.4 KiB minified bundle size
+`@wasm-audio-decoders/flac` is a Web Assembly FLAC audio decoder.
+  * 63.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
-  * Multichannel decoding (up to 255 channels)
-  * Based on [`libopus`](https://github.com/xiph/opus) and [`codec-parser`](https://github.com/eshaz/codec-parser)
+  * Multichannel decoding (up to 8 channels)
+  * Supports full FLAC bit depth and sample rate.
+  * Based on [`libFLAC`](https://github.com/xiph/flac) and [`codec-parser`](https://github.com/eshaz/codec-parser)
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
 ### [Checkout the demo here](https://eshaz.github.io/wasm-audio-decoders/)
 
 ## Installing
-* Install from [NPM](https://www.npmjs.com/package/ogg-opus-decoder).
+* Install from [NPM](https://www.npmjs.com/package/@wasm-audio-decoders/flac).
 
-  Run `npm i ogg-opus-decoder`
+  Run `npm i @wasm-audio-decoders/flac`
 
   ```javascript
-  import { OggOpusDecoder } from 'ogg-opus-decoder';
+  import { FLACDecoder } from '@wasm-audio-decoders/flac';
 
-  const decoder = new OggOpusDecoder();
+  const decoder = new FLACDecoder();
   ```
  
-* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder/dist) and include it as a script.
+* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac/dist) and include it as a script.
   ```html
-  <script src="ogg-opus-decoder.min.js"></script>
+  <script src="flac-decoder.min.js"></script>
   <script>
-    const decoder = new window["ogg-opus-decoder"].OggOpusDecoder();
+    const decoder = new window["flac-decoder"].FLACDecoder();
   </script>
   ```
 
 ## Usage
 
-1. Create a new instance and wait for the WASM to finish compiling. Decoding can be done on the main thread synchronously, or in a webworker asynchronously.
+1. Create a new instance and wait for the WASM to finish compiling. Decoding can be done on the main thread synchronously, or in a web worker asynchronously.
 
    **Main thread synchronous decoding**
    ```javascript
-   import { OggOpusDecoder } from 'ogg-opus-decoder';
+   import { FLACDecoder } from '@wasm-audio-decoders/flac';
 
-   const decoder = new OggOpusDecoder();
+   const decoder = new FLACDecoder();
 
    // wait for the WASM to be compiled
    await decoder.ready;
@@ -46,25 +47,25 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
    **Web Worker asynchronous decoding**
    ```javascript
-   import { OggOpusDecoderWebWorker } from 'ogg-opus-decoder';
+   import { FLACDecoderWebWorker } from '@wasm-audio-decoders/flac';
 
-   const decoder = new OggOpusDecoderWebWorker();
+   const decoder = new FLACDecoderWebWorker();
 
    // wait for the WASM to be compiled
    await decoder.ready;
    ```
 
-1. Begin decoding Ogg Opus data.
+1. Begin decoding FLAC data.
 
    ```javascript  
    // Decode an individual Opus frame
-   const {channelData, samplesDecoded, sampleRate} = decoder.decode(oggOpusData);
+   const {channelData, samplesDecoded, sampleRate, bitDepth} = decoder.decode(flacData);
    ```
 
 1. When done decoding, reset the decoder to decode a new stream, or free up the memory being used by the WASM module if you have no more audio to decode. 
 
    ```javascript
-   // `reset()` clears the decoder state and allows you do decode a new stream of Ogg Opus data.
+   // `reset()` clears the decoder state and allows you do decode a new stream of FLAC data.
    await decoder.reset();
 
    // `free()` de-allocates the memory used by the decoder. You will need to create a new instance after calling `free()` to start decoding again.
@@ -83,7 +84,8 @@ Decoded audio is always returned in the below structure.
       ... // additional channels
     ],
     samplesDecoded: 1234, // number of PCM samples that were decoded per channel
-    sampleRate: 48000 // sample rate of the decoded PCM
+    sampleRate: 48000, // sample rate of the decoded PCM
+    bitDepth: 24 // bit depth of the original FLAC file
 }
 ```
 
@@ -101,22 +103,17 @@ Each channel is assigned to a speaker location in a conventional surround arrang
 * 6 channels: 5.1 surround (front left, front center, front right, rear left, rear right, LFE).
 * 7 channels: 6.1 surround (front left, front center, front right, side left, side right, rear center, LFE).
 * 8 channels: 7.1 surround (front left, front center, front right, side left, side right, rear left, rear right, LFE).
-* 9-255 channels: No mapping is defined.
 
 See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
 
-## `OggOpusDecoder`
+## `FLACDecoder`
 
-Class that decodes Ogg Opus data synchronously on the main thread.
+Class that decodes FLAC data synchronously on the main thread.
 
 ### Options
 ```javascript
-const decoder = new OggOpusDecoder({ forceStereo: true });
+const decoder = new FLACDecoder();
 ```
-
-* `forceStereo` *optional, defaults to `false`*
-  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
-  * If there are more than 8 channels, this option is ignored.
 
 ### Getters
 * `decoder.ready` *async*
@@ -124,35 +121,35 @@ const decoder = new OggOpusDecoder({ forceStereo: true });
 
 ### Methods
 
-* `decoder.decode(oggOpusData)` *async*
-  * `oggOpusData` Uint8Array containing Ogg Opus data.
+* `decoder.decode(flacData)` *async*
+  * `flacData` Uint8Array containing FLAC data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when streaming audio into the decoder.
-* `decoder.decodeFile(oggOpusData)` *async*
-  * `oggOpusData` Uint8Array containing Ogg Opus data.
-  * Returns a promise that resolves with the decoded audio.
-  * Use this when decoding an entire file.
 * `decoder.flush()` *async*
   * Returns a promise that resolves with any remaining data in the buffer.
   * Use this when you are finished piping audio in through the `decode` method to retrieve any remaining data in the buffer.
+* `decoder.decodeFile(flacData)` *async*
+  * `flacData` Uint8Array containing FLAC data.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when decoding an entire file.
+* `decoder.decodeFrames(flacFrames)` *async*
+  * `flacData` Array of Uint8Array containing FLAC frames.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when you already have the FLAC frames parsed and split into individual buffers.
 * `decoder.reset()` *async*
-  * Resets the decoder so that a new stream of Ogg Opus data can be decoded.
+  * Resets the decoder so that a new stream of FLAC data can be decoded.
 * `decoder.free()`
   * De-allocates the memory used by the decoder.
-  * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional Ogg Opus data.
+  * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional FLAC data.
 
-## `OggOpusDecoderWebWorker`
+## `FLACDecoderWebWorker`
 
-Class that decodes Ogg Opus data asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
+Class that decodes FLAC data asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
 
 ### Options
 ```javascript
-const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
+const decoder = new FLACDecoderWebWorker();
 ```
-
-* `forceStereo` *optional, defaults to `false`*
-  * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
-  * If there are more than 8 channels, this option is ignored.
 
 ### Getters
 * `decoder.ready` *async*
@@ -160,28 +157,32 @@ const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
 
 ### Methods
 
-* `decoder.decode(oggOpusData)` *async*
-  * `oggOpusData` Uint8Array containing Ogg Opus data.
+* `decoder.decode(flacData)` *async*
+  * `flacData` Uint8Array containing FLAC data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when streaming audio into the decoder.
-* `decoder.decodeFile(oggOpusData)` *async*
-  * `oggOpusData` Uint8Array containing Ogg Opus data.
-  * Returns a promise that resolves with the decoded audio.
-  * Use this when decoding an entire file.
 * `decoder.flush()` *async*
   * Returns a promise that resolves with any remaining data in the buffer.
   * Use this when you are finished piping audio in through the `decode` method to retrieve any remaining data in the buffer.
+* `decoder.decodeFile(flacData)` *async*
+  * `flacData` Uint8Array containing FLAC data.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when decoding an entire file.
+* `decoder.decodeFrames(flacFrames)` *async*
+  * `flacData` Array of Uint8Array containing FLAC frames.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when you already have the FLAC frames parsed and split into individual buffers.
 * `decoder.reset()` *async*
-  * Resets the decoder so that a new stream of Ogg Opus data can be decoded.
-* `decoder.free()` *async*
-  * De-allocates the memory used by the decoder and terminates the web worker.
-  * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional Ogg Opus data.
+  * Resets the decoder so that a new stream of FLAC data can be decoded.
+* `decoder.free()` *async
+  * De-allocates the memory used by the decoder.
+  * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional FLAC data.
 
 ### Properly using the Web Worker interface
 
-`OggOpusDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, your code should avoid using `await` on decode operations where it will block the main thread.
+`FLACDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, your code should avoid using `await` on decode operations where it will block the main thread.
 
-Each method call on a `OggOpusDecoderWebWorker` instance will queue up an operation to the web worker. Operations will complete within the web worker thread one at a time and in the same order in which the methods were called.
+Each method call on a `FLACDecoderWebWorker` instance will queue up an operation to the web worker. Operations will complete within the web worker thread one at a time and in the same order in which the methods were called.
 
   * **Good** Main thread is not blocked during each decode operation. The example `playAudio` function is called when each decode operation completes. Also, the next decode operation can begin while `playAudio` is doing work on the main thread.
     ```javascript
@@ -209,9 +210,9 @@ Each method call on a `OggOpusDecoderWebWorker` instance will queue up an operat
     ```
 ## Examples
 
-### Decoding multiple files using a **single** instance of `OggOpusDecoderWebWorker`
+### Decoding multiple files using a **single** instance of `FLACDecoderWebWorker`
 
-This example shows how to decode multiple files using a single `OggOpusDecoderWebWorker` instance. This code iterates over an array of input files (Array of Uint8Arrays) and queues up each file to be decoded one at a time.
+This example shows how to decode multiple files using a single `FLACDecoderWebWorker` instance. This code iterates over an array of input files (Array of Uint8Arrays) and queues up each file to be decoded one at a time.
 
 First, wait for the decoder to become ready by calling `decoder.ready`.
 
@@ -224,7 +225,7 @@ It's important to note that there is only one `await` operations in this example
 ```javascript
   const inputFiles = [file1, file2, file3] // Array of Uint8Array file data
 
-  const decoder = new OggOpusDecoderWebWorker();
+  const decoder = new FLACDecoderWebWorker();
 
   const decodedFiles = [];
 
@@ -243,9 +244,9 @@ It's important to note that there is only one `await` operations in this example
   // await when you need to have the all of the audio data decoded
   await decodePromise;
 ```
-### Decoding multiple files using **multiple** instances of `OggOpusDecoderWebWorker`
+### Decoding multiple files using **multiple** instances of `FLACDecoderWebWorker`
 
-This example shows how to decode multiple files using multiple instances of `OggOpusDecoderWebWorker`. This code iterates over an array of input files (Array of Uint8Arrays) and spawns a new `OggOpusDecoderWebWorker` instance for each file and decodes the file. If you want to take full advantage of multi-core devices, this is the approach you will want to take since it will parallelize the decoding
+This example shows how to decode multiple files using multiple instances of `FLACDecoderWebWorker`. This code iterates over an array of input files (Array of Uint8Arrays) and spawns a new `FLACDecoderWebWorker` instance for each file and decodes the file. If you want to take full advantage of multi-core devices, this is the approach you will want to take since it will parallelize the decoding
 
 For each input file, a new decoder is created, and the file is decoded using the `decode()` after  `decoder.ready` is resolved. The result of the `decode()` operation is returned, and a `finally()` function on the promise calls `decoder.free()` to free up the instance after the decode operations are completed.
 
@@ -259,7 +260,7 @@ It's important to note that there is only one `await` operation in this example.
   // loops through each Uint8Array in `inputFiles` and decodes the files in separate threads
   const decodePromise = Promise.all(
     inputFiles.map((file) => {
-      const decoder = new OggOpusDecoderWebWorker();
+      const decoder = new FLACDecoderWebWorker();
 
       return decoder.ready
         .then(() => decoder.decode(file)) // decode the input file
