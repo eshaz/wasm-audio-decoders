@@ -58,7 +58,7 @@ export default function WASMAudioDecoderCommon(caller) {
           channelData,
           samplesDecoded,
           sampleRate,
-          bitDepth
+          bitDepth,
         }),
       },
 

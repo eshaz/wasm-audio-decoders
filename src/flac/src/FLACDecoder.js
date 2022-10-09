@@ -179,7 +179,7 @@ class DecoderState {
         this._channelsDecoded,
         this._totalSamples,
         this._sampleRate,
-        this._bitDepth
+        this._bitDepth,
       ]);
   }
 
@@ -214,7 +214,9 @@ export default class FLACDecoder {
   constructor() {
     this._onCodec = (codec) => {
       if (codec !== "flac")
-        throw new Error("@wasm-audio-decoders/flac does not support this codec " + codec);
+        throw new Error(
+          "@wasm-audio-decoders/flac does not support this codec " + codec
+        );
     };
 
     // instantiate to create static properties

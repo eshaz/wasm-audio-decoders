@@ -145,7 +145,7 @@ export const testDecoder_decodeFrame = async (
     return {
       samplesDecoded,
       sampleRate,
-      bitDepth
+      bitDepth,
     };
   } finally {
     await output.close();
@@ -204,7 +204,7 @@ export const testDecoder_decodeFrames = async (
     return {
       samplesDecoded,
       sampleRate,
-      bitDepth
+      bitDepth,
     };
   } finally {
     await output.close();
@@ -258,7 +258,7 @@ export const testDecoder_decode = async (
         channelData,
         samplesDecoded,
         sampleRate: rate,
-        bitDepth: depth
+        bitDepth: depth,
       } = await decoder[method](buffer.subarray(0, bytesRead));
       decodeEnd = performance.now();
 
@@ -305,7 +305,7 @@ export const testDecoder_decode = async (
       channelsDecoded,
       samplesDecoded: totalSamplesDecoded,
       sampleRate,
-      bitDepth
+      bitDepth,
     };
   } finally {
     await input.close();
