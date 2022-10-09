@@ -14,7 +14,7 @@ import {
 import { MPEGDecoder, MPEGDecoderWebWorker } from "mpg123-decoder";
 import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
 import { OggOpusDecoder, OggOpusDecoderWebWorker } from "ogg-opus-decoder";
-import { FLACDecoder } from "@wasm-audio-decoders/flac";
+import { FLACDecoder, FLACDecoderWebWorker } from "@wasm-audio-decoders/flac";
 
 const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
@@ -1285,14 +1285,174 @@ describe("wasm-audio-decoders", () => {
       );
     });
 
-    describe("decodeFrame", () => {
-      it("should decode flac frames", async () => {
-        const { paths, result } = await test_decodeFrame(
-          new FLACDecoder(),
-          "should decode flac frames",
-          flacStereoTestFile,
-          flacStereoFrames,
-          flacStereoFramesLength
+    it("should have name as an instance and static property for FLACDecoder", () => {
+      const decoder = new FLACDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("FLACDecoder");
+      expect(FLACDecoder.name).toEqual("FLACDecoder");
+    });
+
+    it("should have name as an instance and static property for FLACDecoderWebWorker", () => {
+      const decoder = new FLACDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("FLACDecoderWebWorker");
+      expect(FLACDecoderWebWorker.name).toEqual("FLACDecoderWebWorker");
+    });
+
+    it("should decode flac", async () => {
+      const { paths, result } = await test_decode(
+        new FLACDecoder(),
+        "decodeFile",
+        "should decode flac",
+        flacStereoTestFile,
+        flacStereoTestFile,
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+      expect(result.sampleRate).toEqual(44100);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    it("should decode flac in a web worker", async () => {
+      const { paths, result } = await test_decode(
+        new FLACDecoderWebWorker(),
+        "decodeFile",
+        "should decode flac in a web worker",
+        flacStereoTestFile,
+        flacStereoTestFile,
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+      expect(result.sampleRate).toEqual(44100);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+/*
+    it("should decode multi channel ogg opus", async () => {
+      const { paths, result } = await test_decode(
+        new OggOpusDecoder(),
+        "decodeFile",
+        "should decode multi channel ogg opus",
+        opusSurroundTestFile
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.channelsDecoded).toEqual(6);
+      expect(result.samplesDecoded).toEqual(1042248);
+      expect(result.sampleRate).toEqual(48000);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    it("should decode multi channel ogg opus as stereo when force stereo is enabled", async () => {
+      const { paths, result } = await test_decode(
+        new OggOpusDecoder({
+          forceStereo: true,
+        }),
+        "decodeFile",
+        "should decode multi channel ogg opus",
+        opusSurroundTestFile,
+        opusSurroundTestFile + ".downmix"
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.channelsDecoded).toEqual(2);
+      expect(result.samplesDecoded).toEqual(1042248);
+      expect(result.sampleRate).toEqual(48000);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    it("should decode ogg opus in a web worker", async () => {
+      const { paths, result } = await test_decode(
+        new OggOpusDecoderWebWorker(),
+        "decodeFile",
+        "should decode ogg opus in a web worker",
+        opusStereoTestFile
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.samplesDecoded).toEqual(3807048);
+      expect(result.sampleRate).toEqual(48000);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    it("should decode multi channel ogg opus in a web worker", async () => {
+      const { paths, result } = await test_decode(
+        new OggOpusDecoderWebWorker(),
+        "decodeFile",
+        "should decode multi channel ogg opus in a web worker",
+        opusSurroundTestFile
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.channelsDecoded).toEqual(6);
+      expect(result.samplesDecoded).toEqual(1042248);
+      expect(result.sampleRate).toEqual(48000);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    it("should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker", async () => {
+      const { paths, result } = await test_decode(
+        new OggOpusDecoderWebWorker({
+          forceStereo: true,
+        }),
+        "decodeFile",
+        "should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker",
+        opusSurroundTestFile,
+        opusSurroundTestFile + ".downmix"
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.channelsDecoded).toEqual(2);
+      expect(result.samplesDecoded).toEqual(1042248);
+      expect(result.sampleRate).toEqual(48000);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    describe("File decoding", () => {
+      it("should decode opus frames if they are only returned on flush() 1", async () => {
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder(),
+          "decodeFile",
+          "should decode opus frames if they are only returned on flush() 1",
+          "ogg.opus.flush.1.opus"
         );
 
         const [actual, expected] = await Promise.all([
@@ -1300,10 +1460,46 @@ describe("wasm-audio-decoders", () => {
           fs.readFile(paths.expectedPath),
         ]);
 
-        expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
-        expect(result.sampleRate).toEqual(44100);
+        expect(result.samplesDecoded).toEqual(11208); // 11520 without preskip
+        expect(result.sampleRate).toEqual(48000);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
-    });
+
+      it("should decode opus frames if they are only returned on flush() 2", async () => {
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder(),
+          "decodeFile",
+          "should decode opus frames if they are only returned on flush() 2",
+          "ogg.opus.flush.2.opus"
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3528); // 3840 without preskip
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode opus frames if they are only returned on flush() 3", async () => {
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder(),
+          "decodeFile",
+          "should decode opus frames if they are only returned on flush() 3",
+          "ogg.opus.flush.3.opus"
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3528); // 3840 without preskip
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });*/
   });
 });

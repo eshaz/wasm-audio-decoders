@@ -1,5 +1,4 @@
 #include "flac_decoder.h"
-// #include <stdio.h>
 
 #define MIN(a, b) a < b ? a : b;
 
@@ -111,11 +110,18 @@ FLACDecoder *create_decoder(
     decoder.bits_per_sample = bits_per_sample;
     decoder.samples_decoded = samples_decoded;
 
+    *decoder.channels = 0;
+    *decoder.sample_rate = 0;
+    *decoder.bits_per_sample = 0;
+    *decoder.samples_decoded = 0;
+
     decoder.input_buffers_total_len = 0;
     decoder.input_buffers_len = 0;
 
     decoder.out_ptr = out_ptr;
     decoder.out_len = out_len;
+
+    *decoder.out_len = 0;
 
     FLAC__stream_decoder_set_md5_checking(decoder.fl, false);
     FLAC__stream_decoder_set_metadata_ignore_all(decoder.fl);
@@ -146,7 +152,7 @@ void destroy_decoder(FLACDecoder *decoder) {
     free(decoder);
 }
 
-int decode(
+int decode_frame(
     FLACDecoder *decoder,
     unsigned char *in,
     int in_len
@@ -162,7 +168,8 @@ int decode(
     int error = FLAC__stream_decoder_process_single(decoder->fl);
 
     if (!error) {
-        return FLAC__stream_decoder_get_state(decoder->fl) + 1;
+        error = FLAC__stream_decoder_get_state(decoder->fl) + 1;
+        return error;
     } else {
         return 0;
     }

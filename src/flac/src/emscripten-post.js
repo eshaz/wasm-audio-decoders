@@ -6,5 +6,5 @@ this.ready = new Promise((resolve) => {
   this._free = _free;
   this._create_decoder = _create_decoder;
   this._destroy_decoder = _destroy_decoder;
-  this._decode = _decode;
+  this._decode_frame = _decode_frame;
 });

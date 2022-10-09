@@ -171,7 +171,7 @@ define FLAC_EMCC_OPTS
     '_free', '_malloc' \
   , '_create_decoder' \
   , '_destroy_decoder' \
-  , '_decode' \
+  , '_decode_frame' \
 ]" \
 --pre-js '$(FLAC_DECODER_PATH)src/emscripten-pre.js' \
 --post-js '$(FLAC_DECODER_PATH)src/emscripten-post.js' \
