@@ -54,22 +54,23 @@ export default function WASMAudioDecoderCommon(caller) {
       },
 
       getDecodedAudio: {
-        value: (channelData, samplesDecoded, sampleRate) => ({
+        value: (channelData, samplesDecoded, sampleRate, bitDepth) => ({
           channelData,
           samplesDecoded,
           sampleRate,
+          bitDepth
         }),
       },
 
       getDecodedAudioMultiChannel: {
-        value(input, channelsDecoded, samplesDecoded, sampleRate) {
+        value(input, channelsDecoded, samplesDecoded, sampleRate, bitDepth) {
           let channelData = [],
             i,
             j;
 
           for (i = 0; i < channelsDecoded; i++) {
             const channel = [];
-            for (j = 0; j < input.length; ) channel.push(input[j++][i]);
+            for (j = 0; j < input.length; ) channel.push(input[j++][i] || []);
             channelData.push(
               WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded)
             );
@@ -78,7 +79,8 @@ export default function WASMAudioDecoderCommon(caller) {
           return WASMAudioDecoderCommon.getDecodedAudio(
             channelData,
             samplesDecoded,
-            sampleRate
+            sampleRate,
+            bitDepth
           );
         },
       },
@@ -198,9 +200,9 @@ export default function WASMAudioDecoderCommon(caller) {
     return output;
   };
 
-  this.allocateTypedArray = (len, TypedArray) => {
+  this.allocateTypedArray = (len, TypedArray, setPointer = true) => {
     const ptr = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * len);
-    this._pointers.add(ptr);
+    if (setPointer) this._pointers.add(ptr);
 
     return {
       ptr: ptr,
@@ -209,7 +211,7 @@ export default function WASMAudioDecoderCommon(caller) {
     };
   };
 
-  this.free = () => {
+  this.free = (ptr) => {
     this._pointers.forEach((ptr) => {
       this._wasm._free(ptr);
     });
@@ -229,13 +231,15 @@ export default function WASMAudioDecoderCommon(caller) {
     this._pointers = new Set();
 
     return this._wasm.ready.then(() => {
-      caller._input = this.allocateTypedArray(_inputSize, uint8Array);
+      if (_inputSize)
+        caller._input = this.allocateTypedArray(_inputSize, uint8Array);
 
       // output buffer
-      caller._output = this.allocateTypedArray(
-        _outputChannels * _outputChannelSize,
-        float32Array
-      );
+      if (_outputChannelSize)
+        caller._output = this.allocateTypedArray(
+          _outputChannels * _outputChannelSize,
+          float32Array
+        );
 
       return this;
     });
