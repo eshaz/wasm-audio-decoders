@@ -64,22 +64,23 @@
         },
 
         getDecodedAudio: {
-          value: (channelData, samplesDecoded, sampleRate) => ({
+          value: (channelData, samplesDecoded, sampleRate, bitDepth) => ({
             channelData,
             samplesDecoded,
             sampleRate,
+            bitDepth
           }),
         },
 
         getDecodedAudioMultiChannel: {
-          value(input, channelsDecoded, samplesDecoded, sampleRate) {
+          value(input, channelsDecoded, samplesDecoded, sampleRate, bitDepth) {
             let channelData = [],
               i,
               j;
 
             for (i = 0; i < channelsDecoded; i++) {
               const channel = [];
-              for (j = 0; j < input.length; ) channel.push(input[j++][i]);
+              for (j = 0; j < input.length; ) channel.push(input[j++][i] || []);
               channelData.push(
                 WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded)
               );
@@ -88,7 +89,8 @@
             return WASMAudioDecoderCommon.getDecodedAudio(
               channelData,
               samplesDecoded,
-              sampleRate
+              sampleRate,
+              bitDepth
             );
           },
         },
@@ -208,9 +210,9 @@
       return output;
     };
 
-    this.allocateTypedArray = (len, TypedArray) => {
+    this.allocateTypedArray = (len, TypedArray, setPointer = true) => {
       const ptr = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * len);
-      this._pointers.add(ptr);
+      if (setPointer) this._pointers.add(ptr);
 
       return {
         ptr: ptr,
@@ -219,7 +221,7 @@
       };
     };
 
-    this.free = () => {
+    this.free = (ptr) => {
       this._pointers.forEach((ptr) => {
         this._wasm._free(ptr);
       });
@@ -239,13 +241,15 @@
       this._pointers = new Set();
 
       return this._wasm.ready.then(() => {
-        caller._input = this.allocateTypedArray(_inputSize, uint8Array);
+        if (_inputSize)
+          caller._input = this.allocateTypedArray(_inputSize, uint8Array);
 
         // output buffer
-        caller._output = this.allocateTypedArray(
-          _outputChannels * _outputChannelSize,
-          float32Array
-        );
+        if (_outputChannelSize)
+          caller._output = this.allocateTypedArray(
+            _outputChannels * _outputChannelSize,
+            float32Array
+          );
 
         return this;
       });
@@ -438,7 +442,7 @@ hZ1O×óïzü?<gàBÖØxTó¥öAr^	GÛn¦É2iû6jÚ|CYkºßþ
 ¤[dYj¡a« ?ì&Ù
 thI¾wÚMû
 q2Õbö¡£+'BÅûÌ7¾õòú}·I/	i¡;L¿¦8/'.v~XÈ¾³ÛDkÇþ¬ÏgqBë?;N®ü@bSb%'8~	æOÓBP)±¥Y.Ä:2½(ÑÙðWîÁVÖJlêPì0fªðñíY»ÜLkäåvx.ýç¢ÑgÚnT9"ÛÚ£8ÖÉòwvVûàNGï£9ì?ÅgÇü0zOºQûú _­<ÉMñ$úåRâG$T'= Ì¸vsöò"5ù¯á@r°W³(ÍÛ®ú½4OÚ¯lAÍZÍ
-ï¾çU^ö±¢½ ÃÁF¨·á«w&?«gñTËyêqThMÍ®uhæí¡=Má	è¶6[¼EÑVßYG*µ= *ÿÁ~èÕ­ÎX½(»6Éá3KÚ¨º\uØx¡C­[A¸{ª¢¥Å·¤¡Ê¦L$4ráVE®Ò·ÜOoØOIBiþðÞ$³±ÛóÊr¦c¾gÙ¿ÁJìV¸â-Öj)·,<¥îÖ¥ÿ:Y08å¼ÕOó*Iÿ@Uêiý?{½ä÷ÆöNìÈÊã$)S8«NÄýõÎí>ÁÆÛ©nì¼)ºÂÔC)ER!ôý&û*ÀAj,ÃÒFCE*þ¼Ey©ÏqÞÜ=M9åRfÐÊèrÐZ?èTnçGßyQ{´CtG2«vy,LcE iíV÷¸?pVDÛPæeãÍÌTcÝ~Óµp=MýiçÞ+llJS<ÇÊP-É\MíÂTÅßùD$·ÑÛ÷î)þWâàSõoÙä=}Ý¨àdgÿh%JFV6I®N2Eø+åäê¶ÓÌà öTÃO©á%u|ÿ)íÑrþïÛhÏ¾È2ùÇ¾ø^IÂm*Â",<q±ì$£ånMIuoæ!coÂèåEáòWnk¼1Ã'ºÍz=}Oj|Q¡öÆ©4\=}(­ý&|ãÍ= j´å4\ÏBS¢LC,qÅ¦¬UïÎÝ·5ÂÆtÛ	ïÖLZÞón*ÿ}GêKO RWF¶zÖNÙú7Ô@ýVñ'ø²ôÕd0Çä¥AËæõ)zl@;¥ñý1>¦vCRh
+ï¾çU^ö±¢½ ÃÁF¨·á«w&?«gñTËyêqThMÍ®uhæí¡=Má	è¶6[¼EÑVßYG*µ= *ÿÁ~èÕ­ÎX½(»6Éá3KÚ¨º=uØx¡C­[A¸{ª¢¥Å·¤¡Ê¦L$4ráVE®Ò·ÜOoØOIBiþðÞ$³±ÛóÊr¦c¾gÙ¿ÁJìV¸â-Öj)·,<¥îÖ¥ÿ:Y08å¼ÕOó*Iÿ@Uêiý?{½ä÷ÆöNìÈÊã$)S8«NÄýõÎí>ÁÆÛ©nì¼)ºÂÔC)ER!ôý&û*ÀAj,ÃÒFCE*þ¼Ey©ÏqÞÜ=M9åRfÐÊèrÐZ?èTnçGßyQ{´CtG2«vy,LcE iíV÷¸?pVDÛPæeãÍÌTcÝ~Óµp=MýiçÞ+llJS<ÇÊP-É\MíÂTÅßùD$·ÑÛ÷î)þWâàSõoÙä=}Ý¨àdgÿh%JFV6I®N2Eø+åäê¶ÓÌà öTÃO©á%u|ÿ)íÑrþïÛhÏ¾È2ùÇ¾ø^IÂm*Â",<q±ì$£ånMIuoæ!coÂèåEáòWnk¼1Ã'ºÍz=}Oj|Q¡öÆ©4\=}(­ý&|ãÍ= j´å4\ÏBS¢LC,qÅ¦¬UïÎÝ·5ÂÆtÛ	ïÖLZÞón*ÿ}GêKO RWF¶zÖNÙú7Ô@ýVñ'ø²ôÕd0Çä¥AËæõ)zl@;¥ñý1>¦vCRh
 ´JõOS  {-èäOAÁ5Àë;¼jî[_5 À!B-	ZùU_F£$l²ÏcFsáMZmþq*Ùà}³ÒÒ<ÇÜy³åÜÉ ¬»ÖP-ã±¥}"²Ç£o('ö¨~Yiô|u$»qÂÜÐ¨Cd¦jÃ/Ñý >È³Û*4¦ZBjba'?äzåõÖ¬ÏÜ¿°+ÑQ{¹¥Odl°h P_$PóÈÜiÐ½Ìª _ù«SnM9Çod¹ós»<ã±T«¢ e[ÇÇú¡ø@#H÷ðÛAæ@xZ	óãÆN°]
 î!Ï7Ì[æ^§[[ÆÊòU]ûïëKç§£ºÎ8Ì#ÄýØ/B%<eëÈ×XÍ+i#£Å§-Æ=}È"·láÛ]¤q4E©þÍ«yx[gÄ5=M×EûwýÕÕÏS 9#,ÞÃ¢mÍª,ùíò×n9ó¯¬=M/ %oÝ\Î±zäZæ»÷È%Z¨.%9/Q!á[ïÇ¦ùmHN<M£Kñ(j£ áOWÉKs§ÔâW}ÅÆÕÒFq5U2½q¿èãÀûçÛ¬­©\,í­Æ;5#!Ö©i¨³O
 9ØâÕ¾@»Wj÷6Ö)*c#ØQÁÅØZæ¶rÙ±â?V cOó}¼öÄ<	2¬<x_¦KÁv¬ºMéÓªÒn_Aô9òÈqøl¥u£ÁõåcoB¯<bçç©oq[¹D÷	@ 4µDððC6ASk·^µzK·ðªXèÊ«¸UAsÉÌjtì$·Ø0R\³9jf;| Vý
@@ -558,7 +562,7 @@ n»þJ8M_#S>.B 7}©íFWinSÖàìÔ6i
 !{¸«C6= W@Î/[(BòÜ+DpMº0"Uz÷Éï©©©©îÁkÔ¿÷fñÀ.ã:ÔSÂÇÍ7µ¬ø^ðÚ=}=Máêsì'd>]\*zÇñÑ¶,:z)ñ¸,ü= 
 ®N³¾Hv[vCÈ§©T}?&ÀK¶	_¦ÎÄÙ:ß#½K¨ÉÜà>$¨×êHÅ NfjëÙÚD 2YüxÈ~i¦¤¯[TÜXýÝæsG5"ÊÕcÛÉÖðeÀ}®pËDpKòpKpKpKPr$æCJD1yàÏ°x
 ¦JÒÏ¶q,¥×ç´f =M %wÏ È%èóñ86Tè"ö±¨-Y©;Æîaö³ íY§+FêA¶½÷¸¹çÝ¸Á]8·ß½8¿ÿ=}8»ïý8Ã}ø¶Ûí,n%"n)bn'Bn+n&2n*rn(Rn,Î%Î)XÎ'8Î+xÎ&(Î*hÎ(HÎ,N% N)= N'@N+N&0N*pN(PN,%)\'<+|&,*l(L,%$)d'D+&4*t(æ8a4áõ§è-[¡ûÆÁõ¦àí[ëF7¶#'Ý¶"¡G]¶$½6!?=}6#/ý6"£O}6$-«iÙ¡	EÊÜÒg(n10ê8¡,ÈÊøa)þ® a°üä-3û×ZÈ8ù7.fÅ^ám=MGáÎ3</°pä(h	Èú|®Ç.þã1Ò= sc+n±w{N33{= þa¬/°d ZÿRðÿ¼,nhzÀR_dëPK[Ò r°v.ÝdÛÕÇ÷RÈcPx2&uAÙü»ÐÐÚ¢>ÿÞèèoÇj-:k±Ê|?Òä¤WÑSåäÚÀfø>ó= ñ6¿®é= 7ë»
-Gþ%æ8A/úk¿PË®]Gè;rG*4AùÓ¹¦Èí\ÁkÈ(¢aû¸ÈoYAËÊHbbàÈÉY#b	Hrf!Ëò~äSKT O|õ³.XÒ9í$cxR¹ü1wAh1HdçXNÿÎôâ¬?÷Êó;kÀi*oDjXNÞäL}ËÒs>lP4s´%VXG=Mé»ä]{¾®ÒÀ@|ú'ó*vGà;_®¹äúNTGV¡%2Üs£+mR\\3ÎV(ò4?ÓPH|±p"àòÌÐbéûM3·_fÝ{2×åÓÔ= vd×­:D Ú $¸mdÐHøä'"ÊêyT.ïF2ñÌâJ.ïlñÿ«o~iKBCìLZaQKZò	äÀõI¸=}Éï2Õµ©¥á³ßUÖõïk4µÅÓ¸=}ö5VÕaõ5±V@øe=M\U=}úænÚxÝ«gÏ«(Huúe%Ö§úÅ'vx®á&%v½L= V&Ølç/[ éÀ6°=}µ¾ÆnÖCL»ÞV2WÍwxªA¯wçÊ)Ç¢M¯ÉójIH0¿0ï7FV§'@ª»dHüsa~|î0ËÅËmuøèð-Kp	E;²MVeþ±µCFB¸¿4Ï×ì¶[®(´Ï0xèð£Wì£[BCÍY¢NØNä O¯ÒÖ/VÝQæX°"pµ.ÐwyFuØ4®>êµ!fÖ­aXiInè½Ø/ þ£ò«¥Hö®ßÆ©OoÅ"v{¸UîÚV©´¢6¡!À÷ã±3¥P¹×NuÓemæþýx|ë=}Á[[K%o0t±êüÝô'ö±($ÏáÈÈÕÑH5q1¢Ãº¬O,¥ õ!ÀÇ|T­O::¥_bztqjCÅjÅ5¼!Âx8ðô}ÔÕåÎµ>V5ãV %ïÙÑ£Y{ÕÔ®âµ2¶ÅÅ5¡ä«gôÁý;¡J±WêÎYÒP*5,êµ+ÿ%Ã¯e«uïÖ¡LuÿØ¨e³ã%cNÕ}|/uØ'Ì9Æµôt©	ÅYðv¥à÷ÕÙÞÂÖëLé+¡XUá-¥= µ²/Ó+ª¥¥äT;IýÆ]I*µærszY1 ¥WÅºýzüÝÿÊ¦§Í×=M÷¸+ÝPÐ§GM¶ª\¦kÑ·ïÜ=}Û·}ÀÚ9[l(6ø®6» &'ÇiÉÆAò= Î\­æ)v¤ç+cÿ_'©+é£ûþ+FªÒ÷À.Ö²¸8òùg;ÿ.Åÿ$!Ã=M¶Èmýzg©Î®¼|´*è,04×íA5à¬½¼¬ªy)2ç_]å¯?ûÀþ^ú:cêºJÃìf÷_eRßÔ¿c.Ö00)#ýC»¬@i9núÊ2gñXT.9¦sl¹ XÏ Oíß¼Pîâãïgh¦ë
+Gþ%æ8A/úk¿PË®]Gè;rG*4AùÓ¹¦Èí\ÁkÈ(¢aû¸ÈoYAËÊHbbàÈÉY#b	Hrf!Ëò~äSKT O|õ³.XÒ9í$cxR¹ü1wAh1HdçXNÿÎôâ¬?÷Êó;kÀi*oDjXNÞäL}ËÒs>lP4s´%VXG=Mé»ä]{¾®ÒÀ@|ú'ó*vGà;_®¹äúNTGV¡%2Üs£+mR\\3ÎV(ò4?ÓPH|±p"àòÌÐbéûM3·_fÝ{2×åÓÔ= vd×­:D Ú $¸mdÐHøä'"ÊêyT.ïF2ñÌâJ.ïlñÿ«o~iKBCìLZaQKZò	äÀõI¸=}Éï2Õµ©¥á³ßUÖõïk4µÅÓ¸=}ö5VÕaõ5±V@øe=M=U=}úænÚxÝ«gÏ«(Huúe%Ö§úÅ'vx®á&%v½L= V&Ølç/[ éÀ6°=}µ¾ÆnÖCL»ÞV2WÍwxªA¯wçÊ)Ç¢M¯ÉójIH0¿0ï7FV§'@ª»dHüsa~|î0ËÅËmuøèð-Kp	E;²MVeþ±µCFB¸¿4Ï×ì¶[®(´Ï0xèð£Wì£[BCÍY¢NØNä O¯ÒÖ/VÝQæX°"pµ.ÐwyFuØ4®>êµ!fÖ­aXiInè½Ø/ þ£ò«¥Hö®ßÆ©OoÅ"v{¸UîÚV©´¢6¡!À÷ã±3¥P¹×NuÓemæþýx|ë=}Á[[K%o0t±êüÝô'ö±($ÏáÈÈÕÑH5q1¢Ãº¬O,¥ õ!ÀÇ|T­O::¥_bztqjCÅjÅ5¼!Âx8ðô}ÔÕåÎµ>V5ãV %ïÙÑ£Y{ÕÔ®âµ2¶ÅÅ5¡ä«gôÁý;¡J±WêÎYÒP*5,êµ+ÿ%Ã¯e«uïÖ¡LuÿØ¨e³ã%cNÕ}|/uØ'Ì9Æµôt©	ÅYðv¥à÷ÕÙÞÂÖëLé+¡XUá-¥= µ²/Ó+ª¥¥äT;IýÆ]I*µærszY1 ¥WÅºýzüÝÿÊ¦§Í×=M÷¸+ÝPÐ§GM¶ª\¦kÑ·ïÜ=}Û·}ÀÚ9[l(6ø®6» &'ÇiÉÆAò= Î\­æ)v¤ç+cÿ_'©+é£ûþ+FªÒ÷À.Ö²¸8òùg;ÿ.Åÿ$!Ã=M¶Èmýzg©Î®¼|´*è,04×íA5à¬½¼¬ªy)2ç_]å¯?ûÀþ^ú:cêºJÃìf÷_eRßÔ¿c.Ö00)#ýC»¬@i9núÊ2gñXT.9¦sl¹ XÏ Oíß¼Pîâãïgh¦ë
 ë'og/®b´úâ(Pm2DpüÇ~2ÈK©Ð!2I¾hs%r3C~wµ±=MµB°ÝmÍ®iÀ2Îc7ªü[å¬ÿz]&±ÞÂ
 :Ói"p»+¬ïXoHïû/)rsè}ÕR}{èóNs§ìØ/Ì®Ô¯bäátyÔíPKvÕöÃõÎ¨=}MY»¨	áÅ¨äLë#
 ì©MZå½Ìþ0ªWâ=M	[®Vjï+vîÈm°¢Þ]$ãä¶·ðÃÕ¤ös±	OE³øQ$·møÑ
@@ -4086,7 +4090,7 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
 
     async flush() {
       return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        ...(await this._flush(oggOpusData, new DecoderState(this)))
+        ...(await this._flush(new DecoderState(this)))
       );
     }
   }

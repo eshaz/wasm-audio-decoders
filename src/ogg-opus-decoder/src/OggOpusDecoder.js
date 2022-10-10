@@ -133,7 +133,7 @@ export default class OggOpusDecoder {
 
   async flush() {
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._flush(oggOpusData, new DecoderState(this)))
+      ...(await this._flush(new DecoderState(this)))
     );
   }
 }

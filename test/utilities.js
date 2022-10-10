@@ -93,7 +93,8 @@ export const testDecoder_decodeFrame = async (
 
     let channelData = [],
       samplesDecoded = 0,
-      sampleRate = 0;
+      sampleRate = 0,
+      bitDepth;
 
     for await (const frame of frames) {
       const decodeResult = await decoder.decodeFrame(frame);
@@ -101,6 +102,7 @@ export const testDecoder_decodeFrame = async (
       decodeResults.push(decodeResult.channelData);
       samplesDecoded += decodeResult.samplesDecoded;
       sampleRate = decodeResult.sampleRate;
+      bitDepth = decodeResult.bitDepth;
     }
     const decodeEnd = performance.now();
 
@@ -143,6 +145,7 @@ export const testDecoder_decodeFrame = async (
     return {
       samplesDecoded,
       sampleRate,
+      bitDepth,
     };
   } finally {
     await output.close();
@@ -167,7 +170,7 @@ export const testDecoder_decodeFrames = async (
     );
 
     const decodeStart = performance.now();
-    const { channelData, samplesDecoded, sampleRate } =
+    const { channelData, samplesDecoded, sampleRate, bitDepth } =
       await decoder.decodeFrames(frames);
     const decodeEnd = performance.now();
 
@@ -201,6 +204,7 @@ export const testDecoder_decodeFrames = async (
     return {
       samplesDecoded,
       sampleRate,
+      bitDepth,
     };
   } finally {
     await output.close();
@@ -227,6 +231,7 @@ export const testDecoder_decode = async (
       totalBytesRead = 0,
       sampleRate,
       channelsDecoded,
+      bitDepth,
       totalSamplesDecoded = 0;
 
     // allocate space for the wave header
@@ -253,6 +258,7 @@ export const testDecoder_decode = async (
         channelData,
         samplesDecoded,
         sampleRate: rate,
+        bitDepth: depth,
       } = await decoder[method](buffer.subarray(0, bytesRead));
       decodeEnd = performance.now();
 
@@ -263,6 +269,7 @@ export const testDecoder_decode = async (
       outEnd = performance.now();
 
       sampleRate = rate;
+      bitDepth = depth;
       channelsDecoded = channelData.length;
       bytesWritten = interleaved.length;
       totalBytesWritten += bytesWritten;
@@ -298,6 +305,7 @@ export const testDecoder_decode = async (
       channelsDecoded,
       samplesDecoded: totalSamplesDecoded,
       sampleRate,
+      bitDepth,
     };
   } finally {
     await input.close();

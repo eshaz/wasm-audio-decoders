@@ -14,6 +14,7 @@ import {
 import { MPEGDecoder, MPEGDecoderWebWorker } from "mpg123-decoder";
 import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
 import { OggOpusDecoder, OggOpusDecoderWebWorker } from "ogg-opus-decoder";
+import { FLACDecoder, FLACDecoderWebWorker } from "@wasm-audio-decoders/flac";
 
 const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
@@ -200,6 +201,9 @@ const decompressExpectedFiles = async () => {
 };
 
 describe("wasm-audio-decoders", () => {
+  const flacStereoTestFile = "flac.flac";
+  const flacMultichannelTestFile = "flac.8.flac";
+  const flac96000kTestFile = "flac.96000.flac";
   const opusStereoTestFile = "ogg.opus";
   const opusSurroundTestFile = "ogg.opus.surround";
   const opus32TestFile = "ogg.opus.32.ogg";
@@ -1253,6 +1257,218 @@ describe("wasm-audio-decoders", () => {
 
         expect(result.samplesDecoded).toEqual(3528); // 3840 without preskip
         expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+  });
+
+  describe("flac-decoder", () => {
+    let flacStereoFrames, flacStereoFramesLength;
+
+    const getFrames = (codecFrames) => {
+      let length = 0,
+        frames;
+
+      frames = codecFrames.map((codecFrame) => {
+        length += codecFrame.data.length;
+        return codecFrame.data;
+      });
+
+      return [frames, length];
+    };
+
+    beforeAll(async () => {
+      const parser = new CodecParser("audio/flac");
+
+      [flacStereoFrames, flacStereoFramesLength] = getFrames(
+        parser.parseAll(
+          await fs.readFile(getTestPaths(flacStereoTestFile).inputPath)
+        )
+      );
+    });
+
+    it("should have name as an instance and static property for FLACDecoder", () => {
+      const decoder = new FLACDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("FLACDecoder");
+      expect(FLACDecoder.name).toEqual("FLACDecoder");
+    });
+
+    it("should have name as an instance and static property for FLACDecoderWebWorker", () => {
+      const decoder = new FLACDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("FLACDecoderWebWorker");
+      expect(FLACDecoderWebWorker.name).toEqual("FLACDecoderWebWorker");
+    });
+
+    describe("main thread", () => {
+      it("should decode flac", async () => {
+        const { paths, result } = await test_decode(
+          new FLACDecoder(),
+          "decodeFile",
+          "should decode flac",
+          flacStereoTestFile,
+          flacStereoTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode flac frames", async () => {
+        const { paths, result } = await test_decodeFrames(
+          new FLACDecoder(),
+          "should decode flac frames",
+          flacStereoTestFile,
+          flacStereoFrames,
+          flacStereoFramesLength
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode multichannel flac", async () => {
+        // ffmpeg -i flac.short.wav -filter_complex "[0:a][0:a][0:a][0:a][0:a][0:a][0:a][0:a]join=inputs=8:channel_layout=7.1[a]" -map "[a]" flac.8.flac
+        const { paths, result } = await test_decode(
+          new FLACDecoder(),
+          "decodeFile",
+          "should decode multichannel flac",
+          flacMultichannelTestFile,
+          flacMultichannelTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.channelsDecoded).toEqual(8);
+        expect(result.samplesDecoded).toEqual(106380); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(24);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode high sample rate flac", async () => {
+        const { paths, result } = await test_decode(
+          new FLACDecoder(),
+          "decode",
+          "should decode high sample rate flac",
+          flac96000kTestFile,
+          flac96000kTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.channelsDecoded).toEqual(2);
+        expect(result.samplesDecoded).toEqual(5758976); //3807154, 204
+        expect(result.sampleRate).toEqual(96000);
+        expect(result.bitDepth).toEqual(24);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+
+    describe("web worker", () => {
+      it("should decode flac in a web worker", async () => {
+        const { paths, result } = await test_decode(
+          new FLACDecoderWebWorker(),
+          "decodeFile",
+          "should decode flac in a web worker",
+          flacStereoTestFile,
+          flacStereoTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode flac frames in a web worker", async () => {
+        const { paths, result } = await test_decodeFrames(
+          new FLACDecoderWebWorker(),
+          "should decode flac frames in a web worker",
+          flacStereoTestFile,
+          flacStereoFrames,
+          flacStereoFramesLength
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode multichannel flac in a web worker", async () => {
+        const { paths, result } = await test_decode(
+          new FLACDecoderWebWorker(),
+          "decodeFile",
+          "should decode multichannel flac in a web worker",
+          flacMultichannelTestFile,
+          flacMultichannelTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.channelsDecoded).toEqual(8);
+        expect(result.samplesDecoded).toEqual(106380); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(24);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode high sample rate flac in a web worker", async () => {
+        const { paths, result } = await test_decode(
+          new FLACDecoderWebWorker(),
+          "decode",
+          "should decode high sample rate flac in a web worker",
+          flac96000kTestFile,
+          flac96000kTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.channelsDecoded).toEqual(2);
+        expect(result.samplesDecoded).toEqual(5758976); //3807154, 204
+        expect(result.sampleRate).toEqual(96000);
+        expect(result.bitDepth).toEqual(24);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     });

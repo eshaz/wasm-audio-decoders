@@ -64,22 +64,23 @@
         },
 
         getDecodedAudio: {
-          value: (channelData, samplesDecoded, sampleRate) => ({
+          value: (channelData, samplesDecoded, sampleRate, bitDepth) => ({
             channelData,
             samplesDecoded,
             sampleRate,
+            bitDepth
           }),
         },
 
         getDecodedAudioMultiChannel: {
-          value(input, channelsDecoded, samplesDecoded, sampleRate) {
+          value(input, channelsDecoded, samplesDecoded, sampleRate, bitDepth) {
             let channelData = [],
               i,
               j;
 
             for (i = 0; i < channelsDecoded; i++) {
               const channel = [];
-              for (j = 0; j < input.length; ) channel.push(input[j++][i]);
+              for (j = 0; j < input.length; ) channel.push(input[j++][i] || []);
               channelData.push(
                 WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded)
               );
@@ -88,7 +89,8 @@
             return WASMAudioDecoderCommon.getDecodedAudio(
               channelData,
               samplesDecoded,
-              sampleRate
+              sampleRate,
+              bitDepth
             );
           },
         },
@@ -208,9 +210,9 @@
       return output;
     };
 
-    this.allocateTypedArray = (len, TypedArray) => {
+    this.allocateTypedArray = (len, TypedArray, setPointer = true) => {
       const ptr = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * len);
-      this._pointers.add(ptr);
+      if (setPointer) this._pointers.add(ptr);
 
       return {
         ptr: ptr,
@@ -219,7 +221,7 @@
       };
     };
 
-    this.free = () => {
+    this.free = (ptr) => {
       this._pointers.forEach((ptr) => {
         this._wasm._free(ptr);
       });
@@ -239,13 +241,15 @@
       this._pointers = new Set();
 
       return this._wasm.ready.then(() => {
-        caller._input = this.allocateTypedArray(_inputSize, uint8Array);
+        if (_inputSize)
+          caller._input = this.allocateTypedArray(_inputSize, uint8Array);
 
         // output buffer
-        caller._output = this.allocateTypedArray(
-          _outputChannels * _outputChannelSize,
-          float32Array
-        );
+        if (_outputChannelSize)
+          caller._output = this.allocateTypedArray(
+            _outputChannels * _outputChannelSize,
+            float32Array
+          );
 
         return this;
       });
@@ -476,7 +480,7 @@ $|aÅGcBm"x(øSírÐ+B4E[TýJÇiúcÄî|êÈ»®òãVÎy*êÃ�
 OXJ\ÿeêzõDAo#_xÉÜµ'wnI£V{°Q£iy­?²\ÖëÐUÅç2&n·f/ò]Fãç' Ð3ö¦ÜØRî.ßÖ'L¥ç J ÚÜñAÈÀÏ£ZToj¬Hu[ç*ÊÑÄq-îÔÒøð.Úc=})@Ï}^+õqS­=Mý8ÛÜì8o©þ¥
 ÕÊZ÷¥¡TvÆQ°8YqD0zy	Ó/=M= ¿ëÔÌ5J2}WRÑ´<Åùõu'=MlÈ*ön"8"ÇUÄfZß"ñ¡m:V~æºK2J[~R°.aJtáz*>À9®#C£j©ï¿1= &õ¥:÷gX7¬âWØ~Ñ[.xsÁ]$¶k·tÒLQ^Ä9 Ú¢¥¡é¤åØjQõh
 t ÏÐ*ºÚ¢ÓÃèÀ2éãÐÐôÞ|}H4QJÖ"=}ÿìíëÉ©ETm!*M{=}ë±Cð}ÆX
-{}*ôHHDÁEê*kï¿Á*2o½×n´gY.Õg½çO9\uÿ·Ñ´¼%ó¸·7û=}«ã_Û5ëðÍÜ¥Á¢ã+¸¼©eÁ´©Gvuç3çØ1ýæþg¨wÑ!àGõªU%ÙY]*¼ðÙ)ñ®n<ã9õ·ÇÚØz?!Üz!/óäà*NK5f= 8%Cü } r¼[Ü÷Ë=}:]MºØîrcN&(ö>x0éÝþ¶(¼eR{{x/ï :×ý»£W;¯¼Ô¡È/íÈ/ÍÈ/­S½ä/í&¾¶bUè§À÷¼RÎ/ïS²ös	NüÄHÎA	Ü	\ÈÌ+­\oA5ÄÙ^ñ>Õí(ÛÉkþbhpí¾KHg	äzFGÕï>jap§i¶
+{}*ôHHDÁEê*kï¿Á*2o½×n´gY.Õg½çO9=uÿ·Ñ´¼%ó¸·7û=}«ã_Û5ëðÍÜ¥Á¢ã+¸¼©eÁ´©Gvuç3çØ1ýæþg¨wÑ!àGõªU%ÙY]*¼ðÙ)ñ®n<ã9õ·ÇÚØz?!Üz!/óäà*NK5f= 8%Cü } r¼[Ü÷Ë=}:]MºØîrcN&(ö>x0éÝþ¶(¼eR{{x/ï :×ý»£W;¯¼Ô¡È/íÈ/ÍÈ/­S½ä/í&¾¶bUè§À÷¼RÎ/ïS²ös	NüÄHÎA	Ü	\ÈÌ+­\oA5ÄÙ^ñ>Õí(ÛÉkþbhpí¾KHg	äzFGÕï>jap§i¶
 L!úzt,i)oeÎªJý9QTáÏn:E"uT¯'1eu³!^vl¬Z!fb!ºH*Dë	¨~Çe$Q+9E÷cfBBF>ªh.g^ç­7¹Àº!®p5è'è,*WOÙiYLÉz
 Ã¾CìÂp_Î¯×{VæöÏq.÷<Æ%eÙä<ÏdÙÓ· Þ½Ëe·çðI=M«ÎbÈà*¿$2PPyþ×6æ+Î>#­ÇîÚC¬2ýÉàj.DXâú\©À·YZ|Ú7	NÃ%;ÌðDoéçªÒM}4X¨ÿ÷õ;¢¥Â=}®f¾mÊE£eÌî¹êdAtÝ.0O=}"R«¤õ ÑÉ­Yqád~+±ï;íu¤]Í26EäÍØÓ']]c-&¥3Ù»C8#í5QÆ¦¯RY=}úOm_ºj{ÇêS)Î!ý³üãËÈ¼cÜºfPeË	;°ûYhõ  1èÏ¨ é7ïLûÂ\]Ê3êW}Bóa3¦gdfÛZÁ¾d B8kàýî=}1ãQLê! HS\ÉôÜû'~MNw4×½)ê¦3ÙGõÔ,À´T½¹îØºÀ=}$¶HåeÀ5Ð´gä÷m;®sßt.äëQ~ju4DMñøÙûøì&2¯Ý;j>jxzgn]æåÂlF{ Ð\¾ÜÂeZfç_X¥÷URîûñ#U(eXOD7Ðr¸à¾­ ÈLM~ßKOé0\jTÝ:D×bÈ+!ìâV$|ÃºÙVEXlMcg,ðûý?àèðû}ÏMcçl9a:¼þÇø0%Ñ²¢w;ÄF³_¶Oßè9b?]ëè9>=}ß26½¥o[2»À)'Z]X{º{âL)¶Hqemûç·h¶[9«_j¼/ÍHÍ¹àvÛ¨·¨sVC|ÛF:fJrwLE|ò¥UËet:Ãfxc'O]Uó¤7k&öÙT>ÎÌ¨|ð4h/ÎàhN³MÃÞ^êÏçaX_óü ©îðW2/XÉåÐ>;b÷?i~KG}6&ÝG¯é!çÎ~¿hÀz»ý÷ÓMGrA9*·ÐÇXW^ßèÀ©jµ::31nDSéÓ«hÀ&AÙ|ÆÚR·¥à2 ðEÆl¸®ö*?õ*Ïk¸¾l¸Î²	¼Õ8p­=M gaa¯ m(È;3Eã,;@#Eß C¹72	î¼/)úB³àÙz¶ÛßÇZe?eÏªÔER³Ô?ûñ»¸Exv5íºA¹&BiT+>â@Óþð(ã4M³Ògpj¡ÆÌÏ7»éÚýI%ä:ñì¶½w6S[=MM\ÓÎéÅýx§ì rÀ4c,3q¸$ãå!GpË/ç¡ëÙ"W/åÀ-| ëJ£æPûÈ©v«9ÊÒÿ:0ð9p4
 »/V®È0uÅ÷Øy¡×Fÿ	8¼;ÓÎüAÒO9'²«hét¶òu2*Z\ÃÏhXâ·}±ª w°«iDg ñ= :ýÁßÂpüC¥VVôtDD7¸O)ks. ÝóYáÒ0

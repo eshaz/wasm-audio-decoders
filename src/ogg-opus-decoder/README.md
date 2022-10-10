@@ -1,7 +1,7 @@
 # `ogg-opus-decoder`
 
 `ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder.
-  * 104.2 KiB minified bundle size
+  * 104.4 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
@@ -125,7 +125,7 @@ const decoder = new OggOpusDecoder({ forceStereo: true });
 ### Methods
 
 * `decoder.decode(oggOpusData)` *async*
-  * `opusFrame` Uint8Array containing Ogg Opus data.
+  * `oggOpusData` Uint8Array containing Ogg Opus data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when streaming audio into the decoder.
 * `decoder.decodeFile(oggOpusData)` *async*

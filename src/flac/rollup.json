@@ -1,0 +1,10 @@
+{
+  "external": ["web-worker"],
+  "output": {
+    "format": "umd",
+    "name": "flac-decoder",
+    "globals": {
+      "web-worker": "Worker"
+    }
+  }
+}
