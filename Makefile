@@ -30,14 +30,13 @@ FLAC_EMSCRIPTEN_BUILD=$(FLAC_DECODER_PATH)src/EmscriptenWasm.tmp.js
 FLAC_DECODER_MODULE=$(FLAC_DECODER_PATH)dist/flac-decoder.js
 FLAC_DECODER_MODULE_MIN=$(FLAC_DECODER_PATH)dist/flac-decoder.min.js
 
-# Iterations, (single / double) 222 = 110314, (backtick) 222 = 109953
 flac-decoder: flac-wasmlib flac-decoder-minify $(FLAC_EMSCRIPTEN_BUILD)
 flac-decoder-minify: $(FLAC_EMSCRIPTEN_BUILD)
 	SOURCE_PATH=$(FLAC_DECODER_PATH) \
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(FLAC_DECODER_MODULE) \
 	MODULE_MIN=$(FLAC_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=1 \
+	COMPRESSION_ITERATIONS=85 \
 	npm run minify
 	cp $(FLAC_DECODER_MODULE) $(FLAC_DECODER_MODULE_MIN) $(FLAC_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
