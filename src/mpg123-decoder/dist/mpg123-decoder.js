@@ -68,7 +68,7 @@
             channelData,
             samplesDecoded,
             sampleRate,
-            bitDepth,
+            bitDepth
           }),
         },
 
