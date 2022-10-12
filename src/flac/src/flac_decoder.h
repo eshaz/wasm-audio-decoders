@@ -19,6 +19,10 @@ typedef struct {
     // output buffer
     unsigned int *out_len;
     float **out_ptr;
+    
+    // error information
+    char **error_string_ptr;
+    char **state_string_ptr;
 } FLACDecoder;
 
 FLAC__StreamDecoderReadStatus read_cb(const FLAC__StreamDecoder *fl, FLAC__byte buffer[], size_t *bytes, void *decoder_ptr);

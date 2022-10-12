@@ -3,29 +3,7 @@ import CodecParser from "codec-parser";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
-export function Decoder(options = {}) {
-  // static properties
-  if (!Decoder.errors) {
-    // prettier-ignore
-    Object.defineProperties(Decoder, {
-      errors: {
-        value: new Map([
-          [-1, "@wasm-audio-decoders/flac: Too many input buffers"],
-          [1,  "FLAC__STREAM_DECODER_SEARCH_FOR_METADATA: The decoder is ready to search for metadata."],
-          [2,  "FLAC__STREAM_DECODER_READ_METADATA: The decoder is ready to or is in the process of reading metadata."],
-          [3,  "FLAC__STREAM_DECODER_SEARCH_FOR_FRAME_SYNC: The decoder is ready to or is in the process of searching for the frame sync code."],
-          [4,  "FLAC__STREAM_DECODER_READ_FRAME: The decoder is ready to or is in the process of reading a frame."],
-          [5,  "FLAC__STREAM_DECODER_END_OF_STREAM: The decoder has reached the end of the stream."],
-          [6,  "FLAC__STREAM_DECODER_OGG_ERROR: An error occurred in the underlying Ogg layer."],
-          [7,  "FLAC__STREAM_DECODER_SEEK_ERROR: An error occurred while seeking. The decoder must be flushed with FLAC__stream_decoder_flush() or reset with FLAC__stream_decoder_reset() before decoding can continue."],
-          [8,  "FLAC__STREAM_DECODER_ABORTED: The decoder was aborted by the read or write callback."],
-          [9,  "FLAC__STREAM_DECODER_MEMORY_ALLOCATION_ERROR: An error occurred allocating memory. The decoder is in an invalid state and can no longer be used."],
-          [10, "FLAC__STREAM_DECODER_UNINITIALIZED: The decoder is in the uninitialized state; one of the FLAC__stream_decoder_init_*() functions must be called before samples can be processed."],
-        ]),
-      },
-    });
-  }
-
+export function Decoder() {
   // injects dependencies when running as a web worker
   // async
   this._init = () => {
@@ -41,13 +19,18 @@ export function Decoder(options = {}) {
         this._outputBufferPtr = this._common.allocateTypedArray(1, Uint32Array);
         this._outputBufferLen = this._common.allocateTypedArray(1, Uint32Array);
 
+        this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
+        this._stateStringPtr = this._common.allocateTypedArray(1, Uint32Array);
+
         this._decoder = this._common.wasm._create_decoder(
           this._channels.ptr,
           this._sampleRate.ptr,
           this._bitsPerSample.ptr,
           this._samplesDecoded.ptr,
           this._outputBufferPtr.ptr,
-          this._outputBufferLen.ptr
+          this._outputBufferLen.ptr,
+          this._errorStringPtr.ptr,
+          this._stateStringPtr.ptr
         );
       });
   };
@@ -56,6 +39,15 @@ export function Decoder(options = {}) {
     enumerable: true,
     get: () => this._ready,
   });
+
+  this.codeToString = (ptr) => {
+    const characters = [],
+      heap = new Uint8Array(this._common.wasm.HEAP);
+    for (let character = heap[ptr]; character !== 0; character = heap[++ptr])
+      characters.push(character);
+
+    return String.fromCharCode(...characters);
+  };
 
   // async
   this.reset = () => {
@@ -82,19 +74,22 @@ export function Decoder(options = {}) {
     );
     input.buf.set(data);
 
-    const error = this._common.wasm._decode_frame(
+    const success = this._common.wasm._decode_frame(
       this._decoder,
       input.ptr,
       input.len
     );
 
-    if (error) {
+    if (!success) {
       console.error(
-        "libflac " +
-          error +
-          " " +
-          (Decoder.errors.get(error) || "Unknown Error")
+        "@wasm-audio-decoders/flac: \n\t" +
+          "Error: " +
+          this.codeToString(this._errorStringPtr.buf[0]) +
+          "\n\t" +
+          "State: " +
+          this.codeToString(this._stateStringPtr.buf[0])
       );
+
       return 0;
     }
 
