@@ -3,29 +3,7 @@ import CodecParser from "codec-parser";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
-export function Decoder(options = {}) {
-  // static properties
-  if (!Decoder.errors) {
-    // prettier-ignore
-    Object.defineProperties(Decoder, {
-      errors: {
-        value: new Map([
-          [-1, "@wasm-audio-decoders/flac: Too many input buffers"],
-          [1,  "FLAC__STREAM_DECODER_SEARCH_FOR_METADATA: The decoder is ready to search for metadata."],
-          [2,  "FLAC__STREAM_DECODER_READ_METADATA: The decoder is ready to or is in the process of reading metadata."],
-          [3,  "FLAC__STREAM_DECODER_SEARCH_FOR_FRAME_SYNC: The decoder is ready to or is in the process of searching for the frame sync code."],
-          [4,  "FLAC__STREAM_DECODER_READ_FRAME: The decoder is ready to or is in the process of reading a frame."],
-          [5,  "FLAC__STREAM_DECODER_END_OF_STREAM: The decoder has reached the end of the stream."],
-          [6,  "FLAC__STREAM_DECODER_OGG_ERROR: An error occurred in the underlying Ogg layer."],
-          [7,  "FLAC__STREAM_DECODER_SEEK_ERROR: An error occurred while seeking. The decoder must be flushed with FLAC__stream_decoder_flush() or reset with FLAC__stream_decoder_reset() before decoding can continue."],
-          [8,  "FLAC__STREAM_DECODER_ABORTED: The decoder was aborted by the read or write callback."],
-          [9,  "FLAC__STREAM_DECODER_MEMORY_ALLOCATION_ERROR: An error occurred allocating memory. The decoder is in an invalid state and can no longer be used."],
-          [10, "FLAC__STREAM_DECODER_UNINITIALIZED: The decoder is in the uninitialized state; one of the FLAC__stream_decoder_init_*() functions must be called before samples can be processed."],
-        ]),
-      },
-    });
-  }
-
+export function Decoder() {
   // injects dependencies when running as a web worker
   // async
   this._init = () => {
@@ -41,13 +19,18 @@ export function Decoder(options = {}) {
         this._outputBufferPtr = this._common.allocateTypedArray(1, Uint32Array);
         this._outputBufferLen = this._common.allocateTypedArray(1, Uint32Array);
 
+        this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
+        this._stateStringPtr = this._common.allocateTypedArray(1, Uint32Array);
+
         this._decoder = this._common.wasm._create_decoder(
           this._channels.ptr,
           this._sampleRate.ptr,
           this._bitsPerSample.ptr,
           this._samplesDecoded.ptr,
           this._outputBufferPtr.ptr,
-          this._outputBufferLen.ptr
+          this._outputBufferLen.ptr,
+          this._errorStringPtr.ptr,
+          this._stateStringPtr.ptr
         );
       });
   };
@@ -56,6 +39,15 @@ export function Decoder(options = {}) {
     enumerable: true,
     get: () => this._ready,
   });
+
+  this.codeToString = (ptr) => {
+    const characters = [],
+      heap = new Uint8Array(this._common.wasm.HEAP);
+    for (let character = heap[ptr]; character !== 0; character = heap[++ptr])
+      characters.push(character);
+
+    return String.fromCharCode(...characters);
+  };
 
   // async
   this.reset = () => {
@@ -82,19 +74,22 @@ export function Decoder(options = {}) {
     );
     input.buf.set(data);
 
-    const error = this._common.wasm._decode_frame(
+    const success = this._common.wasm._decode_frame(
       this._decoder,
       input.ptr,
       input.len
     );
 
-    if (error) {
+    if (!success) {
       console.error(
-        "libflac " +
-          error +
-          " " +
-          (Decoder.errors.get(error) || "Unknown Error")
+        "@wasm-audio-decoders/flac: \n\t" +
+          "Error: " +
+          this.codeToString(this._errorStringPtr.buf[0]) +
+          "\n\t" +
+          "State: " +
+          this.codeToString(this._stateStringPtr.buf[0])
       );
+
       return 0;
     }
 
@@ -161,54 +156,7 @@ export function Decoder(options = {}) {
   return this;
 }
 
-class DecoderState {
-  constructor(instance) {
-    this._instance = instance;
-
-    this._decoderOperations = [];
-    this._decoded = [];
-    this._channelsDecoded = 0;
-    this._totalSamples = 0;
-  }
-
-  get decoded() {
-    return this._instance.ready
-      .then(() => Promise.all(this._decoderOperations))
-      .then(() => [
-        this._decoded,
-        this._channelsDecoded,
-        this._totalSamples,
-        this._sampleRate,
-        this._bitDepth,
-      ]);
-  }
-
-  async _instantiateDecoder() {
-    this._instance._decoder = new this._instance._decoderClass();
-    this._instance._ready = this._instance._decoder.ready;
-  }
-
-  async _sendToDecoder(frames) {
-    const { channelData, samplesDecoded, sampleRate, bitDepth } =
-      await this._instance._decoder.decodeFrames(frames);
-
-    this._decoded.push(channelData);
-    this._totalSamples += samplesDecoded;
-    this._sampleRate = sampleRate;
-    this._channelsDecoded = channelData.length;
-    this._bitDepth = bitDepth;
-  }
-
-  async _decode(frames) {
-    if (frames) {
-      if (!this._instance._decoder && frames.length) this._instantiateDecoder();
-
-      await this._instance.ready;
-
-      this._decoderOperations.push(this._sendToDecoder(frames));
-    }
-  }
-}
+export const setDecoderClass = Symbol();
 
 export default class FLACDecoder {
   constructor() {
@@ -221,20 +169,26 @@ export default class FLACDecoder {
 
     // instantiate to create static properties
     new WASMAudioDecoderCommon();
-    this._decoderClass = Decoder;
 
     this._init();
+    this[setDecoderClass](Decoder);
   }
 
   _init() {
-    if (this._decoder) this._decoder.free();
-    this._decoder = null;
-    this._ready = Promise.resolve();
-
     this._codecParser = new CodecParser("audio/flac", {
       onCodec: this._onCodec,
       enableFrameCRC32: false,
     });
+  }
+
+  [setDecoderClass](decoderClass) {
+    if (this._decoder) {
+      const oldDecoder = this._decoder;
+      oldDecoder.ready.then(() => oldDecoder.free());
+    }
+
+    this._decoder = new decoderClass();
+    this._ready = this._decoder.ready;
   }
 
   get ready() {
@@ -243,61 +197,38 @@ export default class FLACDecoder {
 
   async reset() {
     this._init();
+    this._decoder.reset();
   }
 
   free() {
-    this._init();
-  }
-
-  async _decodeFrames(flacFrames, decoderState) {
-    decoderState._decode(flacFrames);
-
-    return decoderState.decoded;
-  }
-
-  async _flush(decoderState) {
-    const frames = [...this._codecParser.flush()].map((f) => f.data);
-
-    decoderState._decode(frames);
-
-    const decoded = await decoderState.decoded;
-    this._init();
-
-    return decoded;
-  }
-
-  async _decode(flacData, decoderState) {
-    return this._decodeFrames(
-      [...this._codecParser.parseChunk(flacData)].map((f) => f.data),
-      decoderState
-    );
+    this._decoder.free();
   }
 
   async decode(flacData) {
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._decode(flacData, new DecoderState(this)))
+    return this._decoder.decodeFrames(
+      [...this._codecParser.parseChunk(flacData)].map((f) => f.data)
     );
   }
 
   async flush() {
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._flush(new DecoderState(this)))
+    const decoded = this._decoder.decodeFrames(
+      [...this._codecParser.flush()].map((f) => f.data)
     );
+
+    this.reset();
+    return decoded;
   }
 
   async decodeFile(flacData) {
-    const decoderState = new DecoderState(this);
-
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._decode(flacData, decoderState).then(() =>
-        this._flush(decoderState)
-      ))
+    const decoded = this._decoder.decodeFrames(
+      [...this._codecParser.parseAll(flacData)].map((f) => f.data)
     );
+
+    this.reset();
+    return decoded;
   }
 
   async decodeFrames(flacFrames) {
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._decodeFrames(flacFrames, new DecoderState(this)))
-    );
+    return this._decoder.decodeFrames(flacFrames);
   }
 }

@@ -91,6 +91,8 @@ FLAC__StreamDecoderWriteStatus write_cb(const FLAC__StreamDecoder *fl, const FLA
 
 void error_cb(const FLAC__StreamDecoder *fl, FLAC__StreamDecoderErrorStatus status, void *decoder_ptr) {
     FLACDecoder *decoder = (FLACDecoder*) decoder_ptr;
+
+    *decoder->error_string_ptr = FLAC__StreamDecoderErrorStatusString[status];
 }
 
 FLACDecoder *create_decoder(
@@ -99,7 +101,9 @@ FLACDecoder *create_decoder(
     unsigned int *bits_per_sample,
     unsigned int *samples_decoded,
     float **out_ptr,
-    unsigned int *out_len
+    unsigned int *out_len,
+    char **error_string_ptr,
+    char **state_string_ptr
 ) {
     FLACDecoder decoder;
     
@@ -120,8 +124,10 @@ FLACDecoder *create_decoder(
 
     decoder.out_ptr = out_ptr;
     decoder.out_len = out_len;
-
     *decoder.out_len = 0;
+
+    decoder.error_string_ptr = error_string_ptr;
+    decoder.state_string_ptr = state_string_ptr;
 
     FLAC__stream_decoder_set_md5_checking(decoder.fl, false);
     FLAC__stream_decoder_set_metadata_ignore_all(decoder.fl);
@@ -157,20 +163,25 @@ int decode_frame(
     unsigned char *in,
     int in_len
 ) {
-    if (decoder->input_buffers_len == 1024) return -1;
+    int success = 0;
+    *decoder->state_string_ptr = "";
+    *decoder->error_string_ptr = "";
 
-    // append to input buffers
-    decoder->input_buffers[decoder->input_buffers_len] = in;
-    decoder->input_buffers_lens[decoder->input_buffers_len] = in_len;
-    decoder->input_buffers_total_len += in_len;
-    decoder->input_buffers_len++;
-
-    int error = FLAC__stream_decoder_process_single(decoder->fl);
-
-    if (!error) {
-        error = FLAC__stream_decoder_get_state(decoder->fl) + 1;
-        return error;
+    if (decoder->input_buffers_len == 1024) {
+        *decoder->error_string_ptr = "Too many input buffers";
     } else {
-        return 0;
+        // append to input buffers
+        decoder->input_buffers[decoder->input_buffers_len] = in;
+        decoder->input_buffers_lens[decoder->input_buffers_len] = in_len;
+        decoder->input_buffers_total_len += in_len;
+        decoder->input_buffers_len++;
+    
+        success = FLAC__stream_decoder_process_single(decoder->fl);
     }
+
+    if (!success) {
+        *decoder->state_string_ptr = FLAC__StreamDecoderStateString[FLAC__stream_decoder_get_state(decoder->fl)];
+    }
+
+    return success;
 }
