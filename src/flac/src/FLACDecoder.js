@@ -156,54 +156,7 @@ export function Decoder() {
   return this;
 }
 
-class DecoderState {
-  constructor(instance) {
-    this._instance = instance;
-
-    this._decoderOperations = [];
-    this._decoded = [];
-    this._channelsDecoded = 0;
-    this._totalSamples = 0;
-  }
-
-  get decoded() {
-    return this._instance.ready
-      .then(() => Promise.all(this._decoderOperations))
-      .then(() => [
-        this._decoded,
-        this._channelsDecoded,
-        this._totalSamples,
-        this._sampleRate,
-        this._bitDepth,
-      ]);
-  }
-
-  async _instantiateDecoder() {
-    this._instance._decoder = new this._instance._decoderClass();
-    this._instance._ready = this._instance._decoder.ready;
-  }
-
-  async _sendToDecoder(frames) {
-    const { channelData, samplesDecoded, sampleRate, bitDepth } =
-      await this._instance._decoder.decodeFrames(frames);
-
-    this._decoded.push(channelData);
-    this._totalSamples += samplesDecoded;
-    this._sampleRate = sampleRate;
-    this._channelsDecoded = channelData.length;
-    this._bitDepth = bitDepth;
-  }
-
-  async _decode(frames) {
-    if (frames) {
-      if (!this._instance._decoder && frames.length) this._instantiateDecoder();
-
-      await this._instance.ready;
-
-      this._decoderOperations.push(this._sendToDecoder(frames));
-    }
-  }
-}
+export const setDecoderClass = Symbol();
 
 export default class FLACDecoder {
   constructor() {
@@ -216,20 +169,26 @@ export default class FLACDecoder {
 
     // instantiate to create static properties
     new WASMAudioDecoderCommon();
-    this._decoderClass = Decoder;
 
     this._init();
+    this[setDecoderClass](Decoder);
   }
 
   _init() {
-    if (this._decoder) this._decoder.free();
-    this._decoder = null;
-    this._ready = Promise.resolve();
-
     this._codecParser = new CodecParser("audio/flac", {
       onCodec: this._onCodec,
       enableFrameCRC32: false,
     });
+  }
+
+  [setDecoderClass](decoderClass) {
+    if (this._decoder) {
+      const oldDecoder = this._decoder;
+      oldDecoder.ready.then(() => oldDecoder.free());
+    }
+
+    this._decoder = new decoderClass();
+    this._ready = this._decoder.ready;
   }
 
   get ready() {
@@ -238,61 +197,38 @@ export default class FLACDecoder {
 
   async reset() {
     this._init();
+    this._decoder.reset();
   }
 
   free() {
-    this._init();
-  }
-
-  async _decodeFrames(flacFrames, decoderState) {
-    decoderState._decode(flacFrames);
-
-    return decoderState.decoded;
-  }
-
-  async _flush(decoderState) {
-    const frames = [...this._codecParser.flush()].map((f) => f.data);
-
-    decoderState._decode(frames);
-
-    const decoded = await decoderState.decoded;
-    this._init();
-
-    return decoded;
-  }
-
-  async _decode(flacData, decoderState) {
-    return this._decodeFrames(
-      [...this._codecParser.parseChunk(flacData)].map((f) => f.data),
-      decoderState
-    );
+    this._decoder.free();
   }
 
   async decode(flacData) {
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._decode(flacData, new DecoderState(this)))
+    return this._decoder.decodeFrames(
+      [...this._codecParser.parseChunk(flacData)].map((f) => f.data)
     );
   }
 
   async flush() {
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._flush(new DecoderState(this)))
+    const decoded = this._decoder.decodeFrames(
+      [...this._codecParser.flush()].map((f) => f.data)
     );
+
+    this.reset();
+    return decoded;
   }
 
   async decodeFile(flacData) {
-    const decoderState = new DecoderState(this);
-
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._decode(flacData, decoderState).then(() =>
-        this._flush(decoderState)
-      ))
+    const decoded = this._decoder.decodeFrames(
+      [...this._codecParser.parseAll(flacData)].map((f) => f.data)
     );
+
+    this.reset();
+    return decoded;
   }
 
   async decodeFrames(flacFrames) {
-    return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._decodeFrames(flacFrames, new DecoderState(this)))
-    );
+    return this._decoder.decodeFrames(flacFrames);
   }
 }
