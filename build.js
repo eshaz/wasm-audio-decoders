@@ -166,12 +166,13 @@ this.instantiate = () => {
   if (module && moduleMin) {
     // rollup
     const rollupConfig = fs.readFileSync(rollupConfigPath).toString();
+
     const rollupInputConfig = JSON.parse(rollupConfig);
     rollupInputConfig.input = rollupInput;
     rollupInputConfig.plugins = [nodeResolve()];
 
-    const rollupOutputConfig = JSON.parse(rollupConfig);
-    rollupOutputConfig.output.file = rollupOutput;
+    const rollupOutputConfig = JSON.parse(rollupConfig).output;
+    rollupOutputConfig.file = rollupOutput;
 
     const bundle = await rollup(rollupInputConfig);
     const output = (await bundle.generate(rollupOutputConfig)).output[0];

@@ -1,10 +1,10 @@
 {
-  "external": ["web-worker"],
+  "external": ["@eshaz/web-worker"],
   "output": {
     "format": "umd",
     "name": "opus-decoder",
     "globals": {
-      "web-worker": "Worker"
+      "@eshaz/web-worker": "Worker"
     }
   }
 }

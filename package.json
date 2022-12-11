@@ -11,7 +11,7 @@
   },
   "type": "module",
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-node-resolve": "^15.0.1",
     "@types/jest": "^27.5.2",
     "@wpdas/wave-header": "^1.0.1",
     "codec-parser": "2.2.0",
@@ -21,10 +21,10 @@
     "node-zopfli": "^2.1.4",
     "ogg-opus-decoder": "file:src/ogg-opus-decoder",
     "opus-decoder": "file:src/opus-decoder",
-    "prettier": "^2.7.1",
-    "rollup": "^2.79.1",
+    "prettier": "^2.8.1",
+    "rollup": "^3.7.3",
     "simple-yenc": "0.2.3",
-    "terser": "^5.15.1",
+    "terser": "^5.16.1",
     "web-worker": "^1.1.0",
     "@wasm-audio-decoders/flac": "file:src/flac"
   }
