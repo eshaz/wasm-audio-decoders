@@ -1,4 +1,4 @@
-import Worker from "web-worker";
+import Worker from "@eshaz/web-worker";
 import WASMAudioDecoderCommon from "./WASMAudioDecoderCommon.js";
 
 export default class WASMAudioDecoderWorker extends Worker {
