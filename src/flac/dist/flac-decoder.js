@@ -1,12 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('web-worker')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'web-worker'], factory) :
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@eshaz/web-worker')) :
+  typeof define === 'function' && define.amd ? define(['exports', '@eshaz/web-worker'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["flac-decoder"] = {}, global.Worker));
 })(this, (function (exports, Worker) { 'use strict';
-
-  function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
-
-  var Worker__default = /*#__PURE__*/_interopDefaultLegacy(Worker);
 
   function WASMAudioDecoderCommon(caller) {
     // setup static methods
@@ -68,7 +64,7 @@
             channelData,
             samplesDecoded,
             sampleRate,
-            bitDepth
+            bitDepth,
           }),
         },
 
@@ -256,7 +252,7 @@
     };
   }
 
-  class WASMAudioDecoderWorker extends Worker__default["default"] {
+  class WASMAudioDecoderWorker extends Worker {
     constructor(options, name, Decoder, EmscriptenWASM) {
       if (!WASMAudioDecoderCommon.modules) new WASMAudioDecoderCommon();
 
@@ -3976,7 +3972,5 @@ f¿~2Æ)F(ÒvýÌN'ªbiRÙ ËnS©å#6Ã2/9´ºmùNæÅý0L¥\!�
 
   exports.FLACDecoder = FLACDecoder;
   exports.FLACDecoderWebWorker = FLACDecoderWebWorker;
-
-  Object.defineProperty(exports, '__esModule', { value: true });
 
 }));
