@@ -214,6 +214,7 @@ describe("wasm-audio-decoders", () => {
     await decompressExpectedFiles();
   });
 
+  /*
   describe("mpg123-decoder", () => {
     it("should have name as an instance and static property for MPEGDecoder", () => {
       const decoder = new MPEGDecoder();
@@ -480,6 +481,7 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
+*/
 
   describe("opus-decoder", () => {
     let opusStereoFrames,
@@ -635,6 +637,97 @@ describe("wasm-audio-decoders", () => {
       });
     });
 
+    describe("decodeFrame with errors", () => {
+      let opusStereoFramesWithErrors,
+        opusStereoFramesLengthWithErrors,
+        expectedErrors;
+
+      beforeAll(() => {
+        const frameWithErrors = Uint8Array.from({ length: 400 }, () => 1);
+
+        opusStereoFramesWithErrors = [
+          ...opusStereoFrames.slice(0, 10),
+          frameWithErrors,
+          ...opusStereoFrames.slice(10, 20),
+          frameWithErrors,
+          ...opusStereoFrames.slice(20),
+        ];
+        opusStereoFramesLengthWithErrors = opusStereoFramesLength + 800;
+
+        expectedErrors = [
+          {
+            message:
+              "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
+            frameLength: 400,
+            relativeFrameNumber: 0,
+            relativeInputBytes: 0,
+            relativeOutputSamples: 0,
+            totalFrameNumber: 10,
+            totalInputBytes: 2395,
+            totalOutputSamples: 9288,
+          },
+          {
+            message:
+              "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
+            frameLength: 400,
+            relativeFrameNumber: 0,
+            relativeInputBytes: 0,
+            relativeOutputSamples: 0,
+            totalFrameNumber: 21,
+            totalInputBytes: 4905,
+            totalOutputSamples: 18888,
+          },
+        ];
+      });
+
+      it("should decode opus frames and discard any errors", async () => {
+        const { preSkip } = opusStereoHeader;
+
+        const { paths, result } = await test_decodeFrame(
+          new OpusDecoder({
+            preSkip,
+          }),
+          "should decode opus frames",
+          opusStereoTestFile,
+          opusStereoFramesWithErrors,
+          opusStereoFramesLengthWithErrors
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+        expect(result.errors).toEqual(expectedErrors);
+      });
+
+      it("should decode opus frames in a web worker and discard any errors", async () => {
+        const { preSkip } = opusStereoHeader;
+        const { paths, result } = await test_decodeFrame(
+          new OpusDecoderWebWorker({
+            preSkip,
+          }),
+          "should decode opus frames in a web worker and discard any errors",
+          opusStereoTestFile,
+          opusStereoFramesWithErrors,
+          opusStereoFramesLengthWithErrors
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+        expect(result.errors).toEqual(expectedErrors);
+      });
+    });
+
     describe("decodeFrames", () => {
       it("should decode opus frames", async () => {
         const { preSkip } = opusStereoHeader;
@@ -679,6 +772,97 @@ describe("wasm-audio-decoders", () => {
         expect(result.samplesDecoded).toEqual(3807048); //3807154
         expect(result.sampleRate).toEqual(48000);
         expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+
+    describe("decodeFrames with errors", () => {
+      let opusStereoFramesWithErrors,
+        opusStereoFramesLengthWithErrors,
+        expectedErrors;
+
+      beforeAll(() => {
+        const frameWithErrors = Uint8Array.from({ length: 400 }, () => 1);
+
+        opusStereoFramesWithErrors = [
+          ...opusStereoFrames.slice(0, 10),
+          frameWithErrors,
+          ...opusStereoFrames.slice(10, 20),
+          frameWithErrors,
+          ...opusStereoFrames.slice(20),
+        ];
+        opusStereoFramesLengthWithErrors = opusStereoFramesLength + 800;
+
+        expectedErrors = [
+          {
+            message:
+              "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
+            frameLength: 400,
+            relativeFrameNumber: 10,
+            relativeInputBytes: 2395,
+            relativeOutputSamples: 9288,
+            totalFrameNumber: 10,
+            totalInputBytes: 2395,
+            totalOutputSamples: 9288,
+          },
+          {
+            message:
+              "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
+            frameLength: 400,
+            relativeFrameNumber: 21,
+            relativeInputBytes: 4905,
+            relativeOutputSamples: 18888,
+            totalFrameNumber: 21,
+            totalInputBytes: 4905,
+            totalOutputSamples: 18888,
+          },
+        ];
+      });
+
+      it("should decode opus frames and discard any errors and discard any errors", async () => {
+        const { preSkip } = opusStereoHeader;
+
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoder({
+            preSkip,
+          }),
+          "should decode opus frames",
+          opusStereoTestFile,
+          opusStereoFramesWithErrors,
+          opusStereoFramesLengthWithErrors
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+        expect(result.errors).toEqual(expectedErrors);
+      });
+
+      it("should decode opus frames in a web worker and discard any errors", async () => {
+        const { preSkip } = opusStereoHeader;
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoderWebWorker({
+            preSkip,
+          }),
+          "should decode opus frames in a web worker",
+          opusStereoTestFile,
+          opusStereoFramesWithErrors,
+          opusStereoFramesLengthWithErrors
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154
+        expect(result.sampleRate).toEqual(48000);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+        expect(result.errors).toEqual(expectedErrors);
       });
     });
 
@@ -947,6 +1131,8 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
+
+  /*
 
   describe("ogg-opus-decoder", () => {
     it("should have name as an instance and static property for OggOpusDecoder", () => {
@@ -1473,4 +1659,6 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
+
+  */
 });

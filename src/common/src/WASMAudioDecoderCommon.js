@@ -54,7 +54,8 @@ export default function WASMAudioDecoderCommon(caller) {
       },
 
       getDecodedAudio: {
-        value: (channelData, samplesDecoded, sampleRate, bitDepth) => ({
+        value: (errors, channelData, samplesDecoded, sampleRate, bitDepth) => ({
+          errors,
           channelData,
           samplesDecoded,
           sampleRate,
@@ -63,7 +64,14 @@ export default function WASMAudioDecoderCommon(caller) {
       },
 
       getDecodedAudioMultiChannel: {
-        value(input, channelsDecoded, samplesDecoded, sampleRate, bitDepth) {
+        value(
+          errors,
+          input,
+          channelsDecoded,
+          samplesDecoded,
+          sampleRate,
+          bitDepth
+        ) {
           let channelData = [],
             i,
             j;
@@ -77,6 +85,7 @@ export default function WASMAudioDecoderCommon(caller) {
           }
 
           return WASMAudioDecoderCommon.getDecodedAudio(
+            errors,
             channelData,
             samplesDecoded,
             sampleRate,
@@ -211,7 +220,7 @@ export default function WASMAudioDecoderCommon(caller) {
     };
   };
 
-  this.free = (ptr) => {
+  this.free = () => {
     this._pointers.forEach((ptr) => {
       this._wasm._free(ptr);
     });
@@ -240,6 +249,10 @@ export default function WASMAudioDecoderCommon(caller) {
           _outputChannels * _outputChannelSize,
           float32Array
         );
+
+      caller._totalInputBytes = 0;
+      caller._totalOutputSamples = 0;
+      caller._totalFrameNumber = 0;
 
       return this;
     });

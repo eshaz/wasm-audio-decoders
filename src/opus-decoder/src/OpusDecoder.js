@@ -72,7 +72,7 @@ export default function OpusDecoder(options = {}) {
 
     this._input.buf.set(opusFrame);
 
-    const samplesDecoded =
+    let samplesDecoded =
       this._common.wasm._opus_frame_decode_float_deinterleaved(
         this._decoder,
         this._input.ptr,
@@ -80,14 +80,17 @@ export default function OpusDecoder(options = {}) {
         this._output.ptr
       );
 
+    let error;
+
     if (samplesDecoded < 0) {
-      console.error(
+      error =
         "libopus " +
-          samplesDecoded +
-          " " +
-          (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error")
-      );
-      return 0;
+        samplesDecoded +
+        " " +
+        (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error");
+
+      console.error(error);
+      samplesDecoded = 0;
     }
 
     return {
@@ -97,13 +100,44 @@ export default function OpusDecoder(options = {}) {
         samplesDecoded
       ),
       samplesDecoded: samplesDecoded,
+      error: error,
     };
   };
 
+  this._addError = (
+    errors,
+    message,
+    frameLength,
+    relativeFrameNumber,
+    relativeInputBytes,
+    relativeOutputSamples
+  ) => {
+    errors.push({
+      message: message,
+      frameLength: frameLength,
+      relativeFrameNumber: relativeFrameNumber,
+      relativeInputBytes: relativeInputBytes,
+      relativeOutputSamples: relativeOutputSamples,
+      totalFrameNumber: this._totalFrameNumber,
+      totalInputBytes: this._totalInputBytes,
+      totalOutputSamples: this._totalOutputSamples,
+    });
+  };
+
   this.decodeFrame = (opusFrame) => {
+    let errors = [];
+
     const decoded = this._decode(opusFrame);
 
+    if (decoded.error)
+      this._addError(errors, decoded.error, opusFrame.length, 0, 0, 0);
+
+    this._totalFrameNumber++;
+    this._totalInputBytes += opusFrame.length;
+    this._totalOutputSamples += decoded.samplesDecoded;
+
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      errors,
       [decoded.outputBuffer],
       this._outputChannels,
       decoded.samplesDecoded,
@@ -113,16 +147,38 @@ export default function OpusDecoder(options = {}) {
 
   this.decodeFrames = (opusFrames) => {
     let outputBuffers = [],
+      errors = [],
+      frameNumber = 0,
+      inputBytes = 0,
       outputSamples = 0,
       i = 0;
 
     while (i < opusFrames.length) {
-      const decoded = this._decode(opusFrames[i++]);
+      const opusFrame = opusFrames[i++];
+      const decoded = this._decode(opusFrame);
+
+      if (decoded.error)
+        this._addError(
+          errors,
+          decoded.error,
+          opusFrame.length,
+          frameNumber,
+          inputBytes,
+          outputSamples
+        );
+
       outputBuffers.push(decoded.outputBuffer);
+
+      frameNumber++;
+      inputBytes += opusFrame.length;
       outputSamples += decoded.samplesDecoded;
+      this._totalFrameNumber++;
+      this._totalInputBytes += opusFrame.length;
+      this._totalOutputSamples += decoded.samplesDecoded;
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      errors,
       outputBuffers,
       this._outputChannels,
       outputSamples,
