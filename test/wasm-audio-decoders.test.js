@@ -215,7 +215,6 @@ describe("wasm-audio-decoders", () => {
     await decompressExpectedFiles();
   });
 
-  /*
   describe("mpg123-decoder", () => {
     it("should have name as an instance and static property for MPEGDecoder", () => {
       const decoder = new MPEGDecoder();
@@ -252,6 +251,47 @@ describe("wasm-audio-decoders", () => {
       expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    it("should decode mpeg with errors", async () => {
+      const { paths, result } = await test_decode(
+        new MPEGDecoder(),
+        "decode",
+        "should decode mpeg with errors",
+        "mpeg.cbr.errors.mp3"
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.samplesDecoded).toEqual(3489408);
+      expect(result.sampleRate).toEqual(44100);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+      expect(result.errors).toEqual([
+        {
+          message: "-1 MPG123_ERR",
+          frameLength: 2160,
+          relativeFrameNumber: 0,
+          relativeInputBytes: 0,
+          relativeOutputSamples: 0,
+          totalFrameNumber: 0,
+          totalInputBytes: 0,
+          totalOutputSamples: 0,
+        },
+        {
+          message: "-1 MPG123_ERR",
+          frameLength: 1008,
+          relativeFrameNumber: 0,
+          relativeInputBytes: 0,
+          relativeOutputSamples: 0,
+          totalFrameNumber: 0,
+          totalInputBytes: 2160,
+          totalOutputSamples: 1152,
+        },
+      ]);
     });
 
     it("should decode mpeg in a web worker", async () => {
@@ -483,7 +523,7 @@ describe("wasm-audio-decoders", () => {
     });
   });
 
-
+  /*
   describe("opus-decoder", () => {
     let opusStereoFrames,
       opusStereoHeader,
@@ -1132,7 +1172,7 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-*/
+
   describe("ogg-opus-decoder", () => {
     it("should have name as an instance and static property for OggOpusDecoder", () => {
       const decoder = new OggOpusDecoder();
@@ -1478,7 +1518,7 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-  /*
+
   describe("flac-decoder", () => {
     let flacStereoFrames, flacStereoFramesLength;
 

@@ -40,15 +40,6 @@ export function Decoder() {
     get: () => this._ready,
   });
 
-  this.codeToString = (ptr) => {
-    const characters = [],
-      heap = new Uint8Array(this._common.wasm.HEAP);
-    for (let character = heap[ptr]; character !== 0; character = heap[++ptr])
-      characters.push(character);
-
-    return String.fromCharCode(...characters);
-  };
-
   // async
   this.reset = () => {
     this.free();
@@ -84,10 +75,10 @@ export function Decoder() {
       console.error(
         "@wasm-audio-decoders/flac: \n\t" +
           "Error: " +
-          this.codeToString(this._errorStringPtr.buf[0]) +
+          this._common.codeToString(this._errorStringPtr.buf[0]) +
           "\n\t" +
           "State: " +
-          this.codeToString(this._stateStringPtr.buf[0])
+          this._common.codeToString(this._stateStringPtr.buf[0])
       );
 
       return 0;

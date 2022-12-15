@@ -227,6 +227,15 @@ export default function WASMAudioDecoderCommon(decoderInstance) {
     this._pointers.clear();
   };
 
+  this.codeToString = (ptr) => {
+    const characters = [],
+      heap = new Uint8Array(this._wasm.HEAP);
+    for (let character = heap[ptr]; character !== 0; character = heap[++ptr])
+      characters.push(character);
+
+    return String.fromCharCode.apply(null, characters);
+  };
+
   this.addError = (
     errors,
     message,
