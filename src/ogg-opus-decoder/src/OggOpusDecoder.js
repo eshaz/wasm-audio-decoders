@@ -38,7 +38,7 @@ class DecoderState {
       await this._instance._decoder.decodeFrames(frames);
 
     this._decoded.push(channelData);
-    this._errors.push(...errors);
+    this._errors = this.errors.concat(errors);
     this._totalSamples += samplesDecoded;
     this._channelsDecoded = channelData.length;
   }
