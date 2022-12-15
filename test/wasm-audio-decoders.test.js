@@ -205,6 +205,7 @@ describe("wasm-audio-decoders", () => {
   const flacMultichannelTestFile = "flac.8.flac";
   const flac96000kTestFile = "flac.96000.flac";
   const opusStereoTestFile = "ogg.opus";
+  const opusStereoErrorsTestFile = "ogg.errors.opus";
   const opusSurroundTestFile = "ogg.opus.surround";
   const opus32TestFile = "ogg.opus.32.ogg";
   const opus64TestFile = "ogg.opus.64.ogg";
@@ -481,7 +482,7 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-*/
+
 
   describe("opus-decoder", () => {
     let opusStereoFrames,
@@ -1131,9 +1132,7 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-
-  /*
-
+*/
   describe("ogg-opus-decoder", () => {
     it("should have name as an instance and static property for OggOpusDecoder", () => {
       const decoder = new OggOpusDecoder();
@@ -1170,6 +1169,38 @@ describe("wasm-audio-decoders", () => {
       expect(result.sampleRate).toEqual(48000);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
+
+    it("should decode ogg opus with errors", async () => {
+      const { paths, result } = await test_decode(
+        new OggOpusDecoder(),
+        "decodeFile",
+        "should decode ogg opus with errors",
+        opusStereoErrorsTestFile
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.samplesDecoded).toEqual(3806088);
+      expect(result.sampleRate).toEqual(48000);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+      expect(result.errors).toEqual([
+        {
+          message:
+            "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
+          frameLength: 234,
+          relativeFrameNumber: 0,
+          relativeInputBytes: 0,
+          relativeOutputSamples: 0,
+          totalFrameNumber: 100,
+          totalInputBytes: 23856,
+          totalOutputSamples: 95688,
+        },
+      ]);
     });
 
     it("should decode multi channel ogg opus", async () => {
@@ -1447,7 +1478,7 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-
+  /*
   describe("flac-decoder", () => {
     let flacStereoFrames, flacStereoFramesLength;
 

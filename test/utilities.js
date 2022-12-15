@@ -233,7 +233,8 @@ export const testDecoder_decode = async (
       sampleRate,
       channelsDecoded,
       bitDepth,
-      totalSamplesDecoded = 0;
+      totalSamplesDecoded = 0,
+      allErrors = [];
 
     // allocate space for the wave header
     await output.writeFile(Buffer.alloc(44));
@@ -260,8 +261,11 @@ export const testDecoder_decode = async (
         samplesDecoded,
         sampleRate: rate,
         bitDepth: depth,
+        errors,
       } = await decoder[method](buffer.subarray(0, bytesRead));
       decodeEnd = performance.now();
+
+      allErrors.push(...errors);
 
       const interleaved = getInterleaved(channelData, samplesDecoded);
 
@@ -307,6 +311,7 @@ export const testDecoder_decode = async (
       samplesDecoded: totalSamplesDecoded,
       sampleRate,
       bitDepth,
+      errors: allErrors,
     };
   } finally {
     await input.close();

@@ -23,29 +23,26 @@ export default function OpusDecoder(options = {}) {
 
   // injects dependencies when running as a web worker
   // async
-  this._init = () => {
-    return new this._WASMAudioDecoderCommon(this)
-      .instantiate()
-      .then((common) => {
-        this._common = common;
+  this._init = () =>
+    new this._WASMAudioDecoderCommon(this).instantiate().then((common) => {
+      this._common = common;
 
-        const mapping = this._common.allocateTypedArray(
-          this._channels,
-          Uint8Array
-        );
+      const mapping = this._common.allocateTypedArray(
+        this._channels,
+        Uint8Array
+      );
 
-        mapping.buf.set(this._channelMappingTable);
+      mapping.buf.set(this._channelMappingTable);
 
-        this._decoder = this._common.wasm._opus_frame_decoder_create(
-          this._channels,
-          this._streamCount,
-          this._coupledStreamCount,
-          mapping.ptr,
-          this._preSkip,
-          this._forceStereo
-        );
-      });
-  };
+      this._decoder = this._common.wasm._opus_frame_decoder_create(
+        this._channels,
+        this._streamCount,
+        this._coupledStreamCount,
+        mapping.ptr,
+        this._preSkip,
+        this._forceStereo
+      );
+    });
 
   Object.defineProperty(this, "ready", {
     enumerable: true,
@@ -104,33 +101,13 @@ export default function OpusDecoder(options = {}) {
     };
   };
 
-  this._addError = (
-    errors,
-    message,
-    frameLength,
-    relativeFrameNumber,
-    relativeInputBytes,
-    relativeOutputSamples
-  ) => {
-    errors.push({
-      message: message,
-      frameLength: frameLength,
-      relativeFrameNumber: relativeFrameNumber,
-      relativeInputBytes: relativeInputBytes,
-      relativeOutputSamples: relativeOutputSamples,
-      totalFrameNumber: this._totalFrameNumber,
-      totalInputBytes: this._totalInputBytes,
-      totalOutputSamples: this._totalOutputSamples,
-    });
-  };
-
   this.decodeFrame = (opusFrame) => {
     let errors = [];
 
     const decoded = this._decode(opusFrame);
 
     if (decoded.error)
-      this._addError(errors, decoded.error, opusFrame.length, 0, 0, 0);
+      this._common.addError(errors, decoded.error, opusFrame.length, 0, 0, 0);
 
     this._totalFrameNumber++;
     this._totalInputBytes += opusFrame.length;
@@ -158,7 +135,7 @@ export default function OpusDecoder(options = {}) {
       const decoded = this._decode(opusFrame);
 
       if (decoded.error)
-        this._addError(
+        this._common.addError(
           errors,
           decoded.error,
           opusFrame.length,

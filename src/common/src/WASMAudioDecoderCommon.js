@@ -1,4 +1,4 @@
-export default function WASMAudioDecoderCommon(caller) {
+export default function WASMAudioDecoderCommon(decoderInstance) {
   // setup static methods
   const uint8Array = Uint8Array;
   const float32Array = Float32Array;
@@ -227,12 +227,32 @@ export default function WASMAudioDecoderCommon(caller) {
     this._pointers.clear();
   };
 
+  this.addError = (
+    errors,
+    message,
+    frameLength,
+    relativeFrameNumber,
+    relativeInputBytes,
+    relativeOutputSamples
+  ) => {
+    errors.push({
+      message: message,
+      frameLength: frameLength,
+      relativeFrameNumber: relativeFrameNumber,
+      relativeInputBytes: relativeInputBytes,
+      relativeOutputSamples: relativeOutputSamples,
+      totalFrameNumber: decoderInstance._totalFrameNumber,
+      totalInputBytes: decoderInstance._totalInputBytes,
+      totalOutputSamples: decoderInstance._totalOutputSamples,
+    });
+  };
+
   this.instantiate = () => {
-    const _module = caller._module;
-    const _EmscriptenWASM = caller._EmscriptenWASM;
-    const _inputSize = caller._inputSize;
-    const _outputChannels = caller._outputChannels;
-    const _outputChannelSize = caller._outputChannelSize;
+    const _module = decoderInstance._module;
+    const _EmscriptenWASM = decoderInstance._EmscriptenWASM;
+    const _inputSize = decoderInstance._inputSize;
+    const _outputChannels = decoderInstance._outputChannels;
+    const _outputChannelSize = decoderInstance._outputChannelSize;
 
     if (_module) WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
 
@@ -241,18 +261,21 @@ export default function WASMAudioDecoderCommon(caller) {
 
     return this._wasm.ready.then(() => {
       if (_inputSize)
-        caller._input = this.allocateTypedArray(_inputSize, uint8Array);
+        decoderInstance._input = this.allocateTypedArray(
+          _inputSize,
+          uint8Array
+        );
 
       // output buffer
       if (_outputChannelSize)
-        caller._output = this.allocateTypedArray(
+        decoderInstance._output = this.allocateTypedArray(
           _outputChannels * _outputChannelSize,
           float32Array
         );
 
-      caller._totalInputBytes = 0;
-      caller._totalOutputSamples = 0;
-      caller._totalFrameNumber = 0;
+      decoderInstance._totalInputBytes = 0;
+      decoderInstance._totalOutputSamples = 0;
+      decoderInstance._totalFrameNumber = 0;
 
       return this;
     });
