@@ -65,23 +65,25 @@ export function Decoder() {
     );
     input.buf.set(data);
 
-    const success = this._common.wasm._decode_frame(
-      this._decoder,
-      input.ptr,
-      input.len
-    );
+    this._common.wasm._decode_frame(this._decoder, input.ptr, input.len);
 
-    if (!success) {
-      console.error(
-        "@wasm-audio-decoders/flac: \n\t" +
-          "Error: " +
-          this._common.codeToString(this._errorStringPtr.buf[0]) +
-          "\n\t" +
-          "State: " +
-          this._common.codeToString(this._stateStringPtr.buf[0])
+    let errorMessage = [],
+      error;
+    if (this._errorStringPtr.buf[0])
+      errorMessage.push(
+        "Error: " + this._common.codeToString(this._errorStringPtr.buf[0])
       );
 
-      return 0;
+    if (this._stateStringPtr.buf[0])
+      errorMessage.push(
+        "State: " + this._common.codeToString(this._stateStringPtr.buf[0])
+      );
+
+    if (errorMessage.length) {
+      error = errorMessage.join("; ");
+      console.error(
+        "@wasm-audio-decoders/flac: \n\t" + errorMessage.join("\n\t")
+      );
     }
 
     const output = new Float32Array(
@@ -91,6 +93,7 @@ export function Decoder() {
     );
 
     const decoded = {
+      error: error,
       outputBuffer: this._common.getOutputChannels(
         output,
         this._channels.buf[0],
@@ -108,6 +111,9 @@ export function Decoder() {
 
   this.decodeFrames = (frames) => {
     let outputBuffers = [],
+      errors = [],
+      frameNumber = 0,
+      inputBytes = 0,
       outputSamples = 0;
 
     for (let i = 0; i < frames.length; i++) {
@@ -119,12 +125,31 @@ export function Decoder() {
         offset += chunk.length;
 
         const decoded = this._decode(chunk);
+        if (decoded.error)
+          this._common.addError(
+            errors,
+            decoded.error,
+            data.length,
+            frameNumber,
+            inputBytes,
+            outputSamples
+          );
+
         outputBuffers.push(decoded.outputBuffer);
+
+        inputBytes += data.length;
         outputSamples += decoded.samplesDecoded;
+
+        this._totalInputBytes += data.length;
+        this._totalOutputSamples += decoded.samplesDecoded;
       }
+
+      frameNumber++;
+      this._totalFrameNumber++;
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      errors,
       outputBuffers,
       this._channels.buf[0],
       outputSamples,

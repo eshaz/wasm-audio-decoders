@@ -33,7 +33,7 @@ FLACDecoder *create_decoder();
 
 void destroy_decoder(FLACDecoder *decoder);
 
-int decode(
+void decode(
     FLACDecoder *decoder,
     unsigned char *in,
     int in_len

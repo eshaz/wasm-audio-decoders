@@ -523,7 +523,6 @@ describe("wasm-audio-decoders", () => {
     });
   });
 
-  /*
   describe("opus-decoder", () => {
     let opusStereoFrames,
       opusStereoHeader,
@@ -1603,6 +1602,46 @@ describe("wasm-audio-decoders", () => {
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
+      it("should decode flac frames with errors", async () => {
+        const frameWithErrors = Uint8Array.from({ length: 400 }, () => 1);
+        const flacStereoFramesWithErrors = [
+          ...flacStereoFrames.slice(0, 5),
+          frameWithErrors,
+          ...flacStereoFrames.slice(5),
+        ];
+        const flacStereoFramesLengthWithErrors = flacStereoFramesLength + 800;
+
+        const { paths, result } = await test_decodeFrames(
+          new FLACDecoder(),
+          "should decode flac frames",
+          flacStereoTestFile,
+          flacStereoFramesWithErrors,
+          flacStereoFramesLengthWithErrors
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(result.errors).toEqual([
+          {
+            message:
+              "Error: FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC; State: FLAC__STREAM_DECODER_SEARCH_FOR_FRAME_SYNC",
+            frameLength: 400,
+            relativeFrameNumber: 5,
+            relativeInputBytes: 11606,
+            relativeOutputSamples: 20480,
+            totalFrameNumber: 5,
+            totalInputBytes: 11606,
+            totalOutputSamples: 20480,
+          },
+        ]);
+      });
+
       it("should decode multichannel flac", async () => {
         // ffmpeg -i flac.short.wav -filter_complex "[0:a][0:a][0:a][0:a][0:a][0:a][0:a][0:a]join=inputs=8:channel_layout=7.1[a]" -map "[a]" flac.8.flac
         const { paths, result } = await test_decode(
@@ -1730,6 +1769,4 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-
-  */
 });

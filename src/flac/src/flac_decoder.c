@@ -93,6 +93,7 @@ void error_cb(const FLAC__StreamDecoder *fl, FLAC__StreamDecoderErrorStatus stat
     FLACDecoder *decoder = (FLACDecoder*) decoder_ptr;
 
     *decoder->error_string_ptr = FLAC__StreamDecoderErrorStatusString[status];
+    *decoder->state_string_ptr = FLAC__StreamDecoderStateString[FLAC__stream_decoder_get_state(decoder->fl)];
 }
 
 FLACDecoder *create_decoder(
@@ -158,14 +159,13 @@ void destroy_decoder(FLACDecoder *decoder) {
     free(decoder);
 }
 
-int decode_frame(
+void decode_frame(
     FLACDecoder *decoder,
     unsigned char *in,
     int in_len
 ) {
-    int success = 0;
-    *decoder->state_string_ptr = "";
-    *decoder->error_string_ptr = "";
+    *decoder->error_string_ptr = 0;
+    *decoder->state_string_ptr = 0;
 
     if (decoder->input_buffers_len == 1024) {
         *decoder->error_string_ptr = "Too many input buffers";
@@ -176,12 +176,8 @@ int decode_frame(
         decoder->input_buffers_total_len += in_len;
         decoder->input_buffers_len++;
     
-        success = FLAC__stream_decoder_process_single(decoder->fl);
+        FLAC__stream_decoder_process_single(decoder->fl);
     }
-
-    if (!success) {
-        *decoder->state_string_ptr = FLAC__StreamDecoderStateString[FLAC__stream_decoder_get_state(decoder->fl)];
-    }
-
-    return success;
+    
+    if (*decoder->error_string_ptr) FLAC__stream_decoder_reset(decoder->fl);
 }
