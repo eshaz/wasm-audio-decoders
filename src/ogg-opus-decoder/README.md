@@ -83,11 +83,22 @@ Decoded audio is always returned in the below structure.
       ... // additional channels
     ],
     samplesDecoded: 1234, // number of PCM samples that were decoded per channel
-    sampleRate: 48000 // sample rate of the decoded PCM
+    sampleRate: 48000, // sample rate of the decoded PCM
+    errors: [ // array containing descriptions for any decode errors
+      {
+        message: "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
+        frameLength: 400, // length of the frame or data in bytes that encountered an error
+        frameNumber: 21, // position of error relative to total frames decoded 
+        inputBytes: 4905, // position of error relative to total input bytes
+        outputSamples: 18888, // position of error relative to total output samples
+      }
+    ]
 }
 ```
 
 Each Float32Array within `channelData` can be used directly in the WebAudio API for playback.
+
+Decoding will proceed through any errors. Any errors encountered may result in gaps in the decoded audio.
 
 ### Multichannel Output
 

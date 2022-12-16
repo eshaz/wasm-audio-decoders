@@ -274,22 +274,16 @@ describe("wasm-audio-decoders", () => {
         {
           message: "-1 MPG123_ERR",
           frameLength: 2160,
-          relativeFrameNumber: 0,
-          relativeInputBytes: 0,
-          relativeOutputSamples: 0,
-          totalFrameNumber: 0,
-          totalInputBytes: 0,
-          totalOutputSamples: 0,
+          frameNumber: 0,
+          inputBytes: 0,
+          outputSamples: 0,
         },
         {
           message: "-1 MPG123_ERR",
           frameLength: 1008,
-          relativeFrameNumber: 0,
-          relativeInputBytes: 0,
-          relativeOutputSamples: 0,
-          totalFrameNumber: 0,
-          totalInputBytes: 2160,
-          totalOutputSamples: 1152,
+          frameNumber: 0,
+          inputBytes: 2160,
+          outputSamples: 1152,
         },
       ]);
     });
@@ -699,23 +693,17 @@ describe("wasm-audio-decoders", () => {
             message:
               "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
             frameLength: 400,
-            relativeFrameNumber: 0,
-            relativeInputBytes: 0,
-            relativeOutputSamples: 0,
-            totalFrameNumber: 10,
-            totalInputBytes: 2395,
-            totalOutputSamples: 9288,
+            frameNumber: 10,
+            inputBytes: 2395,
+            outputSamples: 9288,
           },
           {
             message:
               "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
             frameLength: 400,
-            relativeFrameNumber: 0,
-            relativeInputBytes: 0,
-            relativeOutputSamples: 0,
-            totalFrameNumber: 21,
-            totalInputBytes: 4905,
-            totalOutputSamples: 18888,
+            frameNumber: 21,
+            inputBytes: 4905,
+            outputSamples: 18888,
           },
         ];
       });
@@ -837,23 +825,17 @@ describe("wasm-audio-decoders", () => {
             message:
               "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
             frameLength: 400,
-            relativeFrameNumber: 10,
-            relativeInputBytes: 2395,
-            relativeOutputSamples: 9288,
-            totalFrameNumber: 10,
-            totalInputBytes: 2395,
-            totalOutputSamples: 9288,
+            frameNumber: 10,
+            inputBytes: 2395,
+            outputSamples: 9288,
           },
           {
             message:
               "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
             frameLength: 400,
-            relativeFrameNumber: 21,
-            relativeInputBytes: 4905,
-            relativeOutputSamples: 18888,
-            totalFrameNumber: 21,
-            totalInputBytes: 4905,
-            totalOutputSamples: 18888,
+            frameNumber: 21,
+            inputBytes: 4905,
+            outputSamples: 18888,
           },
         ];
       });
@@ -1232,12 +1214,9 @@ describe("wasm-audio-decoders", () => {
           message:
             "libopus -4 OPUS_INVALID_PACKET: The compressed data passed is corrupted",
           frameLength: 234,
-          relativeFrameNumber: 0,
-          relativeInputBytes: 0,
-          relativeOutputSamples: 0,
-          totalFrameNumber: 100,
-          totalInputBytes: 23856,
-          totalOutputSamples: 95688,
+          frameNumber: 100,
+          inputBytes: 23856,
+          outputSamples: 95688,
         },
       ]);
     });
@@ -1632,12 +1611,9 @@ describe("wasm-audio-decoders", () => {
             message:
               "Error: FLAC__STREAM_DECODER_ERROR_STATUS_LOST_SYNC; State: FLAC__STREAM_DECODER_SEARCH_FOR_FRAME_SYNC",
             frameLength: 400,
-            relativeFrameNumber: 5,
-            relativeInputBytes: 11606,
-            relativeOutputSamples: 20480,
-            totalFrameNumber: 5,
-            totalInputBytes: 11606,
-            totalOutputSamples: 20480,
+            frameNumber: 5,
+            inputBytes: 11606,
+            outputSamples: 20480,
           },
         ]);
       });

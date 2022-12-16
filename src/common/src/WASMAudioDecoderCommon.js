@@ -236,23 +236,13 @@ export default function WASMAudioDecoderCommon(decoderInstance) {
     return String.fromCharCode.apply(null, characters);
   };
 
-  this.addError = (
-    errors,
-    message,
-    frameLength,
-    relativeFrameNumber,
-    relativeInputBytes,
-    relativeOutputSamples
-  ) => {
+  this.addError = (errors, message, frameLength) => {
     errors.push({
       message: message,
       frameLength: frameLength,
-      relativeFrameNumber: relativeFrameNumber,
-      relativeInputBytes: relativeInputBytes,
-      relativeOutputSamples: relativeOutputSamples,
-      totalFrameNumber: decoderInstance._totalFrameNumber,
-      totalInputBytes: decoderInstance._totalInputBytes,
-      totalOutputSamples: decoderInstance._totalOutputSamples,
+      frameNumber: decoderInstance._frameNumber,
+      inputBytes: decoderInstance._inputBytes,
+      outputSamples: decoderInstance._outputSamples,
     });
   };
 
@@ -282,9 +272,9 @@ export default function WASMAudioDecoderCommon(decoderInstance) {
           float32Array
         );
 
-      decoderInstance._totalInputBytes = 0;
-      decoderInstance._totalOutputSamples = 0;
-      decoderInstance._totalFrameNumber = 0;
+      decoderInstance._inputBytes = 0;
+      decoderInstance._outputSamples = 0;
+      decoderInstance._frameNumber = 0;
 
       return this;
     });

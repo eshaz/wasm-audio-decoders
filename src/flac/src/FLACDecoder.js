@@ -112,8 +112,6 @@ export function Decoder() {
   this.decodeFrames = (frames) => {
     let outputBuffers = [],
       errors = [],
-      frameNumber = 0,
-      inputBytes = 0,
       outputSamples = 0;
 
     for (let i = 0; i < frames.length; i++) {
@@ -125,27 +123,18 @@ export function Decoder() {
         offset += chunk.length;
 
         const decoded = this._decode(chunk);
-        if (decoded.error)
-          this._common.addError(
-            errors,
-            decoded.error,
-            data.length,
-            frameNumber,
-            inputBytes,
-            outputSamples
-          );
 
         outputBuffers.push(decoded.outputBuffer);
-
-        inputBytes += data.length;
         outputSamples += decoded.samplesDecoded;
 
-        this._totalInputBytes += data.length;
-        this._totalOutputSamples += decoded.samplesDecoded;
+        if (decoded.error)
+          this._common.addError(errors, decoded.error, data.length);
+
+        this._inputBytes += data.length;
+        this._outputSamples += decoded.samplesDecoded;
       }
 
-      frameNumber++;
-      this._totalFrameNumber++;
+      this._frameNumber++;
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(

@@ -1,8 +1,11 @@
+import { DecodeError } from "@wasm-audio-decoders/common/types";
+
 declare module "mpg123-decoder" {
   export interface MPEGDecodedAudio {
     channelData: Float32Array[];
     samplesDecoded: number;
     sampleRate: number;
+    errors: Array<DecodeError>;
   }
 
   export class MPEGDecoder {

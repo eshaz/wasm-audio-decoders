@@ -87,11 +87,22 @@ Decoded audio is always returned in the below structure.
       rightAudio // Float32Array of PCM samples for the right channel
     ],
     samplesDecoded: 1234, // number of PCM samples that were decoded per channel
-    sampleRate: 44100 // sample rate of the decoded PCM
+    sampleRate: 44100, // sample rate of the decoded PCM
+    errors: [ // array containing descriptions for any decode errors
+      {
+        message: "-1 MPG123_ERR",
+        frameLength: 1008, // length of the frame or data in bytes that encountered an error
+        frameNumber: 0, // position of error relative to total frames decoded 
+        inputBytes: 2160, // position of error relative to total input bytes
+        outputSamples: 1152, // position of error relative to total output samples
+      }
+    ]
 }
 ```
 
 Each Float32Array within `channelData` can be used directly in the WebAudio API for playback.
+
+Decoding will proceed through any errors. Any errors encountered may result in gaps in the decoded audio.
 
 ## `MPEGDecoder`
 

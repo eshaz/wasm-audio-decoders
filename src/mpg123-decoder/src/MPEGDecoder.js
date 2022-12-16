@@ -70,21 +70,14 @@ export default function MPEGDecoder(options = {}) {
         error + " " + this._common.codeToString(this._errorStringPtr.buf[0]);
 
       console.error("mpg123-decoder: " + message);
-      this._common.addError(
-        errors,
-        message,
-        this._inputPosition.buf[0],
-        0,
-        0,
-        0
-      );
+      this._common.addError(errors, message, this._inputPosition.buf[0]);
     }
 
     const samplesDecoded = this._samplesDecoded.buf[0];
     this._sampleRate = this._sampleRateBytes.buf[0];
 
-    this._totalInputBytes += this._inputPosition.buf[0];
-    this._totalOutputSamples += samplesDecoded;
+    this._inputBytes += this._inputPosition.buf[0];
+    this._outputSamples += samplesDecoded;
 
     return this._WASMAudioDecoderCommon.getDecodedAudio(
       errors,
@@ -128,7 +121,7 @@ export default function MPEGDecoder(options = {}) {
 
   this.decodeFrame = (mpegFrame) => {
     const decoded = this._decode(mpegFrame, mpegFrame.length);
-    this._totalFrameNumber++;
+    this._frameNumber++;
     return decoded;
   };
 

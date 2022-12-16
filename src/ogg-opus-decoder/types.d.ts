@@ -1,8 +1,11 @@
+import { DecodeError } from "@wasm-audio-decoders/common/types";
+
 declare module "ogg-opus-decoder" {
   export interface OpusDecodedAudio {
     channelData: Float32Array[];
     samplesDecoded: number;
     sampleRate: 48000;
+    errors: Array<DecodeError>;
   }
 
   export class OggOpusDecoder {

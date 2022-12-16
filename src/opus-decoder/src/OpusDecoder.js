@@ -107,11 +107,11 @@ export default function OpusDecoder(options = {}) {
     const decoded = this._decode(opusFrame);
 
     if (decoded.error)
-      this._common.addError(errors, decoded.error, opusFrame.length, 0, 0, 0);
+      this._common.addError(errors, decoded.error, opusFrame.length);
 
-    this._totalFrameNumber++;
-    this._totalInputBytes += opusFrame.length;
-    this._totalOutputSamples += decoded.samplesDecoded;
+    this._frameNumber++;
+    this._inputBytes += opusFrame.length;
+    this._outputSamples += decoded.samplesDecoded;
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
       errors,
@@ -125,40 +125,29 @@ export default function OpusDecoder(options = {}) {
   this.decodeFrames = (opusFrames) => {
     let outputBuffers = [],
       errors = [],
-      frameNumber = 0,
-      inputBytes = 0,
-      outputSamples = 0,
+      samplesDecoded = 0,
       i = 0;
 
     while (i < opusFrames.length) {
       const opusFrame = opusFrames[i++];
       const decoded = this._decode(opusFrame);
 
-      if (decoded.error)
-        this._common.addError(
-          errors,
-          decoded.error,
-          opusFrame.length,
-          frameNumber,
-          inputBytes,
-          outputSamples
-        );
-
       outputBuffers.push(decoded.outputBuffer);
+      samplesDecoded += decoded.samplesDecoded;
 
-      frameNumber++;
-      inputBytes += opusFrame.length;
-      outputSamples += decoded.samplesDecoded;
-      this._totalFrameNumber++;
-      this._totalInputBytes += opusFrame.length;
-      this._totalOutputSamples += decoded.samplesDecoded;
+      if (decoded.error)
+        this._common.addError(errors, decoded.error, opusFrame.length);
+
+      this._frameNumber++;
+      this._inputBytes += opusFrame.length;
+      this._outputSamples += decoded.samplesDecoded;
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
       errors,
       outputBuffers,
       this._outputChannels,
-      outputSamples,
+      samplesDecoded,
       48000
     );
   };
