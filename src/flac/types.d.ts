@@ -6,7 +6,7 @@ declare module "flac-decoder" {
     samplesDecoded: number;
     sampleRate: number;
     bitDepth: number;
-    errors: Array<DecodeError>;
+    errors: DecodeError[];
   }
 
   export class FLACDecoder {

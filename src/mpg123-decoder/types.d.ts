@@ -5,7 +5,7 @@ declare module "mpg123-decoder" {
     channelData: Float32Array[];
     samplesDecoded: number;
     sampleRate: number;
-    errors: Array<DecodeError>;
+    errors: DecodeError[];
   }
 
   export class MPEGDecoder {

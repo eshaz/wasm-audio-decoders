@@ -5,7 +5,7 @@ declare module "ogg-opus-decoder" {
     channelData: Float32Array[];
     samplesDecoded: number;
     sampleRate: 48000;
-    errors: Array<DecodeError>;
+    errors: DecodeError[];
   }
 
   export class OggOpusDecoder {
