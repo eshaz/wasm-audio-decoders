@@ -213,8 +213,8 @@ await buildWasm(
 
 /*
 await searchFileSize(
-  50, // start iteration
-  1000, // stop iteration
+  1, // start iteration
+  500, // stop iteration
   sourcePath,
   outputName,
   module,

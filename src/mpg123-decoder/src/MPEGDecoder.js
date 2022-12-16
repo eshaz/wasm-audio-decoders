@@ -13,8 +13,10 @@ export default function MPEGDecoder(options = {}) {
 
         this._sampleRate = 0;
 
-        this._decodedBytes = this._common.allocateTypedArray(1, Uint32Array);
+        this._inputPosition = this._common.allocateTypedArray(1, Uint32Array);
+        this._samplesDecoded = this._common.allocateTypedArray(1, Uint32Array);
         this._sampleRateBytes = this._common.allocateTypedArray(1, Uint32Array);
+        this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
 
         this._decoder = this._common.wasm._mpeg_frame_decoder_create();
       });
@@ -45,22 +47,40 @@ export default function MPEGDecoder(options = {}) {
       );
 
     this._input.buf.set(data);
-    this._decodedBytes.buf[0] = 0;
+    this._inputPosition.buf[0] = 0;
+    this._samplesDecoded.buf[0] = 0;
 
-    const samplesDecoded = this._common.wasm._mpeg_decode_interleaved(
+    const error = this._common.wasm._mpeg_decode_interleaved(
       this._decoder,
       this._input.ptr,
       data.length,
-      this._decodedBytes.ptr,
+      this._inputPosition.ptr,
       decodeInterval,
       this._output.ptr,
       this._outputChannelSize,
-      this._sampleRateBytes.ptr
+      this._samplesDecoded.ptr,
+      this._sampleRateBytes.ptr,
+      this._errorStringPtr.ptr
     );
 
+    const errors = [];
+
+    if (error) {
+      const message =
+        error + " " + this._common.codeToString(this._errorStringPtr.buf[0]);
+
+      console.error("mpg123-decoder: " + message);
+      this._common.addError(errors, message, this._inputPosition.buf[0]);
+    }
+
+    const samplesDecoded = this._samplesDecoded.buf[0];
     this._sampleRate = this._sampleRateBytes.buf[0];
 
+    this._inputBytes += this._inputPosition.buf[0];
+    this._outputSamples += samplesDecoded;
+
     return this._WASMAudioDecoderCommon.getDecodedAudio(
+      errors,
       [
         this._output.buf.slice(0, samplesDecoded),
         this._output.buf.slice(
@@ -75,20 +95,23 @@ export default function MPEGDecoder(options = {}) {
 
   this.decode = (data) => {
     let output = [],
+      errors = [],
       samples = 0,
       offset = 0;
 
-    for (; offset < data.length; offset += this._decodedBytes.buf[0]) {
+    for (; offset < data.length; offset += this._inputPosition.buf[0]) {
       const decoded = this._decode(
         data.subarray(offset, offset + this._input.len),
         48
       );
 
       output.push(decoded.channelData);
+      errors = errors.concat(decoded.errors);
       samples += decoded.samplesDecoded;
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      errors,
       output,
       2,
       samples,
@@ -97,11 +120,14 @@ export default function MPEGDecoder(options = {}) {
   };
 
   this.decodeFrame = (mpegFrame) => {
-    return this._decode(mpegFrame, mpegFrame.length);
+    const decoded = this._decode(mpegFrame, mpegFrame.length);
+    this._frameNumber++;
+    return decoded;
   };
 
   this.decodeFrames = (mpegFrames) => {
     let output = [],
+      errors = [],
       samples = 0,
       i = 0;
 
@@ -109,10 +135,12 @@ export default function MPEGDecoder(options = {}) {
       const decoded = this.decodeFrame(mpegFrames[i++]);
 
       output.push(decoded.channelData);
+      errors = errors.concat(decoded.errors);
       samples += decoded.samplesDecoded;
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      errors,
       output,
       2,
       samples,

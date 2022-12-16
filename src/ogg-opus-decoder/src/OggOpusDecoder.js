@@ -7,6 +7,7 @@ class DecoderState {
     this._instance = instance;
 
     this._decoderOperations = [];
+    this._errors = [];
     this._decoded = [];
     this._channelsDecoded = 0;
     this._totalSamples = 0;
@@ -16,6 +17,7 @@ class DecoderState {
     return this._instance.ready
       .then(() => Promise.all(this._decoderOperations))
       .then(() => [
+        this._errors,
         this._decoded,
         this._channelsDecoded,
         this._totalSamples,
@@ -32,10 +34,11 @@ class DecoderState {
   }
 
   async _sendToDecoder(frames) {
-    const { channelData, samplesDecoded } =
+    const { channelData, samplesDecoded, errors } =
       await this._instance._decoder.decodeFrames(frames);
 
     this._decoded.push(channelData);
+    this._errors = this._errors.concat(errors);
     this._totalSamples += samplesDecoded;
     this._channelsDecoded = channelData.length;
   }

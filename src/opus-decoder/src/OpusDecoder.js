@@ -23,29 +23,26 @@ export default function OpusDecoder(options = {}) {
 
   // injects dependencies when running as a web worker
   // async
-  this._init = () => {
-    return new this._WASMAudioDecoderCommon(this)
-      .instantiate()
-      .then((common) => {
-        this._common = common;
+  this._init = () =>
+    new this._WASMAudioDecoderCommon(this).instantiate().then((common) => {
+      this._common = common;
 
-        const mapping = this._common.allocateTypedArray(
-          this._channels,
-          Uint8Array
-        );
+      const mapping = this._common.allocateTypedArray(
+        this._channels,
+        Uint8Array
+      );
 
-        mapping.buf.set(this._channelMappingTable);
+      mapping.buf.set(this._channelMappingTable);
 
-        this._decoder = this._common.wasm._opus_frame_decoder_create(
-          this._channels,
-          this._streamCount,
-          this._coupledStreamCount,
-          mapping.ptr,
-          this._preSkip,
-          this._forceStereo
-        );
-      });
-  };
+      this._decoder = this._common.wasm._opus_frame_decoder_create(
+        this._channels,
+        this._streamCount,
+        this._coupledStreamCount,
+        mapping.ptr,
+        this._preSkip,
+        this._forceStereo
+      );
+    });
 
   Object.defineProperty(this, "ready", {
     enumerable: true,
@@ -72,7 +69,7 @@ export default function OpusDecoder(options = {}) {
 
     this._input.buf.set(opusFrame);
 
-    const samplesDecoded =
+    let samplesDecoded =
       this._common.wasm._opus_frame_decode_float_deinterleaved(
         this._decoder,
         this._input.ptr,
@@ -80,14 +77,17 @@ export default function OpusDecoder(options = {}) {
         this._output.ptr
       );
 
+    let error;
+
     if (samplesDecoded < 0) {
-      console.error(
+      error =
         "libopus " +
-          samplesDecoded +
-          " " +
-          (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error")
-      );
-      return 0;
+        samplesDecoded +
+        " " +
+        (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error");
+
+      console.error(error);
+      samplesDecoded = 0;
     }
 
     return {
@@ -97,13 +97,24 @@ export default function OpusDecoder(options = {}) {
         samplesDecoded
       ),
       samplesDecoded: samplesDecoded,
+      error: error,
     };
   };
 
   this.decodeFrame = (opusFrame) => {
+    let errors = [];
+
     const decoded = this._decode(opusFrame);
 
+    if (decoded.error)
+      this._common.addError(errors, decoded.error, opusFrame.length);
+
+    this._frameNumber++;
+    this._inputBytes += opusFrame.length;
+    this._outputSamples += decoded.samplesDecoded;
+
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      errors,
       [decoded.outputBuffer],
       this._outputChannels,
       decoded.samplesDecoded,
@@ -113,19 +124,30 @@ export default function OpusDecoder(options = {}) {
 
   this.decodeFrames = (opusFrames) => {
     let outputBuffers = [],
-      outputSamples = 0,
+      errors = [],
+      samplesDecoded = 0,
       i = 0;
 
     while (i < opusFrames.length) {
-      const decoded = this._decode(opusFrames[i++]);
+      const opusFrame = opusFrames[i++];
+      const decoded = this._decode(opusFrame);
+
       outputBuffers.push(decoded.outputBuffer);
-      outputSamples += decoded.samplesDecoded;
+      samplesDecoded += decoded.samplesDecoded;
+
+      if (decoded.error)
+        this._common.addError(errors, decoded.error, opusFrame.length);
+
+      this._frameNumber++;
+      this._inputBytes += opusFrame.length;
+      this._outputSamples += decoded.samplesDecoded;
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+      errors,
       outputBuffers,
       this._outputChannels,
-      outputSamples,
+      samplesDecoded,
       48000
     );
   };

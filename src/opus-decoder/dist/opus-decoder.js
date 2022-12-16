@@ -4,7 +4,7 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["opus-decoder"] = {}, global.Worker));
 })(this, (function (exports, Worker) { 'use strict';
 
-  function WASMAudioDecoderCommon(caller) {
+  function WASMAudioDecoderCommon(decoderInstance) {
     // setup static methods
     const uint8Array = Uint8Array;
     const float32Array = Float32Array;
@@ -60,7 +60,8 @@
         },
 
         getDecodedAudio: {
-          value: (channelData, samplesDecoded, sampleRate, bitDepth) => ({
+          value: (errors, channelData, samplesDecoded, sampleRate, bitDepth) => ({
+            errors,
             channelData,
             samplesDecoded,
             sampleRate,
@@ -69,7 +70,14 @@
         },
 
         getDecodedAudioMultiChannel: {
-          value(input, channelsDecoded, samplesDecoded, sampleRate, bitDepth) {
+          value(
+            errors,
+            input,
+            channelsDecoded,
+            samplesDecoded,
+            sampleRate,
+            bitDepth
+          ) {
             let channelData = [],
               i,
               j;
@@ -83,6 +91,7 @@
             }
 
             return WASMAudioDecoderCommon.getDecodedAudio(
+              errors,
               channelData,
               samplesDecoded,
               sampleRate,
@@ -217,19 +226,38 @@
       };
     };
 
-    this.free = (ptr) => {
+    this.free = () => {
       this._pointers.forEach((ptr) => {
         this._wasm._free(ptr);
       });
       this._pointers.clear();
     };
 
+    this.codeToString = (ptr) => {
+      const characters = [],
+        heap = new Uint8Array(this._wasm.HEAP);
+      for (let character = heap[ptr]; character !== 0; character = heap[++ptr])
+        characters.push(character);
+
+      return String.fromCharCode.apply(null, characters);
+    };
+
+    this.addError = (errors, message, frameLength) => {
+      errors.push({
+        message: message,
+        frameLength: frameLength,
+        frameNumber: decoderInstance._frameNumber,
+        inputBytes: decoderInstance._inputBytes,
+        outputSamples: decoderInstance._outputSamples,
+      });
+    };
+
     this.instantiate = () => {
-      const _module = caller._module;
-      const _EmscriptenWASM = caller._EmscriptenWASM;
-      const _inputSize = caller._inputSize;
-      const _outputChannels = caller._outputChannels;
-      const _outputChannelSize = caller._outputChannelSize;
+      const _module = decoderInstance._module;
+      const _EmscriptenWASM = decoderInstance._EmscriptenWASM;
+      const _inputSize = decoderInstance._inputSize;
+      const _outputChannels = decoderInstance._outputChannels;
+      const _outputChannelSize = decoderInstance._outputChannelSize;
 
       if (_module) WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
 
@@ -238,14 +266,21 @@
 
       return this._wasm.ready.then(() => {
         if (_inputSize)
-          caller._input = this.allocateTypedArray(_inputSize, uint8Array);
+          decoderInstance._input = this.allocateTypedArray(
+            _inputSize,
+            uint8Array
+          );
 
         // output buffer
         if (_outputChannelSize)
-          caller._output = this.allocateTypedArray(
+          decoderInstance._output = this.allocateTypedArray(
             _outputChannels * _outputChannelSize,
             float32Array
           );
+
+        decoderInstance._inputBytes = 0;
+        decoderInstance._outputSamples = 0;
+        decoderInstance._frameNumber = 0;
 
         return this;
       });
@@ -713,29 +748,26 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
 
     // injects dependencies when running as a web worker
     // async
-    this._init = () => {
-      return new this._WASMAudioDecoderCommon(this)
-        .instantiate()
-        .then((common) => {
-          this._common = common;
+    this._init = () =>
+      new this._WASMAudioDecoderCommon(this).instantiate().then((common) => {
+        this._common = common;
 
-          const mapping = this._common.allocateTypedArray(
-            this._channels,
-            Uint8Array
-          );
+        const mapping = this._common.allocateTypedArray(
+          this._channels,
+          Uint8Array
+        );
 
-          mapping.buf.set(this._channelMappingTable);
+        mapping.buf.set(this._channelMappingTable);
 
-          this._decoder = this._common.wasm._opus_frame_decoder_create(
-            this._channels,
-            this._streamCount,
-            this._coupledStreamCount,
-            mapping.ptr,
-            this._preSkip,
-            this._forceStereo
-          );
-        });
-    };
+        this._decoder = this._common.wasm._opus_frame_decoder_create(
+          this._channels,
+          this._streamCount,
+          this._coupledStreamCount,
+          mapping.ptr,
+          this._preSkip,
+          this._forceStereo
+        );
+      });
 
     Object.defineProperty(this, "ready", {
       enumerable: true,
@@ -762,7 +794,7 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
 
       this._input.buf.set(opusFrame);
 
-      const samplesDecoded =
+      let samplesDecoded =
         this._common.wasm._opus_frame_decode_float_deinterleaved(
           this._decoder,
           this._input.ptr,
@@ -770,14 +802,17 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
           this._output.ptr
         );
 
+      let error;
+
       if (samplesDecoded < 0) {
-        console.error(
+        error =
           "libopus " +
-            samplesDecoded +
-            " " +
-            (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error")
-        );
-        return 0;
+          samplesDecoded +
+          " " +
+          (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error");
+
+        console.error(error);
+        samplesDecoded = 0;
       }
 
       return {
@@ -787,13 +822,24 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
           samplesDecoded
         ),
         samplesDecoded: samplesDecoded,
+        error: error,
       };
     };
 
     this.decodeFrame = (opusFrame) => {
+      let errors = [];
+
       const decoded = this._decode(opusFrame);
 
+      if (decoded.error)
+        this._common.addError(errors, decoded.error, opusFrame.length);
+
+      this._frameNumber++;
+      this._inputBytes += opusFrame.length;
+      this._outputSamples += decoded.samplesDecoded;
+
       return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+        errors,
         [decoded.outputBuffer],
         this._outputChannels,
         decoded.samplesDecoded,
@@ -803,19 +849,30 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
 
     this.decodeFrames = (opusFrames) => {
       let outputBuffers = [],
-        outputSamples = 0,
+        errors = [],
+        samplesDecoded = 0,
         i = 0;
 
       while (i < opusFrames.length) {
-        const decoded = this._decode(opusFrames[i++]);
+        const opusFrame = opusFrames[i++];
+        const decoded = this._decode(opusFrame);
+
         outputBuffers.push(decoded.outputBuffer);
-        outputSamples += decoded.samplesDecoded;
+        samplesDecoded += decoded.samplesDecoded;
+
+        if (decoded.error)
+          this._common.addError(errors, decoded.error, opusFrame.length);
+
+        this._frameNumber++;
+        this._inputBytes += opusFrame.length;
+        this._outputSamples += decoded.samplesDecoded;
       }
 
       return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
+        errors,
         outputBuffers,
         this._outputChannels,
-        outputSamples,
+        samplesDecoded,
         48000
       );
     };

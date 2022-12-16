@@ -26,15 +26,17 @@ int mpeg_decode_interleaved(
     size_t in_read_chunk_size, // interval of bytes to read from input data
     float *out, // pointer to save the output
     size_t decode_buffer_size, // output audio buffer size
-    unsigned int *sample_rate // pointer to save the sample rate
+    unsigned int *samples_decoded, // pointer to save samples decoded
+    unsigned int *sample_rate, // pointer to save the sample rate
+    char **error_string_ptr // error string
 ) {
     in_read_chunk_size = in_size > in_read_chunk_size ? in_read_chunk_size : in_size;
-    int samples_decoded = 0;
+    int error_code;
 
-    while (*in_read_pos + in_read_chunk_size <= in_size && samples_decoded < decode_buffer_size) {
+    while (*in_read_pos + in_read_chunk_size <= in_size && *samples_decoded < decode_buffer_size) {
         size_t bytes_decoded = 0;
 
-        int mpg123_error_code = mpg123_decode(
+        error_code = mpg123_decode(
             decoder->mh, 
             in + *in_read_pos, 
             in_read_chunk_size, 
@@ -47,12 +49,19 @@ int mpeg_decode_interleaved(
     
         // deinterleave pcm
         for (int i=current_samples_decoded-1; i>=0; i--) {
-            out[i+samples_decoded] = decoder->pcm.floats[i*2];
-            out[i+samples_decoded+decode_buffer_size] = decoder->pcm.floats[i*2+1];
+            out[i+*samples_decoded] = decoder->pcm.floats[i*2];
+            out[i+*samples_decoded+decode_buffer_size] = decoder->pcm.floats[i*2+1];
         }
 
-        samples_decoded += current_samples_decoded;
+        *samples_decoded += current_samples_decoded;
         *in_read_pos += in_read_chunk_size;
+
+        if (error_code != MPG123_OK && error_code >= MPG123_ERR) {
+            *error_string_ptr = error_messages[error_code + 1];
+            break;
+        } else {
+            error_code = 0;
+        }
     }
 
     // shows decoding stats for each iteration
@@ -62,7 +71,7 @@ int mpeg_decode_interleaved(
     mpg123_info(decoder->mh, &decoder->fr);
     *sample_rate = (int) decoder->fr.rate;
 
-    return samples_decoded;
+    return error_code;
 }
 
 void mpeg_frame_decoder_destroy(MPEGFrameDecoder *decoder) {

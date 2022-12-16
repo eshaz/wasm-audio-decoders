@@ -1,9 +1,12 @@
+import { DecodeError } from "@wasm-audio-decoders/common/types";
+
 declare module "flac-decoder" {
   export interface FLACDecodedAudio {
     channelData: Float32Array[];
     samplesDecoded: number;
     sampleRate: number;
     bitDepth: number;
+    errors: DecodeError[];
   }
 
   export class FLACDecoder {

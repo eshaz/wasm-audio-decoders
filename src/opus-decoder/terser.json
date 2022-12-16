@@ -29,7 +29,12 @@
         "reset",
         "channelData",
         "samplesDecoded",
-        "bitDepth"
+        "bitDepth",
+        "message",
+        "frameLength",
+        "frameNumber",
+        "inputBytes",
+        "outputSamples"
       ]
     }
   },

@@ -1,4 +1,4 @@
-export default function WASMAudioDecoderCommon(caller) {
+export default function WASMAudioDecoderCommon(decoderInstance) {
   // setup static methods
   const uint8Array = Uint8Array;
   const float32Array = Float32Array;
@@ -54,7 +54,8 @@ export default function WASMAudioDecoderCommon(caller) {
       },
 
       getDecodedAudio: {
-        value: (channelData, samplesDecoded, sampleRate, bitDepth) => ({
+        value: (errors, channelData, samplesDecoded, sampleRate, bitDepth) => ({
+          errors,
           channelData,
           samplesDecoded,
           sampleRate,
@@ -63,7 +64,14 @@ export default function WASMAudioDecoderCommon(caller) {
       },
 
       getDecodedAudioMultiChannel: {
-        value(input, channelsDecoded, samplesDecoded, sampleRate, bitDepth) {
+        value(
+          errors,
+          input,
+          channelsDecoded,
+          samplesDecoded,
+          sampleRate,
+          bitDepth
+        ) {
           let channelData = [],
             i,
             j;
@@ -77,6 +85,7 @@ export default function WASMAudioDecoderCommon(caller) {
           }
 
           return WASMAudioDecoderCommon.getDecodedAudio(
+            errors,
             channelData,
             samplesDecoded,
             sampleRate,
@@ -211,19 +220,38 @@ export default function WASMAudioDecoderCommon(caller) {
     };
   };
 
-  this.free = (ptr) => {
+  this.free = () => {
     this._pointers.forEach((ptr) => {
       this._wasm._free(ptr);
     });
     this._pointers.clear();
   };
 
+  this.codeToString = (ptr) => {
+    const characters = [],
+      heap = new Uint8Array(this._wasm.HEAP);
+    for (let character = heap[ptr]; character !== 0; character = heap[++ptr])
+      characters.push(character);
+
+    return String.fromCharCode.apply(null, characters);
+  };
+
+  this.addError = (errors, message, frameLength) => {
+    errors.push({
+      message: message,
+      frameLength: frameLength,
+      frameNumber: decoderInstance._frameNumber,
+      inputBytes: decoderInstance._inputBytes,
+      outputSamples: decoderInstance._outputSamples,
+    });
+  };
+
   this.instantiate = () => {
-    const _module = caller._module;
-    const _EmscriptenWASM = caller._EmscriptenWASM;
-    const _inputSize = caller._inputSize;
-    const _outputChannels = caller._outputChannels;
-    const _outputChannelSize = caller._outputChannelSize;
+    const _module = decoderInstance._module;
+    const _EmscriptenWASM = decoderInstance._EmscriptenWASM;
+    const _inputSize = decoderInstance._inputSize;
+    const _outputChannels = decoderInstance._outputChannels;
+    const _outputChannelSize = decoderInstance._outputChannelSize;
 
     if (_module) WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
 
@@ -232,14 +260,21 @@ export default function WASMAudioDecoderCommon(caller) {
 
     return this._wasm.ready.then(() => {
       if (_inputSize)
-        caller._input = this.allocateTypedArray(_inputSize, uint8Array);
+        decoderInstance._input = this.allocateTypedArray(
+          _inputSize,
+          uint8Array
+        );
 
       // output buffer
       if (_outputChannelSize)
-        caller._output = this.allocateTypedArray(
+        decoderInstance._output = this.allocateTypedArray(
           _outputChannels * _outputChannelSize,
           float32Array
         );
+
+      decoderInstance._inputBytes = 0;
+      decoderInstance._outputSamples = 0;
+      decoderInstance._frameNumber = 0;
 
       return this;
     });
