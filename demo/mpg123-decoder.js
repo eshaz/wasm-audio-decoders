@@ -2,7 +2,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@eshaz/web-worker')) :
   typeof define === 'function' && define.amd ? define(['exports', '@eshaz/web-worker'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["mpg123-decoder"] = {}, global.Worker));
-})(this, (function (exports, Worker) { 'use strict';
+})(this, (function (exports, NodeWorker) { 'use strict';
 
   function WASMAudioDecoderCommon(decoderInstance) {
     // setup static methods
@@ -287,7 +287,9 @@
     };
   }
 
-  class WASMAudioDecoderWorker extends Worker {
+  const getWorker = () => globalThis.Worker || NodeWorker;
+
+  class WASMAudioDecoderWorker extends getWorker() {
     constructor(options, name, Decoder, EmscriptenWASM) {
       if (!WASMAudioDecoderCommon.modules) new WASMAudioDecoderCommon();
 

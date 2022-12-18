@@ -1,6 +1,6 @@
 {
   "name": "@wasm-audio-decoders/flac",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Web Assembly streaming FLAC decoder",
   "type": "module",
   "main": "./index.js",
@@ -47,7 +47,7 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "@wasm-audio-decoders/common": "6.0.0",
+    "@wasm-audio-decoders/common": "6.0.1",
     "codec-parser": "2.2.0"
   }
 }

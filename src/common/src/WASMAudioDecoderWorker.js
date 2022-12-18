@@ -1,7 +1,9 @@
-import Worker from "@eshaz/web-worker";
+import NodeWorker from "@eshaz/web-worker";
 import WASMAudioDecoderCommon from "./WASMAudioDecoderCommon.js";
 
-export default class WASMAudioDecoderWorker extends Worker {
+const getWorker = () => globalThis.Worker || NodeWorker;
+
+export default class WASMAudioDecoderWorker extends getWorker() {
   constructor(options, name, Decoder, EmscriptenWASM) {
     if (!WASMAudioDecoderCommon.modules) new WASMAudioDecoderCommon();
 
