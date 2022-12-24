@@ -6,6 +6,7 @@
   "main": "index.js",
   "files": [
     "index.js",
+    "types.d.ts",
     "src/*"
   ],
   "repository": {
