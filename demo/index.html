@@ -385,7 +385,7 @@
                     <input
                       type="file"
                       id="file-selector"
-                      accept=".mp3, .mp2, .mp1, .mpg, .ogg, .opus, .flac"
+                      accept="*"
                       multiple="true"
                       style="display: none"
                     />
@@ -757,34 +757,63 @@
         );
       }
 
-      async getDecoder(mimeType, fileSize) {
+      async getDecoder(mimeType, extension, fileSize) {
         let DecoderClass, decoderStats, decoderMethod;
+
+        const mpegDecoder = () => {
+          DecoderClass = this._useMainThread
+            ? MPEGDecoder
+            : MPEGDecoderWebWorker;
+          decoderStats = this._mpegDecoderStats;
+          decoderMethod = "decode";
+        };
+
+        const flacDecoder = () => {
+          DecoderClass = this._useMainThread
+            ? FLACDecoder
+            : FLACDecoderWebWorker;
+          decoderStats = this._flacDecoderStats;
+          decoderMethod = "decodeFile";
+        };
+
+        const oggOpusDecoder = () => {
+          DecoderClass = this._useMainThread
+            ? OggOpusDecoder
+            : OggOpusDecoderWebWorker;
+          decoderStats = this._opusDecoderStats;
+          decoderMethod = "decodeFile";
+        };
 
         switch (mimeType) {
           case "audio/mpeg":
-            DecoderClass = this._useMainThread
-              ? MPEGDecoder
-              : MPEGDecoderWebWorker;
-            decoderStats = this._mpegDecoderStats;
-            decoderMethod = "decode";
+            mpegDecoder();
             break;
           case "audio/flac":
-            DecoderClass = this._useMainThread
-              ? FLACDecoder
-              : FLACDecoderWebWorker;
-            decoderStats = this._flacDecoderStats;
-            decoderMethod = "decodeFile";
+            flacDecoder();
             break;
           case "video/ogg":
           case "audio/ogg":
-            DecoderClass = this._useMainThread
-              ? OggOpusDecoder
-              : OggOpusDecoderWebWorker;
-            decoderStats = this._opusDecoderStats;
-            decoderMethod = "decodeFile";
+            oggOpusDecoder();
             break;
           default:
-            throw new Error(`Unsupported file type ${mimeType}`);
+            switch (extension) {
+              case "mp3":
+              case "mp2":
+              case "mpeg":
+                mpegDecoder();
+                break;
+              case "flac":
+                flacDecoder();
+                break;
+              case "ogg":
+              case "opus":
+                oggOpusDecoder();
+                break;
+              default:
+                throw new Error(
+                  `Unsupported file type ${mimeType} with extension ${extension}`
+                );
+            }
         }
 
         let decoderEntry = this._getNextDecoder(DecoderClass);
@@ -906,12 +935,13 @@
       const decodeOperations = [];
 
       for (const { buffer, name, type, size } of files) {
+        const extension = name.split(".").at(-1);
         const { rowEl, statusEl, decoderEl } = setFileStatus(name);
 
         decodeOperations.push(
           buffer.then((data) =>
             decoderPool
-              .getDecoder(type, size)
+              .getDecoder(type, extension, size)
               .then(async ({ decoder, decoderMethod, index, allocated }) => {
                 rowEl.style = "background-color: rgba(255, 255, 0, .5)";
                 statusEl.innerHTML = `queued`;
@@ -957,7 +987,48 @@
       });
     };
 
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
+
+    // statically initialize audio context and start using a DOM event
+    if (AudioContext) {
+      const audioCtxErrorHandler = (e) => {
+        console.error(
+          "Failed to start the AudioContext. WebAudio playback will not be possible.",
+          e
+        );
+      };
+
+      // hack for iOS Audio element controls support
+      // iOS will only enable AudioContext.resume() when called directly from a UI event
+      // https://stackoverflow.com/questions/57510426
+      const events = ["touchstart", "touchend", "mousedown", "keydown"];
+
+      const unlock = () => {
+        events.forEach((e) => document.removeEventListener(e, unlock));
+
+        audioCtx = new AudioContext({
+          latencyHint: "interactive",
+        });
+
+        audioCtx
+          .resume()
+          .then(() => {
+            // hack for iOS to continue playing while locked
+            audioCtx.onstatechange = () => {
+              if (audioCtx.state !== "running")
+                audioCtx.resume().catch(audioCtxErrorHandler);
+            };
+          })
+          .catch(audioCtxErrorHandler);
+
+        audioCtx.destination.channelCount =
+          audioCtx.destination.maxChannelCount;
+      };
+
+      events.forEach((e) => document.addEventListener(e, unlock));
+    }
+
     const PLAY = "▶";
     const STOP = "■";
 
@@ -971,15 +1042,6 @@
 
     class WebAudioPlayer {
       constructor(name) {
-        if (!audioCtx) {
-          audioCtx = new AudioContext();
-          audioCtx.onstatechange = () => {
-            if (audioCtx !== "running") audioCtx.resume();
-          };
-          audioCtx.destination.channelCount =
-            audioCtx.destination.maxChannelCount;
-        }
-
         this.name = name;
         this.playbackEl = filesToDecodeContainerEl.shadowRoot.getElementById(
           "_play-" + this.name
