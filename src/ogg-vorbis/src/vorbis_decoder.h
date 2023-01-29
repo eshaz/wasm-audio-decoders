@@ -20,13 +20,12 @@ typedef struct {
 
     int *errors_len;
     char **errors;
+    int errors_max;
 } OggVorbisDecoder;
 
 static void set_current_packet(
     OggVorbisDecoder *decoder,
-    long first_page_flag,
-    long last_page_flag,
-    ogg_int64_t granulepos
+    long first_page_flag
 );
 
 OggVorbisDecoder *create_decoder(
@@ -39,24 +38,19 @@ OggVorbisDecoder *create_decoder(
     long *sample_rate,
     int *samples_decoded,
     char **errors,
-    int *errors_len
+    int *errors_len,
+    int errors_max
 );
 
 void send_setup(
     OggVorbisDecoder *decoder,
-    long first_page_flag,
-    long last_page_flag,
-    ogg_int64_t granulepos
+    long first_page_flag
 );
 
 void init_dsp(OggVorbisDecoder *decoder);
 
 void decode_packets(
-    OggVorbisDecoder *decoder,
-    /* Ogg Page information */
-    long first_page_flag,
-    long last_page_flag,
-    ogg_int64_t granulepos
+    OggVorbisDecoder *decoder
 );
 
 void destroy_decoder(

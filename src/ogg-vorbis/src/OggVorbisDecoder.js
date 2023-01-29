@@ -21,10 +21,8 @@ export function Decoder() {
         this._sampleRate = this._common.allocateTypedArray(1, Uint32Array);
         this._samplesDecoded = this._common.allocateTypedArray(1, Uint32Array);
 
-        this._errors = this._common.allocateTypedArray(
-          1024 * 1024,
-          Uint32Array
-        );
+        const maxErrors = 128 * 2;
+        this._errors = this._common.allocateTypedArray(maxErrors, Uint32Array);
         this._errorsLength = this._common.allocateTypedArray(1, Int32Array);
 
         this._decoder = this._common.wasm._create_decoder(
@@ -35,7 +33,8 @@ export function Decoder() {
           this._sampleRate.ptr,
           this._samplesDecoded.ptr,
           this._errors.ptr,
-          this._errorsLength.ptr
+          this._errorsLength.ptr,
+          maxErrors
         );
 
         this._vorbisSetupInProgress = true;
@@ -54,26 +53,23 @@ export function Decoder() {
   };
 
   this.free = () => {
-    //this._common.wasm._destroy_decoder(this._decoder);
-    //this._common.free();
+    this._common.wasm._destroy_decoder(this._decoder);
+    this._common.free();
   };
 
   this._sendSetupHeader = (oggPage, data) => {
     this._input.buf.set(data);
     this._inputLen.buf[0] = data.length;
 
-    this._common.wasm._send_setup(
-      this._decoder,
-      oggPage.isFirstPage ? 1 : 0,
-      oggPage.isLastPage ? 1 : 0,
-      Number(oggPage.absoluteGranulePosition)
-    );
+    this._common.wasm._send_setup(this._decoder, oggPage.isFirstPage);
   };
 
   this.decodeFrames = (oggPages) => {
     let outputBuffers = [],
       outputSamples = 0,
       errors = [];
+
+    console.log(oggPages);
 
     for (let i = 0; i < oggPages.length; i++) {
       const oggPage = oggPages[i];
@@ -87,32 +83,30 @@ export function Decoder() {
 
           this._sendSetupHeader(oggPage, header.vorbisComments);
           this._sendSetupHeader(oggPage, header.vorbisSetup);
-          // init the vorbis dsp after all setup data is sent
           this._common.wasm._init_dsp(this._decoder);
 
           this._vorbisSetupInProgress = false;
         }
 
-        for (const frame of oggPage.codecFrames) {
-          this._input.buf.set(frame.data);
-          this._inputLen.buf[0] = frame.data.length;
+        for (
+          let packetIdx = 0;
+          packetIdx < oggPage.codecFrames.length;
+          packetIdx++
+        ) {
+          const packet = oggPage.codecFrames[packetIdx];
+          this._input.buf.set(packet.data);
+          this._inputLen.buf[0] = packet.data.length;
 
-          this._common.wasm._decode_packets(
-            this._decoder,
-            oggPage.isFirstPage,
-            oggPage.isLastPage,
-            Number(oggPage.absoluteGranulePosition)
-          );
+          this._common.wasm._decode_packets(this._decoder);
 
           const samplesDecoded = this._samplesDecoded.buf[0];
-
           const channels = [];
+
           const outputBufferChannels = new Uint32Array(
             this._common.wasm.HEAP,
             this._outputBufferPtr.buf[0],
-            255
+            256
           );
-
           for (let channel = 0; channel < this._channels.buf[0]; channel++) {
             const output = new Float32Array(samplesDecoded);
             output.set(
@@ -130,11 +124,17 @@ export function Decoder() {
           outputSamples += samplesDecoded;
         }
       }
-    }
 
-    if (this._errorsLength.buf > 0) {
-      for (let i = 0; i < this._errorsLength.buf; i++)
-        errors.push(this._common.codeToString(this._errors.buf[i]));
+      // handle any errors that may have occurred
+      for (let i = 0; i < this._errorsLength.buf; i += 2)
+        errors.push(
+          this._common.codeToString(this._errors.buf[i]) +
+            " " +
+            this._common.codeToString(this._errors.buf[i + 1])
+        );
+
+      // clear the error buffer
+      this._errorsLength.buf[0] = 0;
     }
 
     return this._WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
@@ -153,8 +153,6 @@ export function Decoder() {
     Decoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
   this._EmscriptenWASM = Decoder.EmscriptenWASM || EmscriptenWASM;
   this._module = Decoder.module;
-
-  this._MAX_INPUT_SIZE = 65535 * 8;
 
   this._ready = this._init();
 
@@ -180,7 +178,6 @@ export default class OggVorbisDecoder {
   }
 
   _init() {
-    this._vorbisInit = false;
     this._codecParser = new CodecParser("audio/ogg", {
       onCodec: this._onCodec,
       enableFrameCRC32: false,
