@@ -1,20 +1,22 @@
 default: dist
 
-clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean mpg123-wasmlib-clean configures-clean
+clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean configures-clean
 
 DEMO_PATH=demo/
 
-dist: flac-decoder opus-decoder ogg-opus-decoder mpg123-decoder
+dist: flac-decoder opus-decoder ogg-opus-decoder ogg-vorbis-decoder mpg123-decoder
 dist-clean:
 	rm -rf $(DEMO_PATH)*.js
 	rm -rf $(FLAC_DECODER_PATH)dist/*
 	rm -rf $(OPUS_DECODER_PATH)dist/*
 	rm -rf $(OGG_OPUS_DECODER_PATH)dist/*
 	rm -rf $(MPG123_DECODER_PATH)dist/*
+	rm -rf $(OGG_VORBIS_DECODER_PATH)dist/*
 	rm -rf $(PUFF_EMSCRIPTEN_BUILD)
 	rm -rf $(FLAC_EMSCRIPTEN_BUILD)
 	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
+	rm -rf $(OGG_VORBIS_EMSCRIPTEN_BUILD)
 
 # puff
 COMMON_PATH=src/common/
@@ -43,6 +45,37 @@ flac-decoder-minify: $(FLAC_EMSCRIPTEN_BUILD)
 flac-wasmlib: $(FLAC_WASM_LIB)
 flac-wasmlib-clean: dist-clean
 	rm -rf $(FLAC_WASM_LIB)
+
+# @wasm-audio-decoders/ogg-vorbis
+OGG_SRC=modules/ogg/
+VORBIS_SRC=modules/vorbis/
+OGG_VORBIS_DECODER_PATH=src/ogg-vorbis/
+OGG_VORBIS_EMSCRIPTEN_BUILD=$(OGG_VORBIS_DECODER_PATH)src/EmscriptenWasm.tmp.js
+OGG_VORBIS_DECODER_MODULE=$(OGG_VORBIS_DECODER_PATH)dist/ogg-vorbis-decoder.js
+OGG_VORBIS_DECODER_MODULE_MIN=$(OGG_VORBIS_DECODER_PATH)dist/ogg-vorbis-decoder.min.js
+
+ogg-vorbis-decoder: ogg-vorbis-decoder-minify $(OGG_VORBIS_EMSCRIPTEN_BUILD)
+ogg-vorbis-decoder-minify: $(OGG_VORBIS_EMSCRIPTEN_BUILD)
+	SOURCE_PATH=$(OGG_VORBIS_DECODER_PATH) \
+	OUTPUT_NAME=EmscriptenWasm \
+	MODULE=$(OGG_VORBIS_DECODER_MODULE) \
+	MODULE_MIN=$(OGG_VORBIS_DECODER_MODULE_MIN) \
+	COMPRESSION_ITERATIONS=11 \
+	npm run minify
+	cp $(OGG_VORBIS_DECODER_MODULE) $(OGG_VORBIS_DECODER_MODULE_MIN) $(OGG_VORBIS_DECODER_MODULE_MIN).map $(DEMO_PATH)
+
+# libvorbis
+VORBIS_WASM_LIB=$(VORBIS_SRC)lib/.libs/libvorbis.a
+vorbis-wasmlib: $(VORBIS_WASM_LIB) ogg-wasmlib
+vorbis-wasmlib-clean: dist-clean
+	rm -rf $(VORBIS_WASM_LIB)
+	cd modules/vorbis; emmake make clean
+
+# libogg
+OGG_WASM_LIB=$(OGG_SRC)src/.libs/libogg.a
+ogg-wasmlib: $(OGG_WASM_LIB)
+ogg-wasmlib-clean: dist-clean
+	rm -rf $(OGG_WASM_LIB)
 
 # ogg-opus-decoder
 OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder/
@@ -123,6 +156,7 @@ define EMCC_OPTS
 -s NO_FILESYSTEM=1 \
 -s ENVIRONMENT=web,worker \
 -s STRICT=1 \
+-s LLD_REPORT_UNDEFINED \
 -s INCOMING_MODULE_JS_API="[]"
 endef
 
@@ -235,6 +269,78 @@ flac-configure:
 	  --disable-avx \
 	  --host=wasm32-unknown-emscripten
 	cd $(FLAC_SRC); rm a.wasm 
+
+# -------------------------
+# @wasm-audio-decoders/ogg-vorbis
+# -------------------------
+define OGG_VORBIS_EMCC_OPTS
+-s JS_MATH \
+--no-entry \
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  , '_create_decoder' \
+  , '_send_setup' \
+  , '_init_dsp' \
+  , '_decode_packets' \
+  , '_destroy_decoder' \
+]" \
+--pre-js '$(OGG_VORBIS_DECODER_PATH)src/emscripten-pre.js' \
+--post-js '$(OGG_VORBIS_DECODER_PATH)src/emscripten-post.js' \
+-I "$(OGG_SRC)include" \
+-I "$(VORBIS_SRC)include/vorbis" \
+$(OGG_VORBIS_DECODER_PATH)src/vorbis_decoder.c
+endef
+
+$(OGG_VORBIS_EMSCRIPTEN_BUILD): $(VORBIS_WASM_LIB)
+	@ mkdir -p $(OGG_VORBIS_DECODER_PATH)dist
+	@ echo "Building Emscripten WebAssembly module $(OGG_VORBIS_EMSCRIPTEN_BUILD)..."
+	@ emcc \
+		-o "$(OGG_VORBIS_EMSCRIPTEN_BUILD)" \
+	  ${EMCC_OPTS} \
+	  $(OGG_VORBIS_EMCC_OPTS) \
+	  $(VORBIS_WASM_LIB) \
+	  $(OGG_WASM_LIB)
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built JS Module: $(OGG_VORBIS_EMSCRIPTEN_BUILD)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+ogg-configure:
+	cd $(OGG_SRC); ./autogen.sh
+	cd $(OGG_SRC); emconfigure ./configure \
+	  --host=wasm32-unknown-emscripten
+	cd $(OGG_SRC); rm a.wasm
+
+$(OGG_WASM_LIB):
+	@ mkdir -p tmp
+	@ echo "Building OGG_VORBIS Emscripten Library $(OGG_WASM_LIB)..."
+	cd modules/ogg; emmake make -j8
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built: $(OGG_WASM_LIB)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+vorbis-configure:
+	cd $(VORBIS_SRC); ./autogen.sh; sed -i '/Ogg >= 1.0 required !/d' configure
+	cd $(VORBIS_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
+	  --with-ogg=$(shell pwd)/$(OGG_SRC) \
+	  --disable-docs \
+	  --disable-examples \
+	  --disable-shared \
+	  --host=wasm32-unknown-emscripten
+	cd $(VORBIS_SRC); rm a.wasm 
+
+$(VORBIS_WASM_LIB):
+	@ mkdir -p tmp
+	@ echo "Building OGG_VORBIS Emscripten Library $(VORBIS_WASM_LIB)..."
+	cd modules/vorbis; emmake make -j8
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built: $(VORBIS_WASM_LIB)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
 
 # ------------------
 # opus-decoder

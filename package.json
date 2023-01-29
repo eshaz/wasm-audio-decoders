@@ -26,6 +26,7 @@
     "simple-yenc": "0.2.3",
     "terser": "^5.16.1",
     "web-worker": "^1.1.0",
-    "@wasm-audio-decoders/flac": "file:src/flac"
+    "@wasm-audio-decoders/flac": "file:src/flac",
+    "@wasm-audio-decoders/ogg-vorbis": "file:src/ogg-vorbis"
   }
 }
