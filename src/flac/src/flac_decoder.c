@@ -2,7 +2,12 @@
 
 #define MIN(a, b) a < b ? a : b;
 
-FLAC__StreamDecoderReadStatus read_cb(const FLAC__StreamDecoder *fl, FLAC__byte buffer[], size_t *bytes, void *decoder_ptr) {
+FLAC__StreamDecoderReadStatus read_cb(
+    const FLAC__StreamDecoder *fl,
+    FLAC__byte buffer[],
+    size_t *bytes,
+    void *decoder_ptr
+) {
     FLACDecoder *decoder = (FLACDecoder*) decoder_ptr;
 
     if (decoder->input_buffers_len == 0) {
@@ -57,7 +62,12 @@ FLAC__StreamDecoderReadStatus read_cb(const FLAC__StreamDecoder *fl, FLAC__byte 
     return FLAC__STREAM_DECODER_READ_STATUS_CONTINUE;
 }
 
-FLAC__StreamDecoderWriteStatus write_cb(const FLAC__StreamDecoder *fl, const FLAC__Frame *frame, const FLAC__int32 *const buffer[], void *decoder_ptr) {
+FLAC__StreamDecoderWriteStatus write_cb(
+    const FLAC__StreamDecoder *fl,
+    const FLAC__Frame *frame,
+    const FLAC__int32 *const buffer[],
+    void *decoder_ptr
+) {
     FLACDecoder *decoder = (FLACDecoder*) decoder_ptr;
 
     *decoder->channels = frame->header.channels;
@@ -89,7 +99,11 @@ FLAC__StreamDecoderWriteStatus write_cb(const FLAC__StreamDecoder *fl, const FLA
     return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
 }
 
-void error_cb(const FLAC__StreamDecoder *fl, FLAC__StreamDecoderErrorStatus status, void *decoder_ptr) {
+void error_cb(
+    const FLAC__StreamDecoder *fl,
+    FLAC__StreamDecoderErrorStatus status,
+    void *decoder_ptr
+) {
     FLACDecoder *decoder = (FLACDecoder*) decoder_ptr;
 
     *decoder->error_string_ptr = FLAC__StreamDecoderErrorStatusString[status];
@@ -152,8 +166,9 @@ FLACDecoder *create_decoder(
     return ptr;
 }
 
-void destroy_decoder(FLACDecoder *decoder) {
-    FLAC__stream_decoder_finish(decoder->fl);
+void destroy_decoder(
+    FLACDecoder *decoder
+) {
     FLAC__stream_decoder_delete(decoder->fl);
 
     free(decoder);

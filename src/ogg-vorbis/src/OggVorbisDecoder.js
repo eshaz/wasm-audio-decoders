@@ -195,7 +195,7 @@ export default class OggVorbisDecoder {
 
   async reset() {
     this._init();
-    this._decoder.reset();
+    return this._decoder.reset();
   }
 
   free() {
@@ -239,14 +239,14 @@ export default class OggVorbisDecoder {
   async flush() {
     const decoded = this._decode([...this._codecParser.flush()]);
 
-    this.reset();
+    await this.reset();
     return decoded;
   }
 
   async decodeFile(vorbisData) {
     const decoded = this._decode([...this._codecParser.parseAll(vorbisData)]);
 
-    this.reset();
+    await this.reset();
     return decoded;
   }
 }
