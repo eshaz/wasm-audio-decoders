@@ -3798,6 +3798,10 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
           this._errors = this._common.allocateTypedArray(maxErrors, Uint32Array);
           this._errorsLength = this._common.allocateTypedArray(1, Int32Array);
 
+          this._framesDecoded = 0;
+          this._inputBytes = 0;
+          this._outputSamples = 0;
+
           this._decoder = this._common.wasm._create_decoder(
             this._input.ptr,
             this._inputLen.ptr,
@@ -3878,13 +3882,22 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
         outputBuffers.push(channels);
         outputSamples += samplesDecoded;
 
+        this._framesDecoded++;
+        this._inputBytes += packet.length;
+        this._outputSamples += samplesDecoded;
+
         // handle any errors that may have occurred
         for (let i = 0; i < this._errorsLength.buf; i += 2)
-          errors.push(
-            this._common.codeToString(this._errors.buf[i]) +
+          errors.push({
+            message:
+              this._common.codeToString(this._errors.buf[i]) +
               " " +
-              this._common.codeToString(this._errors.buf[i + 1])
-          );
+              this._common.codeToString(this._errors.buf[i + 1]),
+            frameLength: packet.length,
+            frameNumber: this._framesDecoded,
+            inputBytes: this._inputBytes,
+            outputSamples: this._outputSamples,
+          });
 
         // clear the error buffer
         this._errorsLength.buf[0] = 0;
@@ -3919,7 +3932,7 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
       this._onCodec = (codec) => {
         if (codec !== "vorbis")
           throw new Error(
-            "@wasm-audio-decoders/vorbis does not support this codec " + codec
+            "@wasm-audio-decoders/ogg-vorbis does not support this codec " + codec
           );
       };
 
@@ -4012,7 +4025,7 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
 
   class DecoderWorker extends WASMAudioDecoderWorker {
     constructor(options) {
-      super(options, "vorbis-decoder", Decoder, EmscriptenWASM);
+      super(options, "ogg-vorbis-decoder", Decoder, EmscriptenWASM);
     }
 
     async sendSetupHeader(data) {

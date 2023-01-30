@@ -7,7 +7,7 @@ import OggVorbisDecoder, {
 
 class DecoderWorker extends WASMAudioDecoderWorker {
   constructor(options) {
-    super(options, "vorbis-decoder", Decoder, EmscriptenWASM);
+    super(options, "ogg-vorbis-decoder", Decoder, EmscriptenWASM);
   }
 
   async sendSetupHeader(data) {
