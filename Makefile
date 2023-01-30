@@ -1,6 +1,8 @@
 default: dist
 
-clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean configures-clean
+clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean
+
+configure: flac-configure vorbis-configure libopus-configure mpg123-configure
 
 DEMO_PATH=demo/
 
@@ -110,7 +112,7 @@ opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 
 # libopus
 OPUS_WASM_LIB=tmp/opus.bc
-opus-wasmlib: configures $(OPUS_WASM_LIB)
+opus-wasmlib: $(OPUS_WASM_LIB)
 opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
 
@@ -136,11 +138,6 @@ mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
 
-# configures
-CONFIGURE_LIBOPUS=modules/opus/configure
-configures: $(CONFIGURE_LIBOPUS) 
-configures-clean: opus-wasmlib-clean
-	rm -rf $(CONFIGURE_LIBOPUS)
 
 # common EMCC options
 define EMCC_OPTS
@@ -374,7 +371,7 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_WASM_LIB): configures
+$(OPUS_WASM_LIB): libopus-configure
 	@ mkdir -p tmp
 	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
 	@ emcc \
@@ -405,9 +402,7 @@ $(OPUS_WASM_LIB): configures
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(CONFIGURE_LIBOPUSFILE):
-	cd modules/opusfile; ./autogen.sh
-$(CONFIGURE_LIBOPUS):
+libopus-configure:
 	cd modules/opus; ./autogen.sh
 
 # -----------
@@ -444,7 +439,7 @@ ${MPG123_EMSCRIPTEN_BUILD}: $(MPG123_WASM_LIB)
 
 # Uncomment to reconfigure and compile mpg123
 #
-configure-mpg123:
+mpg123-configure:
 	cd $(MPG123_SRC); autoreconf -iv
 	cd $(MPG123_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
 	  --with-cpu=generic_dither \
