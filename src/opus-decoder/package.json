@@ -1,6 +1,6 @@
 {
   "name": "opus-decoder",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Web Assembly streaming Opus decoder",
   "type": "module",
   "main": "./index.js",
@@ -47,6 +47,6 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "@wasm-audio-decoders/common": "6.0.2"
+    "@wasm-audio-decoders/common": "6.1.0"
   }
 }
