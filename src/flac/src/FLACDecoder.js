@@ -202,7 +202,7 @@ export default class FLACDecoder {
 
   async reset() {
     this._init();
-    this._decoder.reset();
+    return this._decoder.reset();
   }
 
   free() {
@@ -220,7 +220,7 @@ export default class FLACDecoder {
       [...this._codecParser.flush()].map((f) => f.data)
     );
 
-    this.reset();
+    await this.reset();
     return decoded;
   }
 
@@ -229,7 +229,7 @@ export default class FLACDecoder {
       [...this._codecParser.parseAll(flacData)].map((f) => f.data)
     );
 
-    this.reset();
+    await this.reset();
     return decoded;
   }
 

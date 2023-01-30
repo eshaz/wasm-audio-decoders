@@ -59,9 +59,9 @@ export default class WASMAudioDecoderWorker extends getWorker() {
               );
               // The "transferList" parameter transfers ownership of channel data to main thread,
               // which avoids copying memory.
-              transferList = messagePayload.channelData.map(
-                (channel) => channel.buffer
-              );
+              transferList = messagePayload.channelData
+                ? messagePayload.channelData.map((channel) => channel.buffer)
+                : [];
             }
 
             messagePromise.then(() =>

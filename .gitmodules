@@ -8,3 +8,9 @@
 [submodule "modules/flac"]
 	path = modules/flac
 	url = https://github.com/xiph/flac.git
+[submodule "modules/vorbis"]
+	path = modules/vorbis
+	url = https://github.com/xiph/vorbis.git
+[submodule "modules/ogg"]
+	path = modules/ogg
+	url = https://github.com/xiph/ogg.git

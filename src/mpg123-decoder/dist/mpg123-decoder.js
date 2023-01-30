@@ -345,9 +345,9 @@
               );
               // The "transferList" parameter transfers ownership of channel data to main thread,
               // which avoids copying memory.
-              transferList = messagePayload.channelData.map(
-                (channel) => channel.buffer
-              );
+              transferList = messagePayload.channelData
+                ? messagePayload.channelData.map((channel) => channel.buffer)
+                : [];
             }
 
             messagePromise.then(() =>
@@ -413,6 +413,10 @@
       await this._postToDecoder("reset");
     }
   }
+
+  const assignNames = (Class, name) => {
+    Object.defineProperty(Class, "name", { value: name });
+  };
 
   /* **************************************************
    * This file is auto-generated during the build process.
@@ -962,6 +966,9 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
       return this._postToDecoder("decodeFrames", data);
     }
   }
+
+  assignNames(MPEGDecoder, "MPEGDecoder");
+  assignNames(MPEGDecoderWebWorker, "MPEGDecoderWebWorker");
 
   exports.MPEGDecoder = MPEGDecoder;
   exports.MPEGDecoderWebWorker = MPEGDecoderWebWorker;

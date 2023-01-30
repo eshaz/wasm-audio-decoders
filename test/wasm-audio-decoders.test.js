@@ -15,6 +15,10 @@ import { MPEGDecoder, MPEGDecoderWebWorker } from "mpg123-decoder";
 import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
 import { OggOpusDecoder, OggOpusDecoderWebWorker } from "ogg-opus-decoder";
 import { FLACDecoder, FLACDecoderWebWorker } from "@wasm-audio-decoders/flac";
+import {
+  OggVorbisDecoder,
+  OggVorbisDecoderWebWorker,
+} from "@wasm-audio-decoders/ogg-vorbis";
 
 const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
@@ -204,6 +208,12 @@ describe("wasm-audio-decoders", () => {
   const flacStereoTestFile = "flac.flac";
   const flacMultichannelTestFile = "flac.8.flac";
   const flac96000kTestFile = "flac.96000.flac";
+  const oggVorbisStereoTestFile = "ogg.vorbis";
+  const oggVorbis96000kTestFile = "ogg.vorbis.96000.ogg";
+  const oggVorbisMultichannelTestFile = "ogg.vorbis.8.ogg";
+  const oggVorbis32TestFile = "ogg.vorbis.32.ogg";
+  const oggVorbis64TestFile = "ogg.vorbis.64.ogg";
+  const oggVorbis255TestFile = "ogg.vorbis.255.ogg";
   const opusStereoTestFile = "ogg.opus";
   const opusStereoErrorsTestFile = "ogg.errors.opus";
   const opusSurroundTestFile = "ogg.opus.surround";
@@ -1741,6 +1751,282 @@ describe("wasm-audio-decoders", () => {
         expect(result.samplesDecoded).toEqual(5758976); //3807154, 204
         expect(result.sampleRate).toEqual(96000);
         expect(result.bitDepth).toEqual(24);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+  });
+
+  describe("ogg-vorbis-decoder", () => {
+    it("should have name as an instance and static property for OggVorbisDecoder", () => {
+      const decoder = new OggVorbisDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OggVorbisDecoder");
+      expect(OggVorbisDecoder.name).toEqual("OggVorbisDecoder");
+    });
+
+    it("should have name as an instance and static property for OggOpusDecoderWebWorker", () => {
+      const decoder = new OggOpusDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OggOpusDecoderWebWorker");
+      expect(OggOpusDecoderWebWorker.name).toEqual("OggOpusDecoderWebWorker");
+    });
+
+    describe("main thread", () => {
+      it("should decode vorbis", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode vorbis",
+          oggVorbisStereoTestFile,
+          oggVorbisStereoTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3496960);
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode high sample rate vorbis", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode high sample rate vorbis",
+          oggVorbis96000kTestFile,
+          oggVorbis96000kTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(5760832);
+        expect(result.sampleRate).toEqual(96000);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode multichannel vorbis", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode multichannel vorbis",
+          oggVorbisMultichannelTestFile,
+          oggVorbisMultichannelTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(106496);
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 32 channel vorbis", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode 32 channel vorbis",
+          oggVorbis32TestFile,
+          oggVorbis32TestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(288064);
+        expect(result.sampleRate).toEqual(48000);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 64 channel vorbis", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode 64 channel vorbis",
+          oggVorbis64TestFile,
+          oggVorbis64TestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(288064); // 287103 from codec parser
+        expect(result.sampleRate).toEqual(48000);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 255 channel vorbis", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode 255 channel vorbis",
+          oggVorbis255TestFile,
+          oggVorbis255TestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(50496); // 50560 from codec parser
+        expect(result.sampleRate).toEqual(48000);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+
+    describe("web worker", () => {
+      it("should decode vorbis web worker", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode vorbis web worker",
+          oggVorbisStereoTestFile,
+          oggVorbisStereoTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3496960);
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode high sample rate vorbis web worker", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode high sample rate vorbis web worker",
+          oggVorbis96000kTestFile,
+          oggVorbis96000kTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(5760832);
+        expect(result.sampleRate).toEqual(96000);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode multichannel vorbis web worker", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode multichannel vorbis web worker",
+          oggVorbisMultichannelTestFile,
+          oggVorbisMultichannelTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(106496);
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 32 channel vorbis web worker", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode 32 channel vorbis web worker",
+          oggVorbis32TestFile,
+          oggVorbis32TestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(288064);
+        expect(result.sampleRate).toEqual(48000);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 64 channel vorbis web worker", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode 64 channel vorbis web worker",
+          oggVorbis64TestFile,
+          oggVorbis64TestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(288064); // 287103 from codec parser
+        expect(result.sampleRate).toEqual(48000);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 255 channel vorbis web worker", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode 255 channel vorbis web worker",
+          oggVorbis255TestFile,
+          oggVorbis255TestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(50496); // 50560 from codec parser
+        expect(result.sampleRate).toEqual(48000);
+        expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     });
