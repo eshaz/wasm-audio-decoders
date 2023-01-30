@@ -14,6 +14,7 @@
     <script src="flac-decoder.min.js"></script>
     <script src="opus-decoder.min.js"></script>
     <script src="ogg-opus-decoder.min.js"></script>
+    <script src="ogg-vorbis-decoder.min.js"></script>
     <script>
       // WAVE file helper functions
       const max = (a, b) => (a > b ? a : b);
@@ -286,6 +287,24 @@
       </li>
       <li>
         <a
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-vorbis"
+          ><b>ogg-vorbis-decoder</b></a
+        >
+        is used to decode Ogg Vorbis data.
+        <ul>
+          <li>
+            Runs using a Web Assembly build of
+            <a href="https://github.com/xiph/vorbis">libvorbis</a>.
+          </li>
+          <li>Decodes up to 255 discrete channels of audio.</li>
+          <li>
+            Runs in the main thread or a separate thread using the Web Worker
+            api.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <a
           href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac"
           ><b>flac-decoder</b></a
         >
@@ -329,8 +348,8 @@
     <h3>How to use the demo</h3>
     <ol>
       <li>
-        Select a couple MPEG Layer I/II/III (MP3), Ogg Opus, or FLAC files to
-        decode.
+        Select a couple MPEG Layer I/II/III (MP3), Ogg Opus, Ogg Vorbis, or FLAC
+        files to decode.
       </li>
       <li>
         If you want to download a WAVE file for each file that you decode, check
@@ -666,7 +685,7 @@
     };
 
     // file selector
-    let fileList, totalLength, mpegLength, opusLength, flacLength;
+    let fileList, totalLength, mpegLength, opusLength, flacLength, vorbisLength;
 
     const fileSelector = document.getElementById("file-selector");
 
@@ -717,10 +736,56 @@
     const { OpusDecoderWebWorker, OpusDecoder } = window["opus-decoder"];
     const { OggOpusDecoderWebWorker, OggOpusDecoder } =
       window["ogg-opus-decoder"];
+    const { OggVorbisDecoderWebWorker, OggVorbisDecoder } =
+      window["ogg-vorbis-decoder"];
+
+    const mpeg = "mpeg";
+    const flac = "flac";
+    const vorbis = "vorbis";
+    const opus = "opus";
+    const unknown = "unknown";
+
+    const detectType = (mimeType, extension) => {
+      switch (mimeType) {
+        case "audio/mpeg":
+          return mpeg;
+        case "audio/flac":
+          return flac;
+        case "audio/vorbis":
+          return vorbis;
+        case "video/ogg":
+        case "audio/ogg":
+          return opus;
+        default:
+          switch (extension) {
+            case "mp3":
+            case "mp2":
+            case "mpeg":
+              return mpeg;
+            case "flac":
+              return flac;
+            case "ogg":
+              return vorbis;
+            case "opus":
+              return opus;
+            default:
+              return unknown;
+              throw new Error(
+                `Unsupported file type ${mimeType} with extension ${extension}`
+              );
+          }
+      }
+    };
 
     class DecoderPool {
-      constructor(numberOfDecoders, bytesMPEG, bytesOpus, bytesFLAC) {
-        const totalBytes = bytesMPEG + bytesOpus + bytesFLAC;
+      constructor(
+        numberOfDecoders,
+        bytesMPEG,
+        bytesOpus,
+        bytesFLAC,
+        bytesVorbis
+      ) {
+        const totalBytes = bytesMPEG + bytesOpus + bytesFLAC + bytesVorbis;
 
         this._useMainThread = numberOfDecoders === "main";
         this._numberOfDecoders = numberOfDecoders;
@@ -740,6 +805,11 @@
             Math.round((bytesOpus / totalBytes) * numberOfDecoders) || 1,
           numberDecoders: 0,
         };
+        this._oggVorbisDecoderStats = {
+          maxDecoders:
+            Math.round((bytesVorbis / totalBytes) * numberOfDecoders) || 1,
+          numberDecoders: 0,
+        };
 
         this._decoderPool = [];
       }
@@ -757,7 +827,7 @@
         );
       }
 
-      async getDecoder(mimeType, extension, fileSize) {
+      async getDecoder(mimeType, extension, fileSize, selectedType) {
         let DecoderClass, decoderStats, decoderMethod;
 
         const mpegDecoder = () => {
@@ -784,36 +854,31 @@
           decoderMethod = "decodeFile";
         };
 
-        switch (mimeType) {
-          case "audio/mpeg":
+        const oggVorbisDecoder = () => {
+          DecoderClass = this._useMainThread
+            ? OggVorbisDecoder
+            : OggVorbisDecoderWebWorker;
+          decoderStats = this._oggVorbisDecoderStats;
+          decoderMethod = "decodeFile";
+        };
+
+        switch (selectedType) {
+          case mpeg:
             mpegDecoder();
             break;
-          case "audio/flac":
+          case flac:
             flacDecoder();
             break;
-          case "video/ogg":
-          case "audio/ogg":
+          case vorbis:
+            oggVorbisDecoder();
+            break;
+          case opus:
             oggOpusDecoder();
             break;
-          default:
-            switch (extension) {
-              case "mp3":
-              case "mp2":
-              case "mpeg":
-                mpegDecoder();
-                break;
-              case "flac":
-                flacDecoder();
-                break;
-              case "ogg":
-              case "opus":
-                oggOpusDecoder();
-                break;
-              default:
-                throw new Error(
-                  `Unsupported file type ${mimeType} with extension ${extension}`
-                );
-            }
+          case unknown:
+            throw new Error(
+              `Unsupported file type ${mimeType} with extension ${extension}`
+            );
         }
 
         let decoderEntry = this._getNextDecoder(DecoderClass);
@@ -858,7 +923,8 @@
       numberOfDecodersEl.value,
       mpegLength,
       opusLength,
-      flacLength
+      flacLength,
+      vorbisLength
     );
 
     const createDecoderPool = () => {
@@ -867,7 +933,8 @@
         numberOfDecodersEl.value,
         mpegLength,
         opusLength,
-        flacLength
+        flacLength,
+        vorbisLength
       );
     };
 
@@ -904,14 +971,17 @@
       numberOfDecodersEl.disabled = true;
       let totalBytes = 0;
 
-      const files = [...fileList].map((file) => {
+      const files = fileList.map(({ file, extension, selectedType, id }) => {
         totalBytes += file.size;
 
         return {
           buffer: file.arrayBuffer(),
+          id: id,
           name: file.name,
-          type: file.type,
+          mimeType: file.type,
           size: file.size,
+          extension: extension,
+          selectedType: selectedType,
         };
       });
 
@@ -934,14 +1004,21 @@
 
       const decodeOperations = [];
 
-      for (const { buffer, name, type, size } of files) {
-        const extension = name.split(".").at(-1);
-        const { rowEl, statusEl, decoderEl } = setFileStatus(name);
+      for (const {
+        buffer,
+        name,
+        id,
+        mimeType,
+        size,
+        selectedType,
+        extension,
+      } of files) {
+        const { rowEl, statusEl, decoderEl } = setFileStatus(id);
 
         decodeOperations.push(
           buffer.then((data) =>
             decoderPool
-              .getDecoder(type, extension, size)
+              .getDecoder(mimeType, extension, size, selectedType)
               .then(async ({ decoder, decoderMethod, index, allocated }) => {
                 rowEl.style = "background-color: rgba(255, 255, 0, .5)";
                 statusEl.innerHTML = `queued`;
@@ -1041,16 +1118,16 @@
     };
 
     class WebAudioPlayer {
-      constructor(name) {
-        this.name = name;
+      constructor(id) {
+        this.id = id;
         this.playbackEl = filesToDecodeContainerEl.shadowRoot.getElementById(
-          "_play-" + this.name
+          "_play-" + this.id
         );
         this.progressBarEl = filesToDecodeContainerEl.shadowRoot.getElementById(
-          "_seek-" + this.name
+          "_seek-" + this.id
         );
         this.timeEl = filesToDecodeContainerEl.shadowRoot.getElementById(
-          "_time-" + this.name
+          "_time-" + this.id
         );
 
         this.startProgress = () => {
@@ -1085,13 +1162,9 @@
 
       async decode() {
         this.playbackEl.disabled = true;
-        const files = [];
-        for (const file of fileList) {
-          if (file.name === this.name) files.push(file);
-        }
 
-        await decode(files, false).then(
-          ([{ channelData, samplesDecoded, sampleRate }]) => {
+        await decode([fileList[this.id]], false)
+          .then(([{ channelData, samplesDecoded, sampleRate }]) => {
             this.audioBuffer = audioCtx.createBuffer(
               channelData.length,
               samplesDecoded,
@@ -1101,8 +1174,10 @@
             channelData.forEach((channel, idx) =>
               this.audioBuffer.getChannelData(idx).set(channel)
             );
-          }
-        );
+          })
+          .finally(() => {
+            this.playbackEl.disabled = false;
+          });
       }
 
       seek() {
@@ -1143,7 +1218,7 @@
           this.playbackEl.innerHTML = STOP;
           this.playbackEl.disabled = false;
           setFileStatus(
-            this.name,
+            this.id,
             "background-color: rgba(0, 255, 0, .5)",
             "playing",
             ""
@@ -1170,7 +1245,7 @@
         // update file status and play button
         this.playbackEl.innerHTML = PLAY;
         this.playbackEl.disabled = false;
-        setFileStatus(this.name);
+        setFileStatus(this.id);
       }
     }
 
@@ -1207,17 +1282,46 @@
       decode(fileList, true);
     });
 
+    const resetDecoderPool = () => {
+      mpegLength = 0;
+      opusLength = 0;
+      flacLength = 0;
+      vorbisLength = 0;
+
+      fileList.forEach(({ file, selectedType }) => {
+        if (selectedType === mpeg) mpegLength += file.size;
+        if (selectedType === flac) flacLength += file.size;
+        if (selectedType === opus) opusLength += file.size;
+        if (selectedType === vorbis) vorbisLength += file.size;
+      });
+
+      createDecoderPool();
+    };
+
+    const changeDecodeType = (el) => {
+      fileList[parseInt(el.id)].selectedType = el.value;
+      resetDecoderPool();
+    };
+
     fileSelector.addEventListener("change", (e) => {
-      fileList = e.target.files;
+      const files = [...e.target.files];
+
+      fileList = files.map((file) => ({
+        file,
+        selectedType: detectType(file.type, file.name.split(".").at(-1)),
+        extension: file.name.split(".").at(-1),
+      }));
+
+      if (fileList.length > 0) decodeButtonEl.disabled = false;
+      else decodeButtonEl.disabled = true;
+
       totalLength = 0;
       mpegLength = 0;
       opusLength = 0;
       flacLength = 0;
+      vorbisLength = 0;
 
       resetWebAudioPlayers();
-
-      if (fileList.length > 0) decodeButtonEl.disabled = false;
-      else decodeButtonEl.disabled = true;
 
       filesToDecodeHeaderEl.innerHTML = `<tr>
           <th>Play</th>
@@ -1229,29 +1333,53 @@
         </tr>`;
       filesToDecodeEl.innerHTML = "";
 
-      [...fileList].forEach(({ name, type, size }) => {
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const name = file.file.name;
+        const type = file.file.type;
+        const size = file.file.size;
+
         totalLength += size;
-        if (type === "audio/mpeg") mpegLength += size;
-        if (type === "audio/flac") flacLength += size;
-        if (type === "audio/ogg") opusLength += size;
+
+        file.selectedType = detectType(type, file.extension);
+        file.id = i;
+
         filesToDecodeEl.innerHTML += `
-        <tr id="_row-${name}">
+        <tr id="_row-${i}">
           <td>
             <div class="button-container">
-              <div style="display: flex; align-items: center; padding-right: 5px;" id="_time-${name}">00:00.000</div>
-              <button style="display: flex; justify-content: center; width: 30px;" id="_play-${name}" name="${name}" onclick="playPause(this);">${PLAY}</button>
-              <input disabled class="progress" value="0" type="range" id="_seek-${name}" name="${name}" oninput="seek(this);"></input>
+              <div style="display: flex; align-items: center; padding-right: 5px;" id="_time-${i}">00:00.000</div>
+              <button style="display: flex; justify-content: center; width: 30px;" id="_play-${i}" name="${i}" onclick="playPause(this);">${PLAY}</button>
+              <input disabled class="progress" value="0" type="range" id="_seek-${i}" name="${i}" oninput="seek(this);"></input>
             </div>
           </td>
           <td>${name}</td>
           <td>${size}</td>
-          <td>${type}</td>
-          <td style="display:none;" id="_status-${name}">selected</td>
-          <td style="display:none;" id="_decoder-${name}"></td>
+          <td style="text-align: center;">
+            <select style="background-color: transparent; font-weight: bold;" id="${i}" onchange="changeDecodeType(this);">
+              <option disabled ${
+                file.selectedType === unknown ? "selected " : ""
+              } value="unknown">select one</option>
+              <option ${
+                file.selectedType === mpeg ? "selected " : ""
+              } value="mpeg">mpeg</option>
+              <option ${
+                file.selectedType === flac ? "selected " : ""
+              } value="flac">flac</option>
+              <option ${
+                file.selectedType === opus ? "selected " : ""
+              } value="opus">ogg-opus</option>
+              <option ${
+                file.selectedType === vorbis ? "selected " : ""
+              } value="vorbis">ogg-vorbis</option>
+            <select/>
+          </td>
+          <td style="display:none;" id="_status-${i}">selected</td>
+          <td style="display:none;" id="_decoder-${i}"></td>
         </tr>`;
-      });
+      }
 
-      createDecoderPool();
+      resetDecoderPool();
       updateDecodeStats();
       clearDecoderProgress();
     });
