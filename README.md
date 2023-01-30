@@ -14,7 +14,7 @@ Pre-built minified JS files are available from NPM and in each decoder's `dist` 
 
 ### [`mpg123-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder)
 Decodes MPEG Layer I/II/III into PCM
-  * 72.1 KiB minified bundle size
+  * 72.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`mpg123`](https://www.mpg123.de/)
@@ -22,7 +22,7 @@ Decodes MPEG Layer I/II/III into PCM
 
 ### [`@wasm-audio-decoders/flac`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac)
 Decodes FLAC data into PCM
-  * 62.0 KiB minified bundle size
+  * 62.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
@@ -32,7 +32,7 @@ Decodes FLAC data into PCM
 
 ### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 105.4 KiB minified bundle size
+  * 105.1 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
@@ -41,7 +41,7 @@ Decodes Ogg Opus data into PCM
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
 Decodes raw Opus audio frames into PCM
-  * 83.1 KiB minified bundle size
+  * 83.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
@@ -49,6 +49,15 @@ Decodes raw Opus audio frames into PCM
   * Based on [`libopus`](https://github.com/xiph/opus)
   * Install using [NPM](https://www.npmjs.com/package/opus-decoder)
 
+### [`@wasm-audio-decoders/ogg-vorbis`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-vorbis)
+Decodes Ogg Vorbis data into PCM
+  * 93.7 KiB minified bundle size
+  * Browser and NodeJS support
+  * Built in Web Worker support
+  * Multichannel decoding (up to 255 channels)
+  * Supports full Vorbis sample rate.
+  * Based on [`libvorbis`](https://github.com/xiph/vorbis) and [`codec-parser`](https://github.com/eshaz/codec-parser)
+  * Install using [NPM](https://www.npmjs.com/@wasm-audio-decoders/ogg-vorbis)
 
 ## Developing
 
