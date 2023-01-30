@@ -345,9 +345,9 @@
               );
               // The "transferList" parameter transfers ownership of channel data to main thread,
               // which avoids copying memory.
-              transferList = messagePayload.channelData.map(
-                (channel) => channel.buffer
-              );
+              transferList = messagePayload.channelData
+                ? messagePayload.channelData.map((channel) => channel.buffer)
+                : [];
             }
 
             messagePromise.then(() =>
@@ -413,6 +413,10 @@
       await this._postToDecoder("reset");
     }
   }
+
+  const assignNames = (Class, name) => {
+    Object.defineProperty(Class, "name", { value: name });
+  };
 
   /* **************************************************
    * This file is auto-generated during the build process.
@@ -941,6 +945,9 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
       return this._postToDecoder("decodeFrames", data);
     }
   }
+
+  assignNames(OpusDecoder, "OpusDecoder");
+  assignNames(OpusDecoderWebWorker, "OpusDecoderWebWorker");
 
   /* Copyright 2020-2022 Ethan Halsall
       
@@ -4164,6 +4171,9 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
       super.free();
     }
   }
+
+  assignNames(OggOpusDecoder, "OggOpusDecoder");
+  assignNames(OggOpusDecoderWebWorker, "OggOpusDecoderWebWorker");
 
   exports.OggOpusDecoder = OggOpusDecoder;
   exports.OggOpusDecoderWebWorker = OggOpusDecoderWebWorker;
