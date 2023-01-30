@@ -345,9 +345,9 @@
               );
               // The "transferList" parameter transfers ownership of channel data to main thread,
               // which avoids copying memory.
-              transferList = messagePayload.channelData.map(
-                (channel) => channel.buffer
-              );
+              transferList = messagePayload.channelData
+                ? messagePayload.channelData.map((channel) => channel.buffer)
+                : [];
             }
 
             messagePromise.then(() =>
@@ -3786,6 +3786,7 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
         .then((common) => {
           this._common = common;
 
+          this._firstPage = true;
           this._inputLen = this._common.allocateTypedArray(1, Uint32Array);
 
           this._outputBufferPtr = this._common.allocateTypedArray(1, Uint32Array);
@@ -3829,73 +3830,53 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
       this._common.free();
     };
 
-    this._sendSetupHeader = (oggPage, data) => {
+    this.sendSetupHeader = (data) => {
       this._input.buf.set(data);
       this._inputLen.buf[0] = data.length;
 
-      this._common.wasm._send_setup(this._decoder, oggPage.isFirstPage);
+      this._common.wasm._send_setup(this._decoder, this._firstPage);
+      this._firstPage = false;
     };
 
-    this.decodeFrames = (oggPages) => {
+    this.initDsp = () => {
+      this._common.wasm._init_dsp(this._decoder);
+    };
+
+    this.decodePackets = (packets) => {
       let outputBuffers = [],
         outputSamples = 0,
         errors = [];
 
-      console.log(oggPages);
+      for (let packetIdx = 0; packetIdx < packets.length; packetIdx++) {
+        const packet = packets[packetIdx];
+        this._input.buf.set(packet);
+        this._inputLen.buf[0] = packet.length;
 
-      for (let i = 0; i < oggPages.length; i++) {
-        const oggPage = oggPages[i];
+        this._common.wasm._decode_packets(this._decoder);
 
-        if (oggPage.pageSequenceNumber === 0) {
-          // id header
-          this._sendSetupHeader(oggPage, oggPage.data);
-        } else if (oggPage.codecFrames.length) {
-          if (this._vorbisSetupInProgress) {
-            const header = oggPage.codecFrames[0].header;
+        const samplesDecoded = this._samplesDecoded.buf[0];
+        const channels = [];
 
-            this._sendSetupHeader(oggPage, header.vorbisComments);
-            this._sendSetupHeader(oggPage, header.vorbisSetup);
-            this._common.wasm._init_dsp(this._decoder);
-
-            this._vorbisSetupInProgress = false;
-          }
-
-          for (
-            let packetIdx = 0;
-            packetIdx < oggPage.codecFrames.length;
-            packetIdx++
-          ) {
-            const packet = oggPage.codecFrames[packetIdx];
-            this._input.buf.set(packet.data);
-            this._inputLen.buf[0] = packet.data.length;
-
-            this._common.wasm._decode_packets(this._decoder);
-
-            const samplesDecoded = this._samplesDecoded.buf[0];
-            const channels = [];
-
-            const outputBufferChannels = new Uint32Array(
+        const outputBufferChannels = new Uint32Array(
+          this._common.wasm.HEAP,
+          this._outputBufferPtr.buf[0],
+          this._channels.buf[0]
+        );
+        for (let channel = 0; channel < this._channels.buf[0]; channel++) {
+          const output = new Float32Array(samplesDecoded);
+          output.set(
+            new Float32Array(
               this._common.wasm.HEAP,
-              this._outputBufferPtr.buf[0],
-              256
-            );
-            for (let channel = 0; channel < this._channels.buf[0]; channel++) {
-              const output = new Float32Array(samplesDecoded);
-              output.set(
-                new Float32Array(
-                  this._common.wasm.HEAP,
-                  outputBufferChannels[channel],
-                  samplesDecoded
-                )
-              );
+              outputBufferChannels[channel],
+              samplesDecoded
+            )
+          );
 
-              channels.push(output);
-            }
-
-            outputBuffers.push(channels);
-            outputSamples += samplesDecoded;
-          }
+          channels.push(output);
         }
+
+        outputBuffers.push(channels);
+        outputSamples += samplesDecoded;
 
         // handle any errors that may have occurred
         for (let i = 0; i < this._errorsLength.buf; i += 2)
@@ -3950,6 +3931,7 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
     }
 
     _init() {
+      this._vorbisSetupInProgress = true;
       this._codecParser = new CodecParser("audio/ogg", {
         onCodec: this._onCodec,
         enableFrameCRC32: false,
@@ -3979,23 +3961,49 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
       this._decoder.free();
     }
 
+    async _decode(oggPages) {
+      let i = 0;
+
+      if (this._vorbisSetupInProgress) {
+        for (; i < oggPages.length; i++) {
+          const oggPage = oggPages[i];
+
+          if (oggPage.pageSequenceNumber === 0) {
+            this._decoder.sendSetupHeader(oggPage.data);
+          } else if (oggPage.codecFrames.length) {
+            const header = oggPage.codecFrames[0].header;
+
+            this._decoder.sendSetupHeader(header.vorbisComments);
+            this._decoder.sendSetupHeader(header.vorbisSetup);
+            this._decoder.initDsp();
+
+            this._vorbisSetupInProgress = false;
+            break;
+          }
+        }
+      }
+
+      return this._decoder.decodePackets(
+        oggPages
+          .slice(i)
+          .map((f) => f.codecFrames.map((c) => c.data))
+          .flat(1)
+      );
+    }
+
     async decode(vorbisData) {
-      return this._decoder.decodeFrames([
-        ...this._codecParser.parseChunk(vorbisData),
-      ]);
+      return this._decode([...this._codecParser.parseChunk(vorbisData)]);
     }
 
     async flush() {
-      const decoded = this._decoder.decodeFrames([...this._codecParser.flush()]);
+      const decoded = this._decode([...this._codecParser.flush()]);
 
       this.reset();
       return decoded;
     }
 
     async decodeFile(vorbisData) {
-      const decoded = this._decoder.decodeFrames([
-        ...this._codecParser.parseAll(vorbisData),
-      ]);
+      const decoded = this._decode([...this._codecParser.parseAll(vorbisData)]);
 
       this.reset();
       return decoded;
@@ -4007,8 +4015,16 @@ gV¸Úö±jÒ1eÞs9ß£XÞáÕ¤ßcáÞ©ºrv;dÔÞ~IØþ28c°Ô$áJ²�
       super(options, "vorbis-decoder", Decoder, EmscriptenWASM);
     }
 
-    async decodeFrames(frames) {
-      return this._postToDecoder("decodeFrames", frames);
+    async sendSetupHeader(data) {
+      return this._postToDecoder("sendSetupHeader", data);
+    }
+
+    async initDsp() {
+      return this._postToDecoder("initDsp");
+    }
+
+    async decodePackets(packets) {
+      return this._postToDecoder("decodePackets", packets);
     }
   }
 

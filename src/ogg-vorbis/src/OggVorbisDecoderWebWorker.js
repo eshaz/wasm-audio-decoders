@@ -10,8 +10,16 @@ class DecoderWorker extends WASMAudioDecoderWorker {
     super(options, "vorbis-decoder", Decoder, EmscriptenWASM);
   }
 
-  async decodeFrames(frames) {
-    return this._postToDecoder("decodeFrames", frames);
+  async sendSetupHeader(data) {
+    return this._postToDecoder("sendSetupHeader", data);
+  }
+
+  async initDsp() {
+    return this._postToDecoder("initDsp");
+  }
+
+  async decodePackets(packets) {
+    return this._postToDecoder("decodePackets", packets);
   }
 }
 
