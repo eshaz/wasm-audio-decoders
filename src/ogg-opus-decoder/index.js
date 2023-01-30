@@ -1,19 +1,8 @@
 import OggOpusDecoder from "./src/OggOpusDecoder.js";
 import OggOpusDecoderWebWorker from "./src/OggOpusDecoderWebWorker.js";
+import { assignNames } from "@wasm-audio-decoders/common";
 
-const decoder = "OggOpusDecoder";
-const decoderWebWorker = "OggOpusDecoderWebWorker";
-const name = "name"
-
-Object.defineProperty(OggOpusDecoder, name, { value: decoder });
-Object.defineProperty(OggOpusDecoder.constructor, name, {
-  value: decoder,
-});
-Object.defineProperty(OggOpusDecoderWebWorker, name, {
-  value: decoderWebWorker,
-});
-Object.defineProperty(OggOpusDecoderWebWorker.constructor, name, {
-  value: decoderWebWorker,
-});
+assignNames(OggOpusDecoder, "OggOpusDecoder");
+assignNames(OggOpusDecoderWebWorker, "OggOpusDecoderWebWorker");
 
 export { OggOpusDecoder, OggOpusDecoderWebWorker };

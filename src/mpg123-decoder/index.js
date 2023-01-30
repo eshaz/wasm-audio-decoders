@@ -1,19 +1,8 @@
 import MPEGDecoder from "./src/MPEGDecoder.js";
 import MPEGDecoderWebWorker from "./src/MPEGDecoderWebWorker.js";
+import { assignNames } from "@wasm-audio-decoders/common";
 
-const decoder = "MPEGDecoder";
-const decoderWebWorker = "MPEGDecoderWebWorker";
-const name = "name"
-
-Object.defineProperty(MPEGDecoder, name, { value: decoder });
-Object.defineProperty(MPEGDecoder.constructor, name, {
-  value: decoder,
-});
-Object.defineProperty(MPEGDecoderWebWorker, name, {
-  value: decoderWebWorker,
-});
-Object.defineProperty(MPEGDecoderWebWorker.constructor, name, {
-  value: decoderWebWorker,
-});
+assignNames(MPEGDecoder, "MPEGDecoder");
+assignNames(MPEGDecoderWebWorker, "MPEGDecoderWebWorker");
 
 export { MPEGDecoder, MPEGDecoderWebWorker };

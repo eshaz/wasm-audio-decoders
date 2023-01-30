@@ -1,19 +1,8 @@
 import OggVorbisDecoder from "./src/OggVorbisDecoder.js";
 import OggVorbisDecoderWebWorker from "./src/OggVorbisDecoderWebWorker.js";
+import { assignNames } from "@wasm-audio-decoders/common";
 
-const decoder = "OggVorbisDecoder";
-const decoderWebWorker = "OggVorbisDecoderWebWorker";
-const name = "name"
-
-Object.defineProperty(OggVorbisDecoder, name, { value: decoder });
-Object.defineProperty(OggVorbisDecoder.constructor, name, {
-  value: decoder,
-});
-Object.defineProperty(OggVorbisDecoderWebWorker, name, {
-  value: decoderWebWorker,
-});
-Object.defineProperty(OggVorbisDecoderWebWorker.constructor, name, {
-  value: decoderWebWorker,
-});
+assignNames(OggVorbisDecoder, "OggVorbisDecoder");
+assignNames(OggVorbisDecoderWebWorker, "OggVorbisDecoderWebWorker");
 
 export { OggVorbisDecoder, OggVorbisDecoderWebWorker };
