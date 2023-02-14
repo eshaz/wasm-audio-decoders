@@ -26,6 +26,11 @@ PUFF_SRC=$(COMMON_PATH)src/puff/
 PUFF_WASM_LIB=tmp/puff.bc
 PUFF_EMSCRIPTEN_BUILD=$(COMMON_PATH)src/puff/Puff.wasm
 
+# pcm
+PCM_SRC=src/pcm/src/
+PCM_WASM_LIB=tmp/pcm.bc
+PCM_EMSCRIPTEN_BUILD=$(PCM_SRC)pcm.wasm
+
 # @wasm-audio-decoders/flac
 FLAC_SRC=modules/flac/
 FLAC_WASM_LIB=tmp/flac.bc
@@ -40,7 +45,7 @@ flac-decoder-minify: $(FLAC_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(FLAC_DECODER_MODULE) \
 	MODULE_MIN=$(FLAC_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=11 \
+	COMPRESSION_ITERATIONS=35 \
 	npm run minify
 	cp $(FLAC_DECODER_MODULE) $(FLAC_DECODER_MODULE_MIN) $(FLAC_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -186,6 +191,39 @@ puff-llvm:
 		$(PUFF_EMSCRIPTEN_BUILD) \
 		-o $(PUFF_EMSCRIPTEN_BUILD)
 	@ npm run build-puff
+
+# ----------------------
+# @wasm-audio-decoders/pcm
+# ----------------------
+# requires: llvm, clang, llc, binaryen
+pcm-llvm:
+	@ clang \
+		--target=wasm32 \
+		-nostdlib \
+		-flto \
+		-mbulk-memory \
+		-Wl,--export=init_decoder \
+		-Wl,--export=decode \
+		-Wl,--export=__heap_base \
+		-Wl,--no-entry \
+		-Wl,--lto-O3 \
+		-Wl,--initial-memory=1048576 \
+		-Oz \
+		-DSLOW=1 \
+		-o "$(PCM_EMSCRIPTEN_BUILD)" \
+		$(PCM_SRC)pcm_decoder.c
+	@ wasm-opt \
+		-lmu \
+		-O3 \
+		--asyncify \
+		--pass-arg=asyncify-imports@env.read_write \
+		--strip-producers \
+		--reorder-functions \
+		--reorder-locals \
+		--vacuum \
+		--print \
+		$(PCM_EMSCRIPTEN_BUILD) \
+		-o $(PCM_EMSCRIPTEN_BUILD) > $(PCM_EMSCRIPTEN_BUILD).wat
 
 
 # -------------------------

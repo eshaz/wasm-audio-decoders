@@ -22,29 +22,44 @@ __attribute__((import_module("env"), import_name("info_int"))) void info_int(int
 #define READ_UINT_32_BE(ptr) ((unsigned int) (ptr)[3] | ((ptr)[2] << 8) | ((ptr)[1] << 16) | ((ptr)[0] << 24))
 
 // callback to tell JS to set input and write output
-void yield(PCMDecoder *decoder) {
+void yield(PCMDecoder *decoder, unsigned int min_read_bytes) {
     unsigned int in_remaining = *decoder->in_len - decoder->in_pos;
-    unsigned int max_in_bytes = decoder->in_size - in_remaining;
 
-    unsigned int out_remaining = *decoder->out_len - decoder->out_pos;
-    unsigned int max_out_bytes = decoder->out_size - out_remaining;
+    if (in_remaining >= min_read_bytes && min_read_bytes) {
+        return;
+    }
+    
+    int in_offset = in_remaining;
 
     // put any unread data at the beginning of the input buffer
     // this really shouldn't be more than a few bytes
+    __builtin_memcpy(decoder->in_data, decoder->in_data + decoder->in_pos, in_remaining);
+    /*
     for (int i = 0; i < in_remaining; i++) {
         decoder->in_data[i] = decoder->in_data[decoder->in_pos + i];
     }
+    */
 
-    // JS should set the new data at `in` and set the number of bytes written at `in_len`
-    read_write(
-        in_remaining,
-        max_in_bytes,
-        out_remaining,
-        max_out_bytes
-    );
+    // read more data until min_read_bytes is satisfied
+    do {
+        int max_in_bytes = decoder->in_size - in_offset;
+    
+        int out_remaining = *decoder->out_len - decoder->out_pos;
+        int max_out_bytes = decoder->out_size - out_remaining;
+    
+        // JS should set the new data at `in` and set the number of bytes written at `in_len`
+        read_write(
+            in_offset,
+            max_in_bytes,
+            out_remaining,
+            max_out_bytes
+        );
 
-    decoder->in_total += *decoder->in_len;
-    *decoder->in_len += in_remaining;
+        in_offset += *decoder->in_len;
+    } while (min_read_bytes > in_offset);
+
+    *decoder->in_len = in_offset;
+    decoder->in_total += in_offset;
     decoder->in_pos = 0;
 }
 
@@ -55,7 +70,7 @@ void error_callback(int error_code) {
 void detect_format(){}
 
 void parse_wave_chunk_name(PCMDecoder *decoder, char *chunk) {
-    while (*decoder->in_len - decoder->in_pos < 4) yield(decoder);
+    yield(decoder, 4);
     decoder->in_pos+=4;
 
     chunk[0] = *(decoder->in_data + decoder->in_pos - 4);
@@ -69,10 +84,10 @@ void parse_wave_chunk_name(PCMDecoder *decoder, char *chunk) {
 }
 
 unsigned int parse_wave_chunk_size(PCMDecoder *decoder) {
-    while (*decoder->in_len - decoder->in_pos < 4) yield(decoder);
-    decoder->in_pos+=4;
+    yield(decoder, 4);
 
-    unsigned chunk_size = READ_UINT_32(decoder->in_data + decoder->in_pos - 4);
+    unsigned chunk_size = READ_UINT_32(decoder->in_data + decoder->in_pos);
+    decoder->in_pos+=4;
 
     char message[13] = "Chunk size: ";
     char *messages[1] = {message};
@@ -142,7 +157,7 @@ unsigned int parse_wave_chunk_riff(PCMDecoder *decoder){
     0x08   4     RIFF Type        "WAVE" (0x57415645)
     0x10   -     Wave chunks      -
     */
-    while (*decoder->in_len - decoder->in_pos < 8) yield(decoder);
+    yield(decoder, 8);
 
     unsigned int file_size = READ_UINT_32(decoder->in_data + decoder->in_pos) - 8;
     decoder->in_pos+=4;
@@ -153,12 +168,19 @@ unsigned int parse_wave_chunk_riff(PCMDecoder *decoder){
     return file_size;
 }
 
-void skip_data(PCMDecoder *decoder, unsigned int bytes) {
-    while (bytes > 0) {
-        decoder->in_pos = MIN(*decoder->in_len, bytes);
-        bytes -= decoder->in_pos;
+void skip_data(PCMDecoder *decoder, unsigned int bytes_remaining) {
+    unsigned int max_bytes = MIN(*decoder->in_len - decoder->in_pos, bytes_remaining);
 
-        if (*decoder->in_len == decoder->in_pos) yield(decoder);
+    decoder->in_pos += max_bytes;
+    bytes_remaining -= max_bytes;
+
+    while (bytes_remaining) {
+        yield(decoder, 0);
+
+        max_bytes = MIN(*decoder->in_len - decoder->in_pos, bytes_remaining);
+
+        decoder->in_pos += max_bytes;
+        bytes_remaining -= max_bytes;
     }
 }
 
@@ -178,7 +200,7 @@ void parse_wave_chunk_fmt(PCMDecoder *decoder) {
     */
     unsigned int chunk_size = parse_wave_chunk_size(decoder) - 16;
 
-    while (*decoder->in_len - decoder->in_pos < 16) yield(decoder);
+    yield(decoder, 16);
     /*
     Compression Codes
     Code        Description
@@ -214,7 +236,7 @@ void parse_wave_chunk_fmt(PCMDecoder *decoder) {
     skip_data(decoder, chunk_size);
 }
 
-void parse_wave_chunk_data(PCMDecoder *decoder){
+void parse_wave_chunk_data(PCMDecoder *decoder) {
     unsigned int chunk_size = parse_wave_chunk_size(decoder);
 
     int block_size = *decoder->channels * *decoder->bit_depth;
@@ -247,7 +269,7 @@ void parse_wave_chunk_data(PCMDecoder *decoder){
 void parse_wave_chunk_unknown(char *chunk_code, PCMDecoder *decoder) {
     unsigned int chunk_size = parse_wave_chunk_size(decoder);
 
-    skip_data(decoder, chunk_size + 4);
+    skip_data(decoder, chunk_size);
 }
 
 void init_decoder(

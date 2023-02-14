@@ -123,8 +123,10 @@ class PCMDecoder {
 
       this._waiting = true;
       this._notifyPromise.then(() => {
-        this._inData.buf.set(this._input, in_offset, max_in_bytes);
-        this._inLen.buf[0] = this._input.length;
+        const input = this._input.subarray(0, max_in_bytes);
+
+        this._inData.buf.set(input, in_offset);
+        this._inLen.buf[0] = input.length;
 
         this._wasm.exports.asyncify_start_rewind(this._stackAddress);
         this._wasm.exports.decode(this._decoder.ptr);
@@ -132,7 +134,7 @@ class PCMDecoder {
     } else {
       // wait is called again once the async operation has completed
       this._wasm.exports.asyncify_stop_rewind();
-      this._notifyComplete();
+      this._notifyComplete([max_in_bytes, max_out_bytes]);
       this._waiting = false;
       this._resetNotify();
     }
@@ -152,14 +154,15 @@ class PCMDecoder {
 
   async decode(data) {
     // read data
-    this._input = data;
+    let offset = 0;
+    do {
+      this._input = data.subarray(offset);
 
-    if (this._channels.buf[0] !== 0) {
-      //console.log(this._channels);
-    }
+      this._notify();
+      const [inBytes, outBytes] = await this._notifyCompletePromise;
 
-    this._notify();
-    await this._notifyCompletePromise;
+      offset += inBytes;
+    } while (offset < data.length);
   }
 }
 
@@ -170,7 +173,7 @@ const test = async () => {
   const testData = await fs.readFile("sound_bytes.wav");
   console.log(testData);
 
-  const size = 4;
+  const size = 16;
   for (let i = 0; i < testData.length; i += size) {
     await decoder.decode(testData.subarray(i, i + size));
 

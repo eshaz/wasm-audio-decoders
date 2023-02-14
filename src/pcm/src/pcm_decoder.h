@@ -19,7 +19,7 @@ typedef struct {
     float *out_data;
 } PCMDecoder;
 
-void yield(PCMDecoder *decoder);
+void yield(PCMDecoder *decoder, unsigned int min_read_bytes);
 void error_callback(int error_code);
 
 void init_decoder(
