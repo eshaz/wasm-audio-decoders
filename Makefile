@@ -507,19 +507,19 @@ $(MPG123_WASM_LIB):
 	  -I "$(MPG123_SRC)src/libmpg123" \
 	  -I "$(MPG123_SRC)src/compat" \
 	  -I "$(MPG123_DECODER_PATH)src/mpg123" \
-  	  $(MPG123_SRC)src/libmpg123/parse.c \
-  	  $(MPG123_SRC)src/libmpg123/frame.c \
-  	  $(MPG123_SRC)src/libmpg123/format.c \
-  	  $(MPG123_SRC)src/libmpg123/dct64.c \
-  	  $(MPG123_SRC)src/libmpg123/id3.c \
-  	  $(MPG123_SRC)src/libmpg123/optimize.c \
-  	  $(MPG123_SRC)src/libmpg123/readers.c \
-  	  $(MPG123_SRC)src/libmpg123/tabinit.c \
-  	  $(MPG123_SRC)src/libmpg123/libmpg123.c \
-  	  $(MPG123_SRC)src/libmpg123/layer1.c \
-  	  $(MPG123_SRC)src/libmpg123/layer2.c \
-  	  $(MPG123_SRC)src/libmpg123/layer3.c \
-  	  $(MPG123_SRC)src/libmpg123/synth_real.c 
+	  $(MPG123_SRC)src/libmpg123/parse.c \
+	  $(MPG123_SRC)src/libmpg123/frame.c \
+	  $(MPG123_SRC)src/libmpg123/format.c \
+	  $(MPG123_SRC)src/libmpg123/dct64.c \
+	  $(MPG123_SRC)src/libmpg123/id3.c \
+	  $(MPG123_SRC)src/libmpg123/optimize.c \
+	  $(MPG123_SRC)src/libmpg123/readers.c \
+	  $(MPG123_SRC)src/libmpg123/tabinit.c \
+	  $(MPG123_SRC)src/libmpg123/libmpg123.c \
+	  $(MPG123_SRC)src/libmpg123/layer1.c \
+	  $(MPG123_SRC)src/libmpg123/layer2.c \
+	  $(MPG123_SRC)src/libmpg123/layer3.c \
+	  $(MPG123_SRC)src/libmpg123/synth_real.c
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(MPG123_WASM_LIB)"
