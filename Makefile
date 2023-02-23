@@ -442,6 +442,7 @@ ${MPG123_EMSCRIPTEN_BUILD}: $(MPG123_WASM_LIB)
 mpg123-configure:
 	cd $(MPG123_SRC); autoreconf -iv
 	cd $(MPG123_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
+	  --host=wasm32-unknown-emscripten \
 	  --with-cpu=generic_dither \
 	  --with-seektable=0 \
 	  --disable-lfs-alias \

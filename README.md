@@ -69,10 +69,12 @@ Decodes Ogg Vorbis data into PCM
 1. Make sure to `source` the Emscripten path in the terminal you want build in.
    * i.e. `$ source path/to/emsdk/emsdk_env.sh`
 1. Run `git submodule update --init` to clone down the git sub-modules.
+1. Run `make configure` to configure the libraries. This may appear to hang forever at 100% CPU
+   when "checking whether the C compiler works", but should eventually complete.
 1. Run `npm i` to install the build tool dependencies.
 1. Run `make clean` and `make` to build the libraries.
    * You can run `make -j8` where `8` is the number of CPU cores on your system to speed up the build.
-5. The builds will be located in each library's `dist` folder:
+1. The builds will be located in each library's `dist` folder:
    * opus-decoder: `src/opus-decoder/dist/` 
    * ogg-opus-decoder: `src/ogg-opus-decoder/dist/` 
    * mpg123-decoder: `src/mpg123-decoder/dist/` 
