@@ -1,8 +1,9 @@
+
 default: dist
 
-clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean
+clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean ogg-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean
 
-configure: flac-configure vorbis-configure libopus-configure mpg123-configure
+configure: flac-configure ogg-configure vorbis-configure libopus-configure mpg123-configure
 
 DEMO_PATH=demo/
 
@@ -68,7 +69,7 @@ ogg-vorbis-decoder-minify: $(OGG_VORBIS_EMSCRIPTEN_BUILD)
 
 # libvorbis
 VORBIS_WASM_LIB=$(VORBIS_SRC)lib/.libs/libvorbis.a
-vorbis-wasmlib: $(VORBIS_WASM_LIB) ogg-wasmlib
+vorbis-wasmlib: $(VORBIS_WASM_LIB)
 vorbis-wasmlib-clean: dist-clean
 	rm -rf $(VORBIS_WASM_LIB)
 	cd modules/vorbis; emmake make clean
@@ -288,7 +289,7 @@ define OGG_VORBIS_EMCC_OPTS
 $(OGG_VORBIS_DECODER_PATH)src/vorbis_decoder.c
 endef
 
-$(OGG_VORBIS_EMSCRIPTEN_BUILD): $(VORBIS_WASM_LIB)
+$(OGG_VORBIS_EMSCRIPTEN_BUILD): $(OGG_WASM_LIB) $(VORBIS_WASM_LIB)
 	@ mkdir -p $(OGG_VORBIS_DECODER_PATH)dist
 	@ echo "Building Emscripten WebAssembly module $(OGG_VORBIS_EMSCRIPTEN_BUILD)..."
 	@ emcc \
@@ -371,7 +372,7 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_WASM_LIB): libopus-configure
+$(OPUS_WASM_LIB):
 	@ mkdir -p tmp
 	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
 	@ emcc \
