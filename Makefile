@@ -71,14 +71,13 @@ ogg-vorbis-decoder-minify: $(OGG_VORBIS_EMSCRIPTEN_BUILD)
 VORBIS_WASM_LIB=$(VORBIS_SRC)lib/.libs/libvorbis.a
 vorbis-wasmlib: $(VORBIS_WASM_LIB)
 vorbis-wasmlib-clean: dist-clean
-	rm -rf $(VORBIS_WASM_LIB)
 	cd modules/vorbis; emmake make clean
 
 # libogg
 OGG_WASM_LIB=$(OGG_SRC)src/.libs/libogg.a
 ogg-wasmlib: $(OGG_WASM_LIB)
 ogg-wasmlib-clean: dist-clean
-	rm -rf $(OGG_WASM_LIB)
+	cd modules/ogg; emmake make clean
 
 # ogg-opus-decoder
 OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder/
