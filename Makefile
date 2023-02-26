@@ -1,8 +1,9 @@
+
 default: dist
 
-clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean
+clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean ogg-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean
 
-configure: flac-configure vorbis-configure libopus-configure mpg123-configure
+configure: flac-configure ogg-configure vorbis-configure libopus-configure mpg123-configure
 
 DEMO_PATH=demo/
 
@@ -68,16 +69,15 @@ ogg-vorbis-decoder-minify: $(OGG_VORBIS_EMSCRIPTEN_BUILD)
 
 # libvorbis
 VORBIS_WASM_LIB=$(VORBIS_SRC)lib/.libs/libvorbis.a
-vorbis-wasmlib: $(VORBIS_WASM_LIB) ogg-wasmlib
+vorbis-wasmlib: $(VORBIS_WASM_LIB)
 vorbis-wasmlib-clean: dist-clean
-	rm -rf $(VORBIS_WASM_LIB)
 	cd modules/vorbis; emmake make clean
 
 # libogg
 OGG_WASM_LIB=$(OGG_SRC)src/.libs/libogg.a
 ogg-wasmlib: $(OGG_WASM_LIB)
 ogg-wasmlib-clean: dist-clean
-	rm -rf $(OGG_WASM_LIB)
+	cd modules/ogg; emmake make clean
 
 # ogg-opus-decoder
 OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder/
@@ -288,7 +288,7 @@ define OGG_VORBIS_EMCC_OPTS
 $(OGG_VORBIS_DECODER_PATH)src/vorbis_decoder.c
 endef
 
-$(OGG_VORBIS_EMSCRIPTEN_BUILD): $(VORBIS_WASM_LIB)
+$(OGG_VORBIS_EMSCRIPTEN_BUILD): $(OGG_WASM_LIB) $(VORBIS_WASM_LIB)
 	@ mkdir -p $(OGG_VORBIS_DECODER_PATH)dist
 	@ echo "Building Emscripten WebAssembly module $(OGG_VORBIS_EMSCRIPTEN_BUILD)..."
 	@ emcc \
@@ -371,7 +371,7 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_WASM_LIB): libopus-configure
+$(OPUS_WASM_LIB):
 	@ mkdir -p tmp
 	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
 	@ emcc \
@@ -442,6 +442,7 @@ ${MPG123_EMSCRIPTEN_BUILD}: $(MPG123_WASM_LIB)
 mpg123-configure:
 	cd $(MPG123_SRC); autoreconf -iv
 	cd $(MPG123_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
+	  --host=wasm32-unknown-emscripten \
 	  --with-cpu=generic_dither \
 	  --with-seektable=0 \
 	  --disable-lfs-alias \
@@ -506,19 +507,19 @@ $(MPG123_WASM_LIB):
 	  -I "$(MPG123_SRC)src/libmpg123" \
 	  -I "$(MPG123_SRC)src/compat" \
 	  -I "$(MPG123_DECODER_PATH)src/mpg123" \
-  	  $(MPG123_SRC)src/libmpg123/parse.c \
-  	  $(MPG123_SRC)src/libmpg123/frame.c \
-  	  $(MPG123_SRC)src/libmpg123/format.c \
-  	  $(MPG123_SRC)src/libmpg123/dct64.c \
-  	  $(MPG123_SRC)src/libmpg123/id3.c \
-  	  $(MPG123_SRC)src/libmpg123/optimize.c \
-  	  $(MPG123_SRC)src/libmpg123/readers.c \
-  	  $(MPG123_SRC)src/libmpg123/tabinit.c \
-  	  $(MPG123_SRC)src/libmpg123/libmpg123.c \
-  	  $(MPG123_SRC)src/libmpg123/layer1.c \
-  	  $(MPG123_SRC)src/libmpg123/layer2.c \
-  	  $(MPG123_SRC)src/libmpg123/layer3.c \
-  	  $(MPG123_SRC)src/libmpg123/synth_real.c 
+	  $(MPG123_SRC)src/libmpg123/parse.c \
+	  $(MPG123_SRC)src/libmpg123/frame.c \
+	  $(MPG123_SRC)src/libmpg123/format.c \
+	  $(MPG123_SRC)src/libmpg123/dct64.c \
+	  $(MPG123_SRC)src/libmpg123/id3.c \
+	  $(MPG123_SRC)src/libmpg123/optimize.c \
+	  $(MPG123_SRC)src/libmpg123/readers.c \
+	  $(MPG123_SRC)src/libmpg123/tabinit.c \
+	  $(MPG123_SRC)src/libmpg123/libmpg123.c \
+	  $(MPG123_SRC)src/libmpg123/layer1.c \
+	  $(MPG123_SRC)src/libmpg123/layer2.c \
+	  $(MPG123_SRC)src/libmpg123/layer3.c \
+	  $(MPG123_SRC)src/libmpg123/synth_real.c
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(MPG123_WASM_LIB)"
