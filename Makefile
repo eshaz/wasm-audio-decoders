@@ -439,45 +439,50 @@ ${MPG123_EMSCRIPTEN_BUILD}: $(MPG123_WASM_LIB)
 
 # Uncomment to reconfigure and compile mpg123
 #
+# mpg123-configure:
+# 	cd $(MPG123_SRC); autoreconf -iv
+# 	cd $(MPG123_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
+# 	  --host=wasm32-unknown-emscripten \
+# 	  --with-cpu=generic_dither \
+# 	  --with-seektable=0 \
+# 	  --disable-lfs-alias \
+# 	  --disable-debug \
+# 	  --disable-xdebug \
+# 	  --disable-gapless \
+# 	  --disable-fifo \
+# 	  --disable-ipv6 \
+# 	  --disable-network \
+# 	  --disable-id3v2 \
+# 	  --disable-string \
+# 	  --disable-icy \
+# 	  --disable-ntom \
+# 	  --disable-downsample \
+# 	  --enable-feeder \
+# 	  --disable-moreinfo \
+# 	  --disable-messages \
+# 	  --disable-new-huffman \
+# 	  --enable-int-quality \
+# 	  --disable-16bit \
+# 	  --disable-8bit \
+# 	  --disable-32bit \
+# 	  --enable-real \
+# 	  --disable-equalizer \
+# 	  --disable-yasm \
+# 	  --disable-cases \
+# 	  --disable-buffer \
+# 	  --disable-newoldwritesample \
+# 	  --enable-layer1 \
+# 	  --enable-layer2 \
+# 	  --enable-layer3 \
+# 	  --disable-largefile \
+# 	  --disable-feature-report \
+# 	  --enable-runtime-tables
+# 	cd $(MPG123_SRC); rm a.wasm 
+
 mpg123-configure:
-	cd $(MPG123_SRC); autoreconf -iv
-	cd $(MPG123_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
-	  --host=wasm32-unknown-emscripten \
-	  --with-cpu=generic_dither \
-	  --with-seektable=0 \
-	  --disable-lfs-alias \
-	  --disable-debug \
-	  --disable-xdebug \
-	  --disable-gapless \
-	  --disable-fifo \
-	  --disable-ipv6 \
-	  --disable-network \
-	  --disable-id3v2 \
-	  --disable-string \
-	  --disable-icy \
-	  --disable-ntom \
-	  --disable-downsample \
-	  --enable-feeder \
-	  --disable-moreinfo \
-	  --disable-messages \
-	  --disable-new-huffman \
-	  --enable-int-quality \
-	  --disable-16bit \
-	  --disable-8bit \
-	  --disable-32bit \
-	  --enable-real \
-	  --disable-equalizer \
-	  --disable-yasm \
-	  --disable-cases \
-	  --disable-buffer \
-	  --disable-newoldwritesample \
-	  --enable-layer1 \
-	  --enable-layer2 \
-	  --enable-layer3 \
-	  --disable-largefile \
-	  --disable-feature-report \
-	  --enable-runtime-tables
-	cd $(MPG123_SRC); rm a.wasm 
+	cp $(MPG123_DECODER_PATH)src/mpg123/mpg123.h \
+	  $(MPG123_DECODER_PATH)src/mpg123/config.h \
+	  $(MPG123_SRC)src/
 
 #$(MPG123_WASM_LIB): 
 #	@ mkdir -p tmp
