@@ -8,7 +8,7 @@ class DecoderWorker extends WASMAudioDecoderWorker {
   }
 
   async decodeFrames(frames) {
-    return this._postToDecoder("decodeFrames", frames);
+    return this.postToDecoder("decodeFrames", frames);
   }
 }
 

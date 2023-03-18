@@ -8,10 +8,10 @@ export default class OpusDecoderWebWorker extends WASMAudioDecoderWorker {
   }
 
   async decodeFrame(data) {
-    return this._postToDecoder("decodeFrame", data);
+    return this.postToDecoder("decodeFrame", data);
   }
 
   async decodeFrames(data) {
-    return this._postToDecoder("decodeFrames", data);
+    return this.postToDecoder("decodeFrames", data);
   }
 }

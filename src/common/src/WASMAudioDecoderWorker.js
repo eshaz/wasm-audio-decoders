@@ -97,11 +97,11 @@ export default class WASMAudioDecoderWorker extends getWorker() {
     };
 
     new EmscriptenWASM(WASMAudioDecoderCommon).getModule().then((module) => {
-      this._postToDecoder("init", { module, options });
+      this.postToDecoder("init", { module, options });
     });
   }
 
-  async _postToDecoder(command, data) {
+  async postToDecoder(command, data) {
     return new Promise((resolve) => {
       this.postMessage({
         command,
@@ -114,16 +114,16 @@ export default class WASMAudioDecoderWorker extends getWorker() {
   }
 
   get ready() {
-    return this._postToDecoder("ready");
+    return this.postToDecoder("ready");
   }
 
   async free() {
-    await this._postToDecoder("free").finally(() => {
+    await this.postToDecoder("free").finally(() => {
       this.terminate();
     });
   }
 
   async reset() {
-    await this._postToDecoder("reset");
+    await this.postToDecoder("reset");
   }
 }

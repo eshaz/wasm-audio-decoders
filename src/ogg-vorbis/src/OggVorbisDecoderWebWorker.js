@@ -11,15 +11,15 @@ class DecoderWorker extends WASMAudioDecoderWorker {
   }
 
   async sendSetupHeader(data) {
-    return this._postToDecoder("sendSetupHeader", data);
+    return this.postToDecoder("sendSetupHeader", data);
   }
 
   async initDsp() {
-    return this._postToDecoder("initDsp");
+    return this.postToDecoder("initDsp");
   }
 
   async decodePackets(packets) {
-    return this._postToDecoder("decodePackets", packets);
+    return this.postToDecoder("decodePackets", packets);
   }
 }
 

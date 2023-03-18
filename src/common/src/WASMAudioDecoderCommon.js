@@ -1,4 +1,4 @@
-export default function WASMAudioDecoderCommon(decoderInstance) {
+export default function WASMAudioDecoderCommon() {
   // setup static methods
   const uint8Array = Uint8Array;
   const float32Array = Float32Array;
@@ -236,47 +236,28 @@ export default function WASMAudioDecoderCommon(decoderInstance) {
     return String.fromCharCode.apply(null, characters);
   };
 
-  this.addError = (errors, message, frameLength) => {
+  this.addError = (
+    errors,
+    message,
+    frameLength,
+    frameNumber,
+    inputBytes,
+    outputSamples
+  ) => {
     errors.push({
       message: message,
       frameLength: frameLength,
-      frameNumber: decoderInstance._frameNumber,
-      inputBytes: decoderInstance._inputBytes,
-      outputSamples: decoderInstance._outputSamples,
+      frameNumber: frameNumber,
+      inputBytes: inputBytes,
+      outputSamples: outputSamples,
     });
   };
 
-  this.instantiate = () => {
-    const _module = decoderInstance._module;
-    const _EmscriptenWASM = decoderInstance._EmscriptenWASM;
-    const _inputSize = decoderInstance._inputSize;
-    const _outputChannels = decoderInstance._outputChannels;
-    const _outputChannelSize = decoderInstance._outputChannelSize;
-
+  this.instantiate = (_EmscriptenWASM, _module) => {
     if (_module) WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
-
     this._wasm = new _EmscriptenWASM(WASMAudioDecoderCommon).instantiate();
     this._pointers = new Set();
 
-    return this._wasm.ready.then(() => {
-      if (_inputSize)
-        decoderInstance._input = this.allocateTypedArray(
-          _inputSize,
-          uint8Array
-        );
-
-      // output buffer
-      if (_outputChannelSize)
-        decoderInstance._output = this.allocateTypedArray(
-          _outputChannels * _outputChannelSize,
-          float32Array
-        );
-
-      decoderInstance._inputBytes = 0;
-      decoderInstance._outputSamples = 0;
-      decoderInstance._frameNumber = 0;
-
-      return this;
-    });
+    return this._wasm.ready.then(() => this);
   };
 }
