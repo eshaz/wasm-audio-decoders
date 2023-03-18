@@ -202,6 +202,7 @@ pcm-llvm:
 		-nostdlib \
 		-flto \
 		-mbulk-memory \
+		-msimd128 \
 		-Wl,--export=init_decoder \
 		-Wl,--export=decode \
 		-Wl,--export=__heap_base \
@@ -217,6 +218,7 @@ pcm-llvm:
 		-O3 \
 		--asyncify \
 		--pass-arg=asyncify-imports@env.read_write \
+		--pass-arg=asyncify-ignore-indirect \
 		--strip-producers \
 		--reorder-functions \
 		--reorder-locals \

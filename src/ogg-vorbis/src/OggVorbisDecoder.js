@@ -26,10 +26,6 @@ export function Decoder() {
         this._errors = this._common.allocateTypedArray(maxErrors, Uint32Array);
         this._errorsLength = this._common.allocateTypedArray(1, Int32Array);
 
-        this._framesDecoded = 0;
-        this._inputBytes = 0;
-        this._outputSamples = 0;
-
         this._decoder = this._common.wasm._create_decoder(
           this._input.ptr,
           this._inputLen.ptr,
@@ -110,22 +106,19 @@ export function Decoder() {
       outputBuffers.push(channels);
       outputSamples += samplesDecoded;
 
-      this._framesDecoded++;
+      this._frameNumber++;
       this._inputBytes += packet.length;
       this._outputSamples += samplesDecoded;
 
       // handle any errors that may have occurred
       for (let i = 0; i < this._errorsLength.buf; i += 2)
-        errors.push({
-          message:
-            this._common.codeToString(this._errors.buf[i]) +
+        this._common.addError(
+          errors,
+          this._common.codeToString(this._errors.buf[i]) +
             " " +
             this._common.codeToString(this._errors.buf[i + 1]),
-          frameLength: packet.length,
-          frameNumber: this._framesDecoded,
-          inputBytes: this._inputBytes,
-          outputSamples: this._outputSamples,
-        });
+          packet.length
+        );
 
       // clear the error buffer
       this._errorsLength.buf[0] = 0;

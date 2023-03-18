@@ -20,7 +20,7 @@
     "node-zopfli": "^2.1.4",
     "prettier": "^2.8.2",
     "rollup": "^3.9.1",
-    "simple-yenc": "0.2.3",
+    "simple-yenc": "0.3.0",
     "terser": "^5.16.1",
     "web-worker": "^1.1.0",
     "mpg123-decoder": "file:src/mpg123-decoder",

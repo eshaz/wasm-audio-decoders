@@ -173,7 +173,7 @@ const test = async () => {
   const testData = await fs.readFile("sound_bytes.wav");
   console.log(testData);
 
-  const size = 16;
+  const size = 1000;
   for (let i = 0; i < testData.length; i += size) {
     await decoder.decode(testData.subarray(i, i + size));
 

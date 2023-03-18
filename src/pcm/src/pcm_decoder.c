@@ -19,7 +19,9 @@ __attribute__((import_module("env"), import_name("info_int"))) void info_int(int
 #define READ_UINT_32(ptr) ((unsigned int) (ptr)[0] | ((ptr)[1] << 8) | ((ptr)[2] << 16) | ((ptr)[3] << 24))
 #define READ_UINT_16(ptr) ((unsigned short) (ptr)[0] | ((ptr)[1] << 8))
 
+// big-endian
 #define READ_UINT_32_BE(ptr) ((unsigned int) (ptr)[3] | ((ptr)[2] << 8) | ((ptr)[1] << 16) | ((ptr)[0] << 24))
+#define READ_UINT_16_BE(ptr) ((unsigned short) (ptr)[1] | ((ptr)[0] << 8))
 
 // callback to tell JS to set input and write output
 void yield(PCMDecoder *decoder, unsigned int min_read_bytes) {
@@ -236,12 +238,87 @@ void parse_wave_chunk_fmt(PCMDecoder *decoder) {
     skip_data(decoder, chunk_size);
 }
 
+// integer to float divisors
+#define divisor_32 (float) 0x7FFFFFFF;
+#define divisor_24 (float) 0x7FFFFF;
+#define divisor_16 (float) 0x7FFF;
+#define divisor_8 (float) 0x7F;
+
+// simd
+#include <wasm_simd128.h>
+
+typedef float float4 __attribute__((__vector_size__(16)));
+#define float4_size 4
+#define float_to_float4(vec) wasm_f32x4_splat(vec)
+#define load_int_to_float4(ptr, vec, offset) \
+    wasm_v128_load32_lane(ptr, vec, 0); \
+    wasm_v128_load32_lane(ptr+offset, vec, 1); \
+    wasm_v128_load32_lane(ptr+offset*2, vec, 2); \
+    wasm_v128_load32_lane(ptr+offset*3, vec, 3); \
+    wasm_f32x4_convert_i32x4(vec)
+#define divide_float4(vec, divisor) wasm_f32x4_div(vec, divisor)
+#define store_float4(ptr, vec) wasm_v128_store(ptr, vec)
+
+
 void parse_wave_chunk_data(PCMDecoder *decoder) {
     unsigned int chunk_size = parse_wave_chunk_size(decoder);
 
-    int block_size = *decoder->channels * *decoder->bit_depth;
+    // read all data until chunk size is exhausted
+    unsigned int block_size = *decoder->channels * *decoder->bit_depth;
+    unsigned int channel_offset = decoder->out_size / *decoder->channels;
 
-    skip_data(decoder, chunk_size);
+    float out;
+    float divisor;
+    switch (*decoder->bit_depth) {
+        case 8: divisor = divisor_8; break;
+        case 16: divisor = divisor_16; break;
+        case 24: divisor = divisor_24; break;
+        case 32: divisor = divisor_32; break;
+    }
+
+    float4 out_4 = float_to_float4(0);
+    float4 divisor_4 = float_to_float4(divisor);
+    unsigned int simd_block_size = block_size * float4_size;
+    unsigned int start;
+    unsigned int total_read;
+
+    while (chunk_size) {
+        yield(decoder, block_size);
+        start = decoder->in_pos;
+
+        // read simd
+        /*
+        total_read = *decoder->in_len - simd_block_size;
+        while (decoder->in_pos <= total_read) {
+            for (int channel = 0; channel < *decoder->channels; channel++) {
+                load_int_to_float4(decoder->in_data + decoder->in_pos + channel, out_4, block_size);
+                divide_float4(out_4, divisor_4);
+
+                unsigned int ptr_offset = sizeof(float) * (decoder->out_pos + channel * channel_offset);
+                store_float4(decoder->out_data + ptr_offset, out_4);
+            }
+
+            decoder->in_pos += simd_block_size;
+        }
+        */
+
+        // read any remaining data
+        total_read = *decoder->in_len - block_size;
+        while (decoder->in_pos < total_read) {
+            for (int channel = 0; channel < *decoder->channels; channel++) {
+                decoder->out_data[decoder->out_pos + channel * channel_offset] = ((float) decoder->in_data[channel * channel_offset]) / divisor;
+            }
+
+            decoder->in_pos += block_size;
+            //info_int(decoder->in_pos);
+        }
+
+        chunk_size -= decoder->in_pos - start;
+    }
+
+    // if samples are odd, then padding byte will exist at end of chunk
+   // if (!(block_size / 8 % 2)) skip_data(decoder, 1);
+
 /*
     while (chunk_size > 0) {
         unsigned int samples = (*decoder->in_len - decoder->in_pos) / *decoder->channels;
