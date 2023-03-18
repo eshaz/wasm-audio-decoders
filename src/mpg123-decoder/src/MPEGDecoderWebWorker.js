@@ -8,14 +8,14 @@ export default class MPEGDecoderWebWorker extends WASMAudioDecoderWorker {
   }
 
   async decode(data) {
-    return this._postToDecoder("decode", data);
+    return this.postToDecoder("decode", data);
   }
 
   async decodeFrame(data) {
-    return this._postToDecoder("decodeFrame", data);
+    return this.postToDecoder("decodeFrame", data);
   }
 
   async decodeFrames(data) {
-    return this._postToDecoder("decodeFrames", data);
+    return this.postToDecoder("decodeFrames", data);
   }
 }

@@ -6,12 +6,26 @@ export default function MPEGDecoder(options = {}) {
   // injects dependencies when running as a web worker
   // async
   this._init = () => {
-    return new this._WASMAudioDecoderCommon(this)
-      .instantiate()
+    return new this._WASMAudioDecoderCommon()
+      .instantiate(this._EmscriptenWASM, this._module)
       .then((common) => {
         this._common = common;
 
         this._sampleRate = 0;
+
+        this._inputBytes = 0;
+        this._outputSamples = 0;
+        this._frameNumber = 0;
+
+        this._input = this._common.allocateTypedArray(
+          this._inputSize,
+          Uint8Array
+        );
+
+        this._output = this._common.allocateTypedArray(
+          this._outputChannels * this._outputChannelSize,
+          Float32Array
+        );
 
         this._inputPosition = this._common.allocateTypedArray(1, Uint32Array);
         this._samplesDecoded = this._common.allocateTypedArray(1, Uint32Array);
@@ -70,7 +84,14 @@ export default function MPEGDecoder(options = {}) {
         error + " " + this._common.codeToString(this._errorStringPtr.buf[0]);
 
       console.error("mpg123-decoder: " + message);
-      this._common.addError(errors, message, this._inputPosition.buf[0]);
+      this._common.addError(
+        errors,
+        message,
+        this._inputPosition.buf[0],
+        this._frameNumber,
+        this._inputBytes,
+        this._outputSamples
+      );
     }
 
     const samplesDecoded = this._samplesDecoded.buf[0];

@@ -7,10 +7,14 @@ export function Decoder() {
   // injects dependencies when running as a web worker
   // async
   this._init = () => {
-    return new this._WASMAudioDecoderCommon(this)
-      .instantiate()
+    return new this._WASMAudioDecoderCommon()
+      .instantiate(this._EmscriptenWASM, this._module)
       .then((common) => {
         this._common = common;
+
+        this._inputBytes = 0;
+        this._outputSamples = 0;
+        this._frameNumber = 0;
 
         this._channels = this._common.allocateTypedArray(1, Uint32Array);
         this._sampleRate = this._common.allocateTypedArray(1, Uint32Array);
@@ -128,7 +132,14 @@ export function Decoder() {
         outputSamples += decoded.samplesDecoded;
 
         if (decoded.error)
-          this._common.addError(errors, decoded.error, data.length);
+          this._common.addError(
+            errors,
+            decoded.error,
+            data.length,
+            this._frameNumber,
+            this._inputBytes,
+            this._outputSamples
+          );
 
         this._inputBytes += data.length;
         this._outputSamples += decoded.samplesDecoded;

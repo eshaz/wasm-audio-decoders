@@ -6,13 +6,16 @@ import EmscriptenWASM from "./EmscriptenWasm.js";
 export function Decoder() {
   // injects dependencies when running as a web worker
   // async
-  this._inputSize = 128 * 1024;
-
   this._init = () => {
-    return new this._WASMAudioDecoderCommon(this)
-      .instantiate()
+    return new this._WASMAudioDecoderCommon()
+      .instantiate(this._EmscriptenWASM, this._module)
       .then((common) => {
         this._common = common;
+
+        this._input = this._common.allocateTypedArray(
+          this._inputSize,
+          Uint8Array
+        );
 
         this._firstPage = true;
         this._inputLen = this._common.allocateTypedArray(1, Uint32Array);
@@ -29,6 +32,7 @@ export function Decoder() {
         this._framesDecoded = 0;
         this._inputBytes = 0;
         this._outputSamples = 0;
+        this._frameNumber = 0;
 
         this._decoder = this._common.wasm._create_decoder(
           this._input.ptr,
@@ -147,6 +151,8 @@ export function Decoder() {
     Decoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
   this._EmscriptenWASM = Decoder.EmscriptenWASM || EmscriptenWASM;
   this._module = Decoder.module;
+
+  this._inputSize = 128 * 1024;
 
   this._ready = this._init();
 
