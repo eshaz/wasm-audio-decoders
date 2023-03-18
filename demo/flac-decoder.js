@@ -4,7 +4,7 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["flac-decoder"] = {}, global.Worker));
 })(this, (function (exports, NodeWorker) { 'use strict';
 
-  function WASMAudioDecoderCommon(decoderInstance) {
+  function WASMAudioDecoderCommon() {
     // setup static methods
     const uint8Array = Uint8Array;
     const float32Array = Float32Array;
@@ -242,48 +242,29 @@
       return String.fromCharCode.apply(null, characters);
     };
 
-    this.addError = (errors, message, frameLength) => {
+    this.addError = (
+      errors,
+      message,
+      frameLength,
+      frameNumber,
+      inputBytes,
+      outputSamples
+    ) => {
       errors.push({
         message: message,
         frameLength: frameLength,
-        frameNumber: decoderInstance._frameNumber,
-        inputBytes: decoderInstance._inputBytes,
-        outputSamples: decoderInstance._outputSamples,
+        frameNumber: frameNumber,
+        inputBytes: inputBytes,
+        outputSamples: outputSamples,
       });
     };
 
-    this.instantiate = () => {
-      const _module = decoderInstance._module;
-      const _EmscriptenWASM = decoderInstance._EmscriptenWASM;
-      const _inputSize = decoderInstance._inputSize;
-      const _outputChannels = decoderInstance._outputChannels;
-      const _outputChannelSize = decoderInstance._outputChannelSize;
-
+    this.instantiate = (_EmscriptenWASM, _module) => {
       if (_module) WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
-
       this._wasm = new _EmscriptenWASM(WASMAudioDecoderCommon).instantiate();
       this._pointers = new Set();
 
-      return this._wasm.ready.then(() => {
-        if (_inputSize)
-          decoderInstance._input = this.allocateTypedArray(
-            _inputSize,
-            uint8Array
-          );
-
-        // output buffer
-        if (_outputChannelSize)
-          decoderInstance._output = this.allocateTypedArray(
-            _outputChannels * _outputChannelSize,
-            float32Array
-          );
-
-        decoderInstance._inputBytes = 0;
-        decoderInstance._outputSamples = 0;
-        decoderInstance._frameNumber = 0;
-
-        return this;
-      });
+      return this._wasm.ready.then(() => this);
     };
   }
 
@@ -383,11 +364,11 @@
       };
 
       new EmscriptenWASM(WASMAudioDecoderCommon).getModule().then((module) => {
-        this._postToDecoder("init", { module, options });
+        this.postToDecoder("init", { module, options });
       });
     }
 
-    async _postToDecoder(command, data) {
+    async postToDecoder(command, data) {
       return new Promise((resolve) => {
         this.postMessage({
           command,
@@ -400,17 +381,17 @@
     }
 
     get ready() {
-      return this._postToDecoder("ready");
+      return this.postToDecoder("ready");
     }
 
     async free() {
-      await this._postToDecoder("free").finally(() => {
+      await this.postToDecoder("free").finally(() => {
         this.terminate();
       });
     }
 
     async reset() {
-      await this._postToDecoder("reset");
+      await this.postToDecoder("reset");
     }
   }
 
@@ -3742,10 +3723,14 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
     // injects dependencies when running as a web worker
     // async
     this._init = () => {
-      return new this._WASMAudioDecoderCommon(this)
-        .instantiate()
+      return new this._WASMAudioDecoderCommon()
+        .instantiate(this._EmscriptenWASM, this._module)
         .then((common) => {
           this._common = common;
+
+          this._inputBytes = 0;
+          this._outputSamples = 0;
+          this._frameNumber = 0;
 
           this._channels = this._common.allocateTypedArray(1, Uint32Array);
           this._sampleRate = this._common.allocateTypedArray(1, Uint32Array);
@@ -3863,7 +3848,14 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
           outputSamples += decoded.samplesDecoded;
 
           if (decoded.error)
-            this._common.addError(errors, decoded.error, data.length);
+            this._common.addError(
+              errors,
+              decoded.error,
+              data.length,
+              this._frameNumber,
+              this._inputBytes,
+              this._outputSamples
+            );
 
           this._inputBytes += data.length;
           this._outputSamples += decoded.samplesDecoded;
@@ -3979,7 +3971,7 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
     }
 
     async decodeFrames(frames) {
-      return this._postToDecoder("decodeFrames", frames);
+      return this.postToDecoder("decodeFrames", frames);
     }
   }
 
