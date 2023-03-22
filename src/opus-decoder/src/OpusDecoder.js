@@ -50,7 +50,7 @@ export default function OpusDecoder(options = {}) {
 
         mapping.buf.set(this._channelMappingTable);
 
-        this._decoder = this._common.wasm._opus_frame_decoder_create(
+        this._decoder = this._common.wasm["_opus_frame_decoder_create"](
           this._channels,
           this._streamCount,
           this._coupledStreamCount,
@@ -73,8 +73,8 @@ export default function OpusDecoder(options = {}) {
 
   this.free = () => {
     this._common.free();
-    this._common.wasm._opus_frame_decoder_destroy(this._decoder);
-    this._common.wasm._free(this._decoder);
+    this._common.wasm["_opus_frame_decoder_destroy"](this._decoder);
+    this._common.wasm["_free"](this._decoder);
   };
 
   this._decode = (opusFrame) => {
@@ -85,13 +85,9 @@ export default function OpusDecoder(options = {}) {
 
     this._input.buf.set(opusFrame);
 
-    let samplesDecoded =
-      this._common.wasm._opus_frame_decode_float_deinterleaved(
-        this._decoder,
-        this._input.ptr,
-        opusFrame.length,
-        this._output.ptr
-      );
+    let samplesDecoded = this._common.wasm[
+      "_opus_frame_decode_float_deinterleaved"
+    ](this._decoder, this._input.ptr, opusFrame.length, this._output.ptr);
 
     let error;
 

@@ -33,7 +33,7 @@ export function Decoder() {
         this._inputBytes = 0;
         this._outputSamples = 0;
 
-        this._decoder = this._common.wasm._create_decoder(
+        this._decoder = this._common.wasm["_create_decoder"](
           this._input.ptr,
           this._inputLen.ptr,
           this._outputBufferPtr.ptr,
@@ -59,7 +59,7 @@ export function Decoder() {
   };
 
   this.free = () => {
-    this._common.wasm._destroy_decoder(this._decoder);
+    this._common.wasm["_destroy_decoder"](this._decoder);
     this._common.free();
   };
 
@@ -67,12 +67,12 @@ export function Decoder() {
     this._input.buf.set(data);
     this._inputLen.buf[0] = data.length;
 
-    this._common.wasm._send_setup(this._decoder, this._firstPage);
+    this._common.wasm["_send_setup"](this._decoder, this._firstPage);
     this._firstPage = false;
   };
 
   this.initDsp = () => {
-    this._common.wasm._init_dsp(this._decoder);
+    this._common.wasm["_init_dsp"](this._decoder);
   };
 
   this.decodePackets = (packets) => {
@@ -85,7 +85,7 @@ export function Decoder() {
       this._input.buf.set(packet);
       this._inputLen.buf[0] = packet.length;
 
-      this._common.wasm._decode_packets(this._decoder);
+      this._common.wasm["_decode_packets"](this._decoder);
 
       const samplesDecoded = this._samplesDecoded.buf[0];
       const channels = [];
