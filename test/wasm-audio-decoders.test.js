@@ -214,6 +214,7 @@ describe("wasm-audio-decoders", () => {
   const oggVorbis32TestFile = "ogg.vorbis.32.ogg";
   const oggVorbis64TestFile = "ogg.vorbis.64.ogg";
   const oggVorbis255TestFile = "ogg.vorbis.255.ogg";
+  const oggVorbisChained2TestFile = "ogg.vorbis.chained2.ogg";
   const opusStereoTestFile = "ogg.opus";
   const opusStereoErrorsTestFile = "ogg.errors.opus";
   const opusSurroundTestFile = "ogg.opus.surround";
@@ -1901,6 +1902,27 @@ describe("wasm-audio-decoders", () => {
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
+
+      it("should decode chained vorbis", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode chained vorbis",
+          oggVorbisChained2TestFile,
+          oggVorbisChained2TestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(8785152); // 50560 from codec parser
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
     });
 
     describe("web worker", () => {
@@ -2026,6 +2048,27 @@ describe("wasm-audio-decoders", () => {
         expect(result.errors.length).toEqual(0);
         expect(result.samplesDecoded).toEqual(50496); // 50560 from codec parser
         expect(result.sampleRate).toEqual(48000);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode chained vorbis", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode chained vorbis",
+          oggVorbisChained2TestFile,
+          oggVorbisChained2TestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(8785152); // 50560 from codec parser
+        expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });

@@ -1,4 +1,5 @@
 import { DecodeError } from "@wasm-audio-decoders/common/types";
+import { OggPage } from "codec-parser";
 
 declare module "ogg-vorbis-decoder" {
   export interface OggVorbisDecodedAudio {
@@ -16,6 +17,7 @@ declare module "ogg-vorbis-decoder" {
     decode: (vorbisData: Uint8Array) => Promise<OggVorbisDecodedAudio>;
     flush: () => Promise<OggVorbisDecodedAudio>;
     decodeFile: (vorbisData: Uint8Array) => Promise<OggVorbisDecodedAudio>;
+    decodeOggPages: (oggPages: OggPage[]) => Promise<OggVorbisDecodedAudio>;
   }
 
   export class OggVorbisDecoderWebWorker {
@@ -25,5 +27,6 @@ declare module "ogg-vorbis-decoder" {
     decode: (vorbisData: Uint8Array) => Promise<OggVorbisDecodedAudio>;
     flush: () => Promise<OggVorbisDecodedAudio>;
     decodeFile: (vorbisData: Uint8Array) => Promise<OggVorbisDecodedAudio>;
+    decodeOggPages: (oggPages: OggPage[]) => Promise<OggVorbisDecodedAudio>;
   }
 }

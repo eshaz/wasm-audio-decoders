@@ -3811,10 +3811,9 @@ cAë¢þÍÍ­ý×ß'$|ð÷= È8a7ç^oÚ~Ò;hTÐ¸Ô£|¸Øÿ£2±õR�
           this._errors = this._common.allocateTypedArray(maxErrors, Uint32Array);
           this._errorsLength = this._common.allocateTypedArray(1, Int32Array);
 
-          this._framesDecoded = 0;
+          this._frameNumber = 0;
           this._inputBytes = 0;
           this._outputSamples = 0;
-          this._frameNumber = 0;
 
           this._decoder = this._common.wasm._create_decoder(
             this._input.ptr,
@@ -3827,8 +3826,6 @@ cAë¢þÍÍ­ý×ß'$|ð÷= È8a7ç^oÚ~Ò;hTÐ¸Ô£|¸Øÿ£2±õR�
             this._errorsLength.ptr,
             maxErrors
           );
-
-          this._vorbisSetupInProgress = true;
         });
     };
 
@@ -3896,7 +3893,7 @@ cAë¢þÍÍ­ý×ß'$|ð÷= È8a7ç^oÚ~Ò;hTÐ¸Ô£|¸Øÿ£2±õR�
         outputBuffers.push(channels);
         outputSamples += samplesDecoded;
 
-        this._framesDecoded++;
+        this._frameNumber++;
         this._inputBytes += packet.length;
         this._outputSamples += samplesDecoded;
 
@@ -3908,7 +3905,7 @@ cAë¢þÍÍ­ý×ß'$|ð÷= È8a7ç^oÚ~Ò;hTÐ¸Ô£|¸Øÿ£2±õR�
               " " +
               this._common.codeToString(this._errors.buf[i + 1]),
             frameLength: packet.length,
-            frameNumber: this._framesDecoded,
+            frameNumber: this._frameNumber,
             inputBytes: this._inputBytes,
             outputSamples: this._outputSamples,
           });
@@ -3990,49 +3987,49 @@ cAë¢þÍÍ­ý×ß'$|ð÷= È8a7ç^oÚ~Ò;hTÐ¸Ô£|¸Øÿ£2±õR�
       this._decoder.free();
     }
 
-    async _decode(oggPages) {
-      let i = 0;
+    async decodeOggPages(oggPages) {
+      const packets = [];
 
-      if (this._vorbisSetupInProgress) {
-        for (; i < oggPages.length; i++) {
-          const oggPage = oggPages[i];
+      for (let i = 0; i < oggPages.length; i++) {
+        const oggPage = oggPages[i];
 
+        if (this._vorbisSetupInProgress) {
           if (oggPage.pageSequenceNumber === 0) {
             this._decoder.sendSetupHeader(oggPage.data);
-          } else if (oggPage.codecFrames.length) {
-            const header = oggPage.codecFrames[0].header;
+          } else if (oggPage.pageSequenceNumber > 1) {
+            if (this._vorbisSetupInProgress) {
+              const header = oggPage.codecFrames[0].header;
 
-            this._decoder.sendSetupHeader(header.vorbisComments);
-            this._decoder.sendSetupHeader(header.vorbisSetup);
-            this._decoder.initDsp();
+              this._decoder.sendSetupHeader(header.vorbisComments);
+              this._decoder.sendSetupHeader(header.vorbisSetup);
+              this._decoder.initDsp();
 
-            this._vorbisSetupInProgress = false;
-            break;
+              this._vorbisSetupInProgress = false;
+            }
           }
         }
+
+        packets.push(...oggPage.codecFrames.map((f) => f.data));
       }
 
-      return this._decoder.decodePackets(
-        oggPages
-          .slice(i)
-          .map((f) => f.codecFrames.map((c) => c.data))
-          .flat(1)
-      );
+      return this._decoder.decodePackets(packets);
     }
 
     async decode(vorbisData) {
-      return this._decode([...this._codecParser.parseChunk(vorbisData)]);
+      return this.decodeOggPages([...this._codecParser.parseChunk(vorbisData)]);
     }
 
     async flush() {
-      const decoded = this._decode([...this._codecParser.flush()]);
+      const decoded = this.decodeOggPages([...this._codecParser.flush()]);
 
       await this.reset();
       return decoded;
     }
 
     async decodeFile(vorbisData) {
-      const decoded = this._decode([...this._codecParser.parseAll(vorbisData)]);
+      const decoded = this.decodeOggPages([
+        ...this._codecParser.parseAll(vorbisData),
+      ]);
 
       await this.reset();
       return decoded;
