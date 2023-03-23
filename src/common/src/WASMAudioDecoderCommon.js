@@ -210,7 +210,7 @@ export default function WASMAudioDecoderCommon() {
   };
 
   this.allocateTypedArray = (len, TypedArray, setPointer = true) => {
-    const ptr = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * len);
+    const ptr = this._wasm["_malloc"](TypedArray.BYTES_PER_ELEMENT * len);
     if (setPointer) this._pointers.add(ptr);
 
     return {
@@ -222,7 +222,7 @@ export default function WASMAudioDecoderCommon() {
 
   this.free = () => {
     this._pointers.forEach((ptr) => {
-      this._wasm._free(ptr);
+      this._wasm["_free"](ptr);
     });
     this._pointers.clear();
   };

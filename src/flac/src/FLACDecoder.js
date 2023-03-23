@@ -26,7 +26,7 @@ export function Decoder() {
         this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
         this._stateStringPtr = this._common.allocateTypedArray(1, Uint32Array);
 
-        this._decoder = this._common.wasm._create_decoder(
+        this._decoder = this._common.wasm["_create_decoder"](
           this._channels.ptr,
           this._sampleRate.ptr,
           this._bitsPerSample.ptr,
@@ -51,7 +51,7 @@ export function Decoder() {
   };
 
   this.free = () => {
-    this._common.wasm._destroy_decoder(this._decoder);
+    this._common.wasm["_destroy_decoder"](this._decoder);
 
     this._common.free();
   };
@@ -69,7 +69,7 @@ export function Decoder() {
     );
     input.buf.set(data);
 
-    this._common.wasm._decode_frame(this._decoder, input.ptr, input.len);
+    this._common.wasm["_decode_frame"](this._decoder, input.ptr, input.len);
 
     let errorMessage = [],
       error;
@@ -106,7 +106,7 @@ export function Decoder() {
       samplesDecoded: this._samplesDecoded.buf[0],
     };
 
-    this._common.wasm._free(this._outputBufferPtr.buf[0]);
+    this._common.wasm["_free"](this._outputBufferPtr.buf[0]);
     this._outputBufferLen.buf[0] = 0;
     this._samplesDecoded.buf[0] = 0;
 

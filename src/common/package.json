@@ -1,9 +1,10 @@
 {
   "name": "@wasm-audio-decoders/common",
-  "version": "7.0.0",
+  "version": "7.0.1",
   "description": "Web Assembly Audio Decoders Common",
   "module": "index.js",
   "main": "index.js",
+  "sideEffects": false,
   "files": [
     "index.js",
     "types.d.ts",

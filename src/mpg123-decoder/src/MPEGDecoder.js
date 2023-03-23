@@ -32,7 +32,7 @@ export default function MPEGDecoder(options = {}) {
         this._sampleRateBytes = this._common.allocateTypedArray(1, Uint32Array);
         this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
 
-        this._decoder = this._common.wasm._mpeg_frame_decoder_create();
+        this._decoder = this._common.wasm["_mpeg_frame_decoder_create"]();
       });
   };
 
@@ -48,8 +48,8 @@ export default function MPEGDecoder(options = {}) {
   };
 
   this.free = () => {
-    this._common.wasm._mpeg_frame_decoder_destroy(this._decoder);
-    this._common.wasm._free(this._decoder);
+    this._common.wasm["_mpeg_frame_decoder_destroy"](this._decoder);
+    this._common.wasm["_free"](this._decoder);
 
     this._common.free();
   };
@@ -64,7 +64,7 @@ export default function MPEGDecoder(options = {}) {
     this._inputPosition.buf[0] = 0;
     this._samplesDecoded.buf[0] = 0;
 
-    const error = this._common.wasm._mpeg_decode_interleaved(
+    const error = this._common.wasm["_mpeg_decode_interleaved"](
       this._decoder,
       this._input.ptr,
       data.length,

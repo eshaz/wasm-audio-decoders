@@ -33,4 +33,8 @@ export default class OggVorbisDecoderWebWorker extends OggVorbisDecoder {
   async free() {
     super.free();
   }
+
+  terminate() {
+    this._decoder.terminate();
+  }
 }

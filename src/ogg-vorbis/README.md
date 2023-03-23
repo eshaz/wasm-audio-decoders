@@ -143,6 +143,10 @@ const decoder = new OggVorbisDecoder();
   * `vorbisData` Uint8Array containing Ogg Vorbis data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when decoding an entire file.
+* `decoder.decodeOggPages(oggPages: OggPage[])` *async*
+  * `oggPages` Array of Vorbis Ogg Pages.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when decoding with Ogg Pages that have already been parsed using [`codec-parser`](https://github.com/eshaz/codec-parser)
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Ogg Vorbis data can be decoded.
 * `decoder.free()`
@@ -175,6 +179,10 @@ const decoder = new OggVorbisDecoderWebWorker();
   * `vorbisData` Uint8Array containing Ogg Vorbis data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when decoding an entire file.
+* `decoder.decodeOggPages(oggPages: OggPage[])` *async*
+  * `oggPages` Array of Vorbis Ogg Pages.
+  * Returns a promise that resolves with the decoded audio.
+  * Use this when decoding with Ogg Pages that have already been parsed using [`codec-parser`](https://github.com/eshaz/codec-parser)
 * `decoder.reset()` *async*
   * Resets the decoder so that a new stream of Ogg Vorbis data can be decoded.
 * `decoder.free()` *async
