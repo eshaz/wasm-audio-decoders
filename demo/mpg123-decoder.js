@@ -216,7 +216,7 @@
     };
 
     this.allocateTypedArray = (len, TypedArray, setPointer = true) => {
-      const ptr = this._wasm["_malloc"](TypedArray.BYTES_PER_ELEMENT * len);
+      const ptr = this._wasm.malloc(TypedArray.BYTES_PER_ELEMENT * len);
       if (setPointer) this._pointers.add(ptr);
 
       return {
@@ -228,7 +228,7 @@
 
     this.free = () => {
       this._pointers.forEach((ptr) => {
-        this._wasm["_free"](ptr);
+        this._wasm.free(ptr);
       });
       this._pointers.clear();
     };
@@ -757,11 +757,11 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
    ready = resolve;
   }).then(() => {
    this.HEAP = buffer;
-   this._malloc = _malloc;
-   this._free = _free;
-   this._mpeg_frame_decoder_create = _mpeg_frame_decoder_create;
-   this._mpeg_decode_interleaved = _mpeg_decode_interleaved;
-   this._mpeg_frame_decoder_destroy = _mpeg_frame_decoder_destroy;
+   this.malloc = _malloc;
+   this.free = _free;
+   this.mpeg_frame_decoder_create = _mpeg_frame_decoder_create;
+   this.mpeg_decode_interleaved = _mpeg_decode_interleaved;
+   this.mpeg_frame_decoder_destroy = _mpeg_frame_decoder_destroy;
   });
   return this;
   };}
@@ -796,7 +796,7 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
           this._sampleRateBytes = this._common.allocateTypedArray(1, Uint32Array);
           this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
 
-          this._decoder = this._common.wasm["_mpeg_frame_decoder_create"]();
+          this._decoder = this._common.wasm.mpeg_frame_decoder_create();
         });
     };
 
@@ -812,8 +812,8 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
     };
 
     this.free = () => {
-      this._common.wasm["_mpeg_frame_decoder_destroy"](this._decoder);
-      this._common.wasm["_free"](this._decoder);
+      this._common.wasm.mpeg_frame_decoder_destroy(this._decoder);
+      this._common.wasm.free(this._decoder);
 
       this._common.free();
     };
@@ -828,7 +828,7 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
       this._inputPosition.buf[0] = 0;
       this._samplesDecoded.buf[0] = 0;
 
-      const error = this._common.wasm["_mpeg_decode_interleaved"](
+      const error = this._common.wasm.mpeg_decode_interleaved(
         this._decoder,
         this._input.ptr,
         data.length,

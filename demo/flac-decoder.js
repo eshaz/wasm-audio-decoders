@@ -216,7 +216,7 @@
     };
 
     this.allocateTypedArray = (len, TypedArray, setPointer = true) => {
-      const ptr = this._wasm["_malloc"](TypedArray.BYTES_PER_ELEMENT * len);
+      const ptr = this._wasm.malloc(TypedArray.BYTES_PER_ELEMENT * len);
       if (setPointer) this._pointers.add(ptr);
 
       return {
@@ -228,7 +228,7 @@
 
     this.free = () => {
       this._pointers.forEach((ptr) => {
-        this._wasm["_free"](ptr);
+        this._wasm.free(ptr);
       });
       this._pointers.clear();
     };
@@ -3710,11 +3710,11 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
    ready = resolve;
   }).then(() => {
    this.HEAP = buffer;
-   this._malloc = _malloc;
-   this._free = _free;
-   this._create_decoder = _create_decoder;
-   this._destroy_decoder = _destroy_decoder;
-   this._decode_frame = _decode_frame;
+   this.malloc = _malloc;
+   this.free = _free;
+   this.create_decoder = _create_decoder;
+   this.destroy_decoder = _destroy_decoder;
+   this.decode_frame = _decode_frame;
   });
   return this;
   };}
@@ -3742,7 +3742,7 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
           this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
           this._stateStringPtr = this._common.allocateTypedArray(1, Uint32Array);
 
-          this._decoder = this._common.wasm["_create_decoder"](
+          this._decoder = this._common.wasm.create_decoder(
             this._channels.ptr,
             this._sampleRate.ptr,
             this._bitsPerSample.ptr,
@@ -3767,7 +3767,7 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
     };
 
     this.free = () => {
-      this._common.wasm["_destroy_decoder"](this._decoder);
+      this._common.wasm.destroy_decoder(this._decoder);
 
       this._common.free();
     };
@@ -3785,7 +3785,7 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
       );
       input.buf.set(data);
 
-      this._common.wasm["_decode_frame"](this._decoder, input.ptr, input.len);
+      this._common.wasm.decode_frame(this._decoder, input.ptr, input.len);
 
       let errorMessage = [],
         error;
@@ -3822,7 +3822,7 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
         samplesDecoded: this._samplesDecoded.buf[0],
       };
 
-      this._common.wasm["_free"](this._outputBufferPtr.buf[0]);
+      this._common.wasm.free(this._outputBufferPtr.buf[0]);
       this._outputBufferLen.buf[0] = 0;
       this._samplesDecoded.buf[0] = 0;
 
