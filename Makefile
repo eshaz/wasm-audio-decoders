@@ -161,7 +161,7 @@ endef
 # puff (inflate library)
 # ----------------------
 # requires: llvm, clang, llc, binaryen
-puff-llvm:
+puff:
 	@ clang \
 		--target=wasm32 \
 		-nostdlib \
