@@ -1,5 +1,5 @@
 import fs from "fs";
-import yenc from "simple-yenc";
+import * as yenc from "simple-yenc";
 import Zopfli from "node-zopfli";
 
 import { nodeResolve } from "@rollup/plugin-node-resolve";
