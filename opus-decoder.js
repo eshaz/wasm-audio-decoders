@@ -4,7 +4,7 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["opus-decoder"] = {}, global.Worker));
 })(this, (function (exports, NodeWorker) { 'use strict';
 
-  function WASMAudioDecoderCommon(decoderInstance) {
+  function WASMAudioDecoderCommon() {
     // setup static methods
     const uint8Array = Uint8Array;
     const float32Array = Float32Array;
@@ -106,16 +106,35 @@
          ******************
          */
 
+        crc32Table: {
+          value: (() => {
+            let crc32Table = new Int32Array(256),
+              i,
+              j,
+              c;
+
+            for (i = 0; i < 256; i++) {
+              for (c = i << 24, j = 8; j > 0; --j)
+                c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : c << 1;
+              crc32Table[i] = c;
+            }
+            return crc32Table;
+          })(),
+        },
+
         decodeDynString: {
           value(source) {
-            const output = new uint8Array(source.length);
-            const offset = parseInt(source.substring(11, 13), 16);
-            const offsetReverse = 256 - offset;
+            let output = new uint8Array(source.length);
+            let offset = parseInt(source.substring(11, 13), 16);
+            let offsetReverse = 256 - offset;
 
-            let escaped = false,
+            let crcIdx,
+              escaped = false,
               byteIndex = 0,
               byte,
-              i = 13;
+              i = 21,
+              expectedCrc,
+              resultCrc = 0xffffffff;
 
             while (i < source.length) {
               byte = source.charCodeAt(i++);
@@ -130,9 +149,24 @@
                 byte -= 64;
               }
 
-              output[byteIndex++] =
+              output[byteIndex] =
                 byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
+
+              resultCrc =
+                (resultCrc << 8) ^
+                WASMAudioDecoderCommon.crc32Table[
+                  ((resultCrc >> 24) ^ output[byteIndex++]) & 255
+                ];
             }
+
+            // expected crc
+            for (crcIdx = 0; crcIdx <= 8; crcIdx += 2)
+              expectedCrc |=
+                parseInt(source.substring(13 + crcIdx, 15 + crcIdx), 16) <<
+                (crcIdx * 4);
+
+            if (expectedCrc !== resultCrc)
+              throw new Error("WASM string decode failed crc32 validation");
 
             return output.subarray(0, byteIndex);
           },
@@ -144,7 +178,7 @@
 
             return new Promise((resolve) => {
               // prettier-ignore
-              const puffString = String.raw`dynEncode0014u*ttt$#U¤¤U¤¤3yzzss|yusvuyÚ&4<054<,5T44^T44<(6U~J(44< ~A544U~6J0444545 444J0444J,4U4UÒ7U454U4Z4U4U^/6545T4T44BU~64CU~O4U54U~5 U5T4B4Z!4U~5U5U5T4U~6U4ZTU5U5T44~4O4U2ZTU5T44Z!4B6T44U~64B6U~O44U~4O4U~54U~5 44~C4~54U~5 44~5454U4B6Ub!444~UO4U~5 U54U4ZTU#44U$464<4~B6^4<444~U~B4U~54U544~544~U5 µUä#UJUè#5TT4U0ZTTUX5U5T4T4Uà#~4OU4U $~C4~54U~5 T44$6U\!TTT4UaT4<6T4<64<Z!44~4N4<U~5 4UZ!4U±_TU#44UU6UÔ~B$544$6U\!4U6U¤#~B44Uä#~B$~64<6_TU#444U~B~6~54<Y!44<_!T4Y!4<64~444~AN44<U~6J4U5 44J4U[!U#44UO4U~54U~5 U54 7U6844J44J 4UJ4UJ04VK(44<J44<J$4U´~54U~5 4U¤~5!TTT4U$5"U5TTTTTTT4U$"4VK,U54<(6U~64<$6_!4< 64~6A54A544U~6#J(U54A4U[!44J(44#~A4U6UUU[!4464~64_!4<64~54<6T4<4]TU5 T4Y!44~44~AN4U~54U~54U5 44J(44J UÄA!U5U#UôJU"UÔJU#UÔ"JU#U´"JT4U´ZTU5T4UôZTU5T4UDZTU5T4U$[T44~UO4U~5 UÔUô4U~U´$.U5T4UP[T4U~4~UO4U~5 U#<U#<4U~U2$.UÄUN 44 ~UO4U~5 44!~UO4U~5 4U~4~UO4U~5 44J44J(U5 44U¤~J@44Uä~J<44UD~J844U~J44U$54U$5U54U$54U1^4U1^!4U~54U~5U54U~6U4U^/65T4T4U$54U~4BU~4O4U54U~5 UU'464U'_/54UU~5T4T4U~4BU~UO4U54U~5 U54Uä~4U¤~4U~U'$!44~5U5T44\T44U<~$6U\!4U#aT4U~4U~4O4U~5 U5U5U5TTT4U$"4YTU5 4U4~C5U5 U5U5444$4~64~\TU5 4U~4U~5T4Y!44O4U~54U~54U5 4CYTU5 4Uä~4U¤~4U~4$6TU54U\!44Bæ4Bä~[!4U~4UD~4U~4U~4$6TU54U\!44B4B~[!44U<~4U4~$5 4U"U#$544"Y!454U^!44<J44<(J454U~84­UN!#%'+/37?GOWgw·×÷Uä;U9$%& !"#`;
+              const puffString = String.raw`dynEncode0114db91da9bu*ttt$#U¤¤U¤¤3yzzss|yusvuyÚ&4<054<,5T44^T44<(6U~J(44< ~A544U~6J0444545 444J0444J,4U4UÒ7U454U4Z4U4U^/6545T4T44BU~64CU~O4U54U~5 U5T4B4Z!4U~5U5U5T4U~6U4ZTU5U5T44~4O4U2ZTU5T44Z!4B6T44U~64B6U~O44U~4O4U~54U~5 44~C4~54U~5 44~5454U4B6Ub!444~UO4U~5 U54U4ZTU#44U$464<4~B6^4<444~U~B4U~54U544~544~U5 µUä#UJUè#5TT4U0ZTTUX5U5T4T4Uà#~4OU4U $~C4~54U~5 T44$6U\!TTT4UaT4<6T4<64<Z!44~4N4<U~5 4UZ!4U±_TU#44UU6UÔ~B$544$6U\!4U6U¤#~B44Uä#~B$~64<6_TU#444U~B~6~54<Y!44<_!T4Y!4<64~444~AN44<U~6J4U5 44J4U[!U#44UO4U~54U~5 U54 7U6844J44J 4UJ4UJ04VK(44<J44<J$4U´~54U~5 4U¤~5!TTT4U$5"U5TTTTTTT4U$"4VK,U54<(6U~64<$6_!4< 64~6A54A544U~6#J(U54A4U[!44J(44#~A4U6UUU[!4464~64_!4<64~54<6T4<4]TU5 T4Y!44~44~AN4U~54U~54U5 44J(44J UÄA!U5U#UôJU"UÔJU#UÔ"JU#U´"JT4U´ZTU5T4UôZTU5T4UDZTU5T4U$[T44~UO4U~5 UÔUô4U~U´$.U5T4UP[T4U~4~UO4U~5 U#<U#<4U~U2$.UÄUN 44 ~UO4U~5 44!~UO4U~5 4U~4~UO4U~5 44J44J(U5 44U¤~J@44Uä~J<44UD~J844U~J44U$54U$5U54U$54U1^4U1^!4U~54U~5U54U~6U4U^/65T4T4U$54U~4BU~4O4U54U~5 UU'464U'_/54UU~5T4T4U~4BU~UO4U54U~5 U54Uä~4U¤~4U~U'$!44~5U5T44\T44U<~$6U\!4U#aT4U~4U~4O4U~5 U5U5U5TTT4U$"4YTU5 4U4~C5U5 U5U5444$4~64~\TU5 4U~4U~5T4Y!44O4U~54U~54U5 4CYTU5 4Uä~4U¤~4U~4$6TU54U\!44Bæ4Bä~[!4U~4UD~4U~4U~4$6TU54U\!44B4B~[!44U<~4U4~$5 4U"U#$544"Y!454U^!44<J44<(J454U~84­UN!#%'+/37?GOWgw·×÷Uä;U9$%& !"#`;
 
               WASMAudioDecoderCommon.getModule(WASMAudioDecoderCommon, puffString)
                 .then((wasm) => WebAssembly.instantiate(wasm, {}))
@@ -216,7 +250,7 @@
     };
 
     this.allocateTypedArray = (len, TypedArray, setPointer = true) => {
-      const ptr = this._wasm._malloc(TypedArray.BYTES_PER_ELEMENT * len);
+      const ptr = this._wasm.malloc(TypedArray.BYTES_PER_ELEMENT * len);
       if (setPointer) this._pointers.add(ptr);
 
       return {
@@ -228,7 +262,7 @@
 
     this.free = () => {
       this._pointers.forEach((ptr) => {
-        this._wasm._free(ptr);
+        this._wasm.free(ptr);
       });
       this._pointers.clear();
     };
@@ -242,48 +276,29 @@
       return String.fromCharCode.apply(null, characters);
     };
 
-    this.addError = (errors, message, frameLength) => {
+    this.addError = (
+      errors,
+      message,
+      frameLength,
+      frameNumber,
+      inputBytes,
+      outputSamples
+    ) => {
       errors.push({
         message: message,
         frameLength: frameLength,
-        frameNumber: decoderInstance._frameNumber,
-        inputBytes: decoderInstance._inputBytes,
-        outputSamples: decoderInstance._outputSamples,
+        frameNumber: frameNumber,
+        inputBytes: inputBytes,
+        outputSamples: outputSamples,
       });
     };
 
-    this.instantiate = () => {
-      const _module = decoderInstance._module;
-      const _EmscriptenWASM = decoderInstance._EmscriptenWASM;
-      const _inputSize = decoderInstance._inputSize;
-      const _outputChannels = decoderInstance._outputChannels;
-      const _outputChannelSize = decoderInstance._outputChannelSize;
-
+    this.instantiate = (_EmscriptenWASM, _module) => {
       if (_module) WASMAudioDecoderCommon.setModule(_EmscriptenWASM, _module);
-
       this._wasm = new _EmscriptenWASM(WASMAudioDecoderCommon).instantiate();
       this._pointers = new Set();
 
-      return this._wasm.ready.then(() => {
-        if (_inputSize)
-          decoderInstance._input = this.allocateTypedArray(
-            _inputSize,
-            uint8Array
-          );
-
-        // output buffer
-        if (_outputChannelSize)
-          decoderInstance._output = this.allocateTypedArray(
-            _outputChannels * _outputChannelSize,
-            float32Array
-          );
-
-        decoderInstance._inputBytes = 0;
-        decoderInstance._outputSamples = 0;
-        decoderInstance._frameNumber = 0;
-
-        return this;
-      });
+      return this._wasm.ready.then(() => this);
     };
   }
 
@@ -296,77 +311,77 @@
       let source = WASMAudioDecoderCommon.modules.get(Decoder);
 
       if (!source) {
-        const webworkerSourceCode =
-          "'use strict';" +
-          // dependencies need to be manually resolved when stringifying this function
-          `(${((_Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
-          // We're in a Web Worker
+        let type = "text/javascript",
+          isNode,
+          webworkerSourceCode =
+            "'use strict';" +
+            // dependencies need to be manually resolved when stringifying this function
+            `(${((_Decoder, _WASMAudioDecoderCommon, _EmscriptenWASM) => {
+            // We're in a Web Worker
 
-          // setup Promise that will be resolved once the WebAssembly Module is received
-          let decoder,
-            moduleResolve,
-            modulePromise = new Promise((resolve) => {
-              moduleResolve = resolve;
-            });
-
-          self.onmessage = ({ data: { id, command, data } }) => {
-            let messagePromise = modulePromise,
-              messagePayload = { id },
-              transferList;
-
-            if (command === "init") {
-              Object.defineProperties(_Decoder, {
-                WASMAudioDecoderCommon: { value: _WASMAudioDecoderCommon },
-                EmscriptenWASM: { value: _EmscriptenWASM },
-                module: { value: data.module },
-                isWebWorker: { value: true },
+            // setup Promise that will be resolved once the WebAssembly Module is received
+            let decoder,
+              moduleResolve,
+              modulePromise = new Promise((resolve) => {
+                moduleResolve = resolve;
               });
 
-              decoder = new _Decoder(data.options);
-              moduleResolve();
-            } else if (command === "free") {
-              decoder.free();
-            } else if (command === "ready") {
-              messagePromise = messagePromise.then(() => decoder.ready);
-            } else if (command === "reset") {
-              messagePromise = messagePromise.then(() => decoder.reset());
-            } else {
-              // "decode":
-              // "decodeFrame":
-              // "decodeFrames":
-              Object.assign(
-                messagePayload,
-                decoder[command](
-                  // detach buffers
-                  Array.isArray(data)
-                    ? data.map((data) => new Uint8Array(data))
-                    : new Uint8Array(data)
-                )
+            self.onmessage = ({ data: { id, command, data } }) => {
+              let messagePromise = modulePromise,
+                messagePayload = { id },
+                transferList;
+
+              if (command === "init") {
+                Object.defineProperties(_Decoder, {
+                  WASMAudioDecoderCommon: { value: _WASMAudioDecoderCommon },
+                  EmscriptenWASM: { value: _EmscriptenWASM },
+                  module: { value: data.module },
+                  isWebWorker: { value: true },
+                });
+
+                decoder = new _Decoder(data.options);
+                moduleResolve();
+              } else if (command === "free") {
+                decoder.free();
+              } else if (command === "ready") {
+                messagePromise = messagePromise.then(() => decoder.ready);
+              } else if (command === "reset") {
+                messagePromise = messagePromise.then(() => decoder.reset());
+              } else {
+                // "decode":
+                // "decodeFrame":
+                // "decodeFrames":
+                Object.assign(
+                  messagePayload,
+                  decoder[command](
+                    // detach buffers
+                    Array.isArray(data)
+                      ? data.map((data) => new Uint8Array(data))
+                      : new Uint8Array(data)
+                  )
+                );
+                // The "transferList" parameter transfers ownership of channel data to main thread,
+                // which avoids copying memory.
+                transferList = messagePayload.channelData
+                  ? messagePayload.channelData.map((channel) => channel.buffer)
+                  : [];
+              }
+
+              messagePromise.then(() =>
+                self.postMessage(messagePayload, transferList)
               );
-              // The "transferList" parameter transfers ownership of channel data to main thread,
-              // which avoids copying memory.
-              transferList = messagePayload.channelData
-                ? messagePayload.channelData.map((channel) => channel.buffer)
-                : [];
-            }
-
-            messagePromise.then(() =>
-              self.postMessage(messagePayload, transferList)
-            );
-          };
-        }).toString()})(${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
-
-        const type = "text/javascript";
+            };
+          }).toString()})(${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
 
         try {
-          // browser
-          source = URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
-        } catch {
-          // nodejs
-          source = `data:${type};base64,${Buffer.from(
-          webworkerSourceCode
-        ).toString("base64")}`;
-        }
+          isNode = typeof process.versions.node !== "undefined";
+        } catch {}
+
+        source = isNode
+          ? `data:${type};base64,${Buffer.from(webworkerSourceCode).toString(
+            "base64"
+          )}`
+          : URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
 
         WASMAudioDecoderCommon.modules.set(Decoder, source);
       }
@@ -383,11 +398,11 @@
       };
 
       new EmscriptenWASM(WASMAudioDecoderCommon).getModule().then((module) => {
-        this._postToDecoder("init", { module, options });
+        this.postToDecoder("init", { module, options });
       });
     }
 
-    async _postToDecoder(command, data) {
+    async postToDecoder(command, data) {
       return new Promise((resolve) => {
         this.postMessage({
           command,
@@ -400,17 +415,17 @@
     }
 
     get ready() {
-      return this._postToDecoder("ready");
+      return this.postToDecoder("ready");
     }
 
     async free() {
-      await this._postToDecoder("free").finally(() => {
+      await this.postToDecoder("free").finally(() => {
         this.terminate();
       });
     }
 
     async reset() {
-      await this._postToDecoder("reset");
+      await this.postToDecoder("reset");
     }
   }
 
@@ -441,7 +456,7 @@
 
   base64ReverseLookup[47] = 63;
 
-  if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {get: () => String.raw`dynEncode0095	%j©Ö¥Õ= [ücò¬qrØÍTÑ®]µ+¡]ÚÿKM&ìÃÅFJ´õ1_§= ¾A-T¸½Ê"ÖþkÝä8Äå¼?ÙqV2;CÚxC:ëañjk©(4'êÅ<i)+ñ¸+ÉFÞA+yDÉàXÕ¨Í.3(bÝdþ=M»×
+  if (!EmscriptenWASM.wasm) Object.defineProperty(EmscriptenWASM, "wasm", {get: () => String.raw`dynEncode01955916ef7a	%j©Ö¥Õ= [ücò¬qrØÍTÑ®]µ+¡]ÚÿKM&ìÃÅFJ´õ1_§= ¾A-T¸½Ê"ÖþkÝä8Äå¼?ÙqV2;CÚxC:ëañjk©(4'êÅ<i)+ñ¸+ÉFÞA+yDÉàXÕ¨Í.3(bÝdþ=M»×
 ï5Âõ5UÅÜ%Í=}8}y+-Îµ¥}£çÙ5-'ÑN¦­­Ù¾âX¥83sS%6Ôþ¦²¦XàQvh_7ï!ÈÍ ÈÍHÍ¤rMMM8M!%SWÈN		"Q+Ð£±ÏÿxB.IíøÿÿL[ØNèÛ£ÿ)ø{}Ìk Í=Mu¯ýiòñAþ×Réª=}ëïÕ+þ»SPHæ,P¢åz2ZQ= )U¨­¼ÆÒZÛN<q=}bè0æ,<Ã8ÓäÛØ3!1¼ü	ehÖ883#¯2	g}A<HÛ¬ÒòÉOw~f¢äÌ	GÐàjùj^Ä@iÁD R¨pÁ?4é(|-~yLJêçò3PÞ¸QýÙl!¯tê	Xïx°vó²´\F:prhÉhr8ý¹X½k>CB%²2CÚ£Ñû{lÈ¬yÝï#=M®QaQa!ø....®CiI\£±âêì2Ïé?O;~À£Ã½­´Ýân3Ù»öôáq±Í»»*Ù{@ï5/Ã[Ó&éè½­RmÙ$W}±ó?áÏ<"ø¸ýÑÌIu"«\Þ=}LÍ¥ÅèU=M1÷Æ#¼âöóKÜ¿@ÐEÄ#í=}XÒòv÷5^
 ¯RGÑo³fûAâBâuOðËÜOso±ª®tþ#ñHR¾í¦Êó@ÐÆ=MQÙ0ï0ñ°§¬+rêTðdeôNØK<0êäR%åÍô#µfÐ9©Û8]¬¨/Ë ´1oË2mu>%Ý>HX$¾ð©¼ atè¡eËR«/ÃSÌ(=}ZË1qåè6»3@¥t Å²£wsÅ±ÛXö+°~ÅâXÅ¢ÑÀ385¿Põþ9õixÅ¥êm¯¿zÄx÷_VðC¦ÝPêp=M@#)Lï£DëÂ= óíy°¦?Y·mÎÜø(}µø%ÌËðÖÔkN"èb{Iã$ÞÍtN9NóýkÙPý/´¤ûÂòÿl»XÖ ÷g/óTànn3-©i­9×ÁI.´öu¢ G¼X¹ö7¦t×]é¯à= yâ6§Dû×ZDæÌLës©ØäÆ§Ø+pªE9¡t©ò=}}}Û8Ä&ÅÛlÂaÍ¿SÈ cx#-º\P>~ËU¡®©Ä oÙ¥_\0¥ðùßüpTÔ}­äX»qNYÀÐ=M0ý@Þ­­.âátv&÷¿Lg¯I-ÒüFðÄø¶¤¢/:2{Hdh:f$´mD.©qk×¿rkí?Ò(ÍóçoGV«¾Sa[±=}+'	{¤¸»)&õf³)&Ue¡]àGÀ%W=MIèÚ=}ÎmÇ= ýÝ-ye)Gö^*;½]- ó­ÿ§³Ú¾U1)V@Dcj§íV¹)= 5ÓÙPVÐÅc=ME1fÃêf¢á´Õñù¨La[ÈOÿ+o{Ðè0ßeX¥Á×Þe-G<¨[.>ÆtXç·qçkû<o
 ´!aiä§ëëÓÚ$üÇ|ðè'=}ç@Nª9Ô¶Óí·^ÃT¾nzL¼@ä¶«´çx(ÛÓsÝ2oÅÒoÝ­ôI@Òði= ¨pläÝº&&8×c'²»0Þ= .ýLû3q¥Øü	9Ý*¨f×(ôfX©¡ùÒ¼Ç*»z"Q6À3Ö¤s£órÆÑªdÒ4?W¢,p= ª*
@@ -724,11 +739,11 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
    ready = resolve;
   }).then(() => {
    this.HEAP = buffer;
-   this._malloc = _malloc;
-   this._free = _free;
-   this._opus_frame_decoder_create = _opus_frame_decoder_create;
-   this._opus_frame_decode_float_deinterleaved = _opus_frame_decode_float_deinterleaved;
-   this._opus_frame_decoder_destroy = _opus_frame_decoder_destroy;
+   this.malloc = _malloc;
+   this.free = _free;
+   this.opus_frame_decoder_create = _opus_frame_decoder_create;
+   this.opus_frame_decode_float_deinterleaved = _opus_frame_decode_float_deinterleaved;
+   this.opus_frame_decoder_destroy = _opus_frame_decoder_destroy;
   });
   return this;
   };}
@@ -755,25 +770,41 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
     // injects dependencies when running as a web worker
     // async
     this._init = () =>
-      new this._WASMAudioDecoderCommon(this).instantiate().then((common) => {
-        this._common = common;
+      new this._WASMAudioDecoderCommon(this)
+        .instantiate(this._EmscriptenWASM, this._module)
+        .then((common) => {
+          this._common = common;
 
-        const mapping = this._common.allocateTypedArray(
-          this._channels,
-          Uint8Array
-        );
+          this._inputBytes = 0;
+          this._outputSamples = 0;
+          this._frameNumber = 0;
 
-        mapping.buf.set(this._channelMappingTable);
+          this._input = this._common.allocateTypedArray(
+            this._inputSize,
+            Uint8Array
+          );
 
-        this._decoder = this._common.wasm._opus_frame_decoder_create(
-          this._channels,
-          this._streamCount,
-          this._coupledStreamCount,
-          mapping.ptr,
-          this._preSkip,
-          this._forceStereo
-        );
-      });
+          this._output = this._common.allocateTypedArray(
+            this._outputChannels * this._outputChannelSize,
+            Float32Array
+          );
+
+          const mapping = this._common.allocateTypedArray(
+            this._channels,
+            Uint8Array
+          );
+
+          mapping.buf.set(this._channelMappingTable);
+
+          this._decoder = this._common.wasm.opus_frame_decoder_create(
+            this._channels,
+            this._streamCount,
+            this._coupledStreamCount,
+            mapping.ptr,
+            this._preSkip,
+            this._forceStereo
+          );
+        });
 
     Object.defineProperty(this, "ready", {
       enumerable: true,
@@ -787,9 +818,9 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
     };
 
     this.free = () => {
-      this._common.wasm._opus_frame_decoder_destroy(this._decoder);
-
       this._common.free();
+      this._common.wasm.opus_frame_decoder_destroy(this._decoder);
+      this._common.wasm.free(this._decoder);
     };
 
     this._decode = (opusFrame) => {
@@ -801,7 +832,7 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
       this._input.buf.set(opusFrame);
 
       let samplesDecoded =
-        this._common.wasm._opus_frame_decode_float_deinterleaved(
+        this._common.wasm.opus_frame_decode_float_deinterleaved(
           this._decoder,
           this._input.ptr,
           opusFrame.length,
@@ -838,7 +869,14 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
       const decoded = this._decode(opusFrame);
 
       if (decoded.error)
-        this._common.addError(errors, decoded.error, opusFrame.length);
+        this._common.addError(
+          errors,
+          decoded.error,
+          opusFrame.length,
+          this._frameNumber,
+          this._inputBytes,
+          this._outputSamples
+        );
 
       this._frameNumber++;
       this._inputBytes += opusFrame.length;
@@ -867,7 +905,14 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
         samplesDecoded += decoded.samplesDecoded;
 
         if (decoded.error)
-          this._common.addError(errors, decoded.error, opusFrame.length);
+          this._common.addError(
+            errors,
+            decoded.error,
+            opusFrame.length,
+            this._frameNumber,
+            this._inputBytes,
+            this._outputSamples
+          );
 
         this._frameNumber++;
         this._inputBytes += opusFrame.length;
@@ -938,11 +983,11 @@ P¯Ãé\º¼â=}Ãi×zØ}}}7³O±eZÌá®øKøaÔýùúÉ\íu
     }
 
     async decodeFrame(data) {
-      return this._postToDecoder("decodeFrame", data);
+      return this.postToDecoder("decodeFrame", data);
     }
 
     async decodeFrames(data) {
-      return this._postToDecoder("decodeFrames", data);
+      return this.postToDecoder("decodeFrames", data);
     }
   }
 
