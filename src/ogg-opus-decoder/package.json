@@ -1,6 +1,6 @@
 {
   "name": "ogg-opus-decoder",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "description": "Web Assembly streaming Ogg Opus decoder",
   "type": "module",
   "main": "./index.js",
@@ -50,8 +50,8 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "@wasm-audio-decoders/common": "8.0.0",
+    "@wasm-audio-decoders/common": "9.0.0",
     "codec-parser": "2.2.1",
-    "opus-decoder": "0.6.6"
+    "opus-decoder": "0.6.7"
   }
 }
