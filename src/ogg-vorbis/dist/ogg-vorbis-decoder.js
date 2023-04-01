@@ -433,7 +433,245 @@
     Object.defineProperty(Class, "name", { value: name });
   };
 
-  /* Copyright 2020-2022 Ethan Halsall
+  const symbol = Symbol;
+
+  // prettier-ignore
+  /*
+  [
+    [
+      "left, right",
+      "left, right, center",
+      "left, center, right",
+      "center, left, right",
+      "center"
+    ],
+    [
+      "front left, front right",
+      "front left, front right, front center",
+      "front left, front center, front right",
+      "front center, front left, front right",
+      "front center"
+    ],
+    [
+      "side left, side right",
+      "side left, side right, side center",
+      "side left, side center, side right",
+      "side center, side left, side right",
+      "side center"
+    ],
+    [
+      "rear left, rear right",
+      "rear left, rear right, rear center",
+      "rear left, rear center, rear right",
+      "rear center, rear left, rear right",
+      "rear center"
+    ]
+  ]
+  */
+
+  const mappingJoin = ", ";
+
+  const channelMappings = (() => {
+    const front = "front";
+    const side = "side";
+    const rear = "rear";
+    const left = "left";
+    const center = "center";
+    const right = "right";
+
+    return ["", front + " ", side + " ", rear + " "].map((x) =>
+      [
+        [left, right],
+        [left, right, center],
+        [left, center, right],
+        [center, left, right],
+        [center],
+      ].flatMap((y) => y.map((z) => x + z).join(mappingJoin))
+    );
+  })();
+
+  const lfe = "LFE";
+  const monophonic = "monophonic (mono)";
+  const stereo = "stereo";
+  const surround = "surround";
+
+  const getChannelMapping = (channelCount, ...mappings) =>
+    `${
+    [
+      monophonic,
+      stereo,
+      `linear ${surround}`,
+      "quadraphonic",
+      `5.0 ${surround}`,
+      `5.1 ${surround}`,
+      `6.1 ${surround}`,
+      `7.1 ${surround}`,
+    ][channelCount - 1]
+  } (${mappings.join(mappingJoin)})`;
+
+  // prettier-ignore
+  const vorbisOpusChannelMapping = [
+    monophonic,
+    getChannelMapping(2,channelMappings[0][0]),
+    getChannelMapping(3,channelMappings[0][2]),
+    getChannelMapping(4,channelMappings[1][0],channelMappings[3][0]),
+    getChannelMapping(5,channelMappings[1][2],channelMappings[3][0]),
+    getChannelMapping(6,channelMappings[1][2],channelMappings[3][0],lfe),
+    getChannelMapping(7,channelMappings[1][2],channelMappings[2][0],channelMappings[3][4],lfe),
+    getChannelMapping(8,channelMappings[1][2],channelMappings[2][0],channelMappings[3][0],lfe),
+  ];
+
+  // sampleRates
+  const rate192000 = 192000;
+  const rate176400 = 176400;
+  const rate96000 = 96000;
+  const rate88200 = 88200;
+  const rate64000 = 64000;
+  const rate48000 = 48000;
+  const rate44100 = 44100;
+  const rate32000 = 32000;
+  const rate24000 = 24000;
+  const rate22050 = 22050;
+  const rate16000 = 16000;
+  const rate12000 = 12000;
+  const rate11025 = 11025;
+  const rate8000 = 8000;
+  const rate7350 = 7350;
+
+  // header key constants
+  const absoluteGranulePosition = "absoluteGranulePosition";
+  const bandwidth = "bandwidth";
+  const bitDepth = "bitDepth";
+  const bitrate = "bitrate";
+  const bitrateMaximum = bitrate + "Maximum";
+  const bitrateMinimum = bitrate + "Minimum";
+  const bitrateNominal = bitrate + "Nominal";
+  const buffer = "buffer";
+  const bufferFullness = buffer + "Fullness";
+  const codec = "codec";
+  const codecFrames = codec + "Frames";
+  const coupledStreamCount = "coupledStreamCount";
+  const crc = "crc";
+  const crc16 = crc + "16";
+  const crc32 = crc + "32";
+  const data = "data";
+  const description = "description";
+  const duration = "duration";
+  const emphasis = "emphasis";
+  const hasOpusPadding = "hasOpusPadding";
+  const header = "header";
+  const isContinuedPacket = "isContinuedPacket";
+  const isCopyrighted = "isCopyrighted";
+  const isFirstPage = "isFirstPage";
+  const isHome = "isHome";
+  const isLastPage = "isLastPage";
+  const isOriginal = "isOriginal";
+  const isPrivate = "isPrivate";
+  const isVbr = "isVbr";
+  const layer = "layer";
+  const length = "length";
+  const mode = "mode";
+  const modeExtension = mode + "Extension";
+  const mpeg = "mpeg";
+  const mpegVersion = mpeg + "Version";
+  const numberAACFrames = "numberAAC" + "Frames";
+  const outputGain = "outputGain";
+  const preSkip = "preSkip";
+  const profile = "profile";
+  const profileBits = profile + "Bits";
+  const protection = "protection";
+  const rawData = "rawData";
+  const segments = "segments";
+  const subarray = "subarray";
+  const version = "version";
+  const vorbis = "vorbis";
+  const vorbisComments = vorbis + "Comments";
+  const vorbisSetup = vorbis + "Setup";
+
+  const block = "block";
+  const blockingStrategy = block + "ingStrategy";
+  const blockingStrategyBits = block + "ingStrategyBits";
+  const blockSize = block + "Size";
+  const blocksize0 = block + "size0";
+  const blocksize1 = block + "size1";
+  const blockSizeBits = block + "SizeBits";
+
+  const channel = "channel";
+  const channelMappingFamily = channel + "MappingFamily";
+  const channelMappingTable = channel + "MappingTable";
+  const channelMode = channel + "Mode";
+  const channelModeBits = channel + "ModeBits";
+  const channels = channel + "s";
+
+  const copyright = "copyright";
+  const copyrightId = copyright + "Id";
+  const copyrightIdStart = copyright + "IdStart";
+
+  const frame = "frame";
+  const frameCount = frame + "Count";
+  const frameLength = frame + "Length";
+
+  const Number$1 = "Number";
+  const frameNumber = frame + Number$1;
+  const framePadding = frame + "Padding";
+  const frameSize = frame + "Size";
+
+  const Rate = "Rate";
+  const inputSampleRate = "inputSample" + Rate;
+
+  const page = "page";
+  const pageChecksum = page + "Checksum";
+  const pageSegmentBytes = page + "SegmentBytes";
+  const pageSegmentTable = page + "SegmentTable";
+  const pageSequenceNumber = page + "Sequence" + Number$1;
+
+  const sample = "sample";
+  const sampleNumber = sample + Number$1;
+  const sampleRate = sample + Rate;
+  const sampleRateBits = sample + Rate + "Bits";
+  const samples = sample + "s";
+
+  const stream = "stream";
+  const streamCount = stream + "Count";
+  const streamInfo = stream + "Info";
+  const streamSerialNumber = stream + "Serial" + Number$1;
+  const streamStructureVersion = stream + "StructureVersion";
+
+  const total = "total";
+  const totalBytesOut = total + "BytesOut";
+  const totalDuration = total + "Duration";
+  const totalSamples = total + "Samples";
+
+  // private methods
+  const readRawData = symbol();
+  const incrementRawData = symbol();
+  const mapCodecFrameStats = symbol();
+  const mapFrameStats = symbol();
+  const logWarning = symbol();
+  const logError = symbol();
+  const syncFrame = symbol();
+  const fixedLengthFrameSync = symbol();
+  const getHeader = symbol();
+  const setHeader = symbol();
+  const getFrame = symbol();
+  const parseFrame = symbol();
+  const parseOggPage = symbol();
+  const checkCodecUpdate = symbol();
+  const reset = symbol();
+  const enable = symbol();
+  const getHeaderFromUint8Array = symbol();
+  const checkFrameFooterCrc16 = symbol();
+
+  const uint8Array = Uint8Array;
+  const dataView = DataView;
+
+  const reserved = "reserved";
+  const bad = "bad";
+  const free = "free";
+  const none = "none";
+  const sixteenBitCRC = "16bit CRC";
+
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -452,7 +690,7 @@
   */
 
   const getCrcTable = (crcTable, crcInitialValueFunction, crcFunction) => {
-    for (let byte = 0; byte < crcTable.length; byte++) {
+    for (let byte = 0; byte < crcTable[length]; byte++) {
       let crc = crcInitialValueFunction(byte);
 
       for (let bit = 8; bit > 0; bit--) crc = crcFunction(crc);
@@ -463,7 +701,7 @@
   };
 
   const crc8Table = getCrcTable(
-    new Uint8Array(256),
+    new uint8Array(256),
     (b) => b,
     (crc) => (crc & 0x80 ? 0x07 ^ (crc << 1) : crc << 1)
   );
@@ -501,7 +739,7 @@
 
   const crc8 = (data) => {
     let crc = 0;
-    const dataLength = data.length;
+    const dataLength = data[length];
 
     for (let i = 0; i !== dataLength; i++) crc = crc8Table[crc ^ data[i]];
 
@@ -509,7 +747,7 @@
   };
 
   const flacCrc16 = (data) => {
-    const dataLength = data.length;
+    const dataLength = data[length];
     const crcChunkSize = dataLength - 16;
     let crc = 0;
     let i = 0;
@@ -541,8 +779,8 @@
     return crc;
   };
 
-  const crc32 = (data) => {
-    const dataLength = data.length;
+  const crc32Function = (data) => {
+    const dataLength = data[length];
     const crcChunkSize = dataLength - 16;
     let crc = 0;
     let i = 0;
@@ -573,13 +811,13 @@
   };
 
   const concatBuffers = (...buffers) => {
-    const buffer = new Uint8Array(
-      buffers.reduce((acc, buf) => acc + buf.length, 0)
+    const buffer = new uint8Array(
+      buffers.reduce((acc, buf) => acc + buf[length], 0)
     );
 
     buffers.reduce((offset, buf) => {
       buffer.set(buf, offset);
-      return offset + buf.length;
+      return offset + buf[length];
     }, 0);
 
     return buffer;
@@ -595,7 +833,7 @@
   class BitReader {
     constructor(data) {
       this._data = data;
-      this._pos = data.length * 8;
+      this._pos = data[length] * 8;
     }
 
     set position(position) {
@@ -618,7 +856,7 @@
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -637,24 +875,26 @@
   */
 
   class HeaderCache {
-    constructor(onCodecUpdate) {
+    constructor(onCodecHeader, onCodecUpdate) {
+      this._onCodecHeader = onCodecHeader;
       this._onCodecUpdate = onCodecUpdate;
-      this.reset();
+      this[reset]();
     }
 
-    enable() {
+    [enable]() {
       this._isEnabled = true;
     }
 
-    reset() {
+    [reset]() {
       this._headerCache = new Map();
       this._codecUpdateData = new WeakMap();
+      this._codecHeaderSent = false;
       this._codecShouldUpdate = false;
       this._bitrate = null;
       this._isEnabled = false;
     }
 
-    checkCodecUpdate(bitrate, totalDuration) {
+    [checkCodecUpdate](bitrate, totalDuration) {
       if (this._onCodecUpdate) {
         if (this._bitrate !== bitrate) {
           this._bitrate = bitrate;
@@ -680,29 +920,33 @@
       }
     }
 
-    updateCurrentHeader(key) {
-      if (this._onCodecUpdate && key !== this._currentHeader) {
-        this._codecShouldUpdate = true;
-        this._currentHeader = key;
-      }
-    }
-
-    getHeader(key) {
+    [getHeader](key) {
       const header = this._headerCache.get(key);
 
       if (header) {
-        this.updateCurrentHeader(key);
+        this._updateCurrentHeader(key);
       }
 
       return header;
     }
 
-    setHeader(key, header, codecUpdateFields) {
+    [setHeader](key, header, codecUpdateFields) {
       if (this._isEnabled) {
-        this.updateCurrentHeader(key);
+        if (!this._codecHeaderSent) {
+          this._onCodecHeader({ ...header });
+          this._codecHeaderSent = true;
+        }
+        this._updateCurrentHeader(key);
 
         this._headerCache.set(key, header);
         this._codecUpdateData.set(header, codecUpdateFields);
+      }
+    }
+
+    _updateCurrentHeader(key) {
+      if (this._onCodecUpdate && key !== this._currentHeader) {
+        this._codecShouldUpdate = true;
+        this._currentHeader = key;
       }
     }
   }
@@ -710,7 +954,7 @@
   const headerStore = new WeakMap();
   const frameStore = new WeakMap();
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -738,17 +982,17 @@
       this._headerCache = headerCache;
     }
 
-    *syncFrame() {
-      let frame;
+    *[syncFrame]() {
+      let frameData;
 
       do {
-        frame = yield* this.Frame.getFrame(
+        frameData = yield* this.Frame[getFrame](
           this._codecParser,
           this._headerCache,
           0
         );
-        if (frame) return frame;
-        this._codecParser.incrementRawData(1); // increment to continue syncing
+        if (frameData) return frameData;
+        this._codecParser[incrementRawData](1); // increment to continue syncing
       } while (true);
     }
 
@@ -757,37 +1001,37 @@
      * @param {boolean} ignoreNextFrame Set to true to return frames even if the next frame may not exist at the expected location
      * @returns {Frame}
      */
-    *fixedLengthFrameSync(ignoreNextFrame) {
-      let frame = yield* this.syncFrame();
-      const frameLength = frameStore.get(frame).length;
+    *[fixedLengthFrameSync](ignoreNextFrame) {
+      let frameData = yield* this[syncFrame]();
+      const frameLength = frameStore.get(frameData)[length];
 
       if (
         ignoreNextFrame ||
         this._codecParser._flushing ||
         // check if there is a frame right after this one
-        (yield* this.Header.getHeader(
+        (yield* this.Header[getHeader](
           this._codecParser,
           this._headerCache,
           frameLength
         ))
       ) {
-        this._headerCache.enable(); // start caching when synced
+        this._headerCache[enable](); // start caching when synced
 
-        this._codecParser.incrementRawData(frameLength); // increment to the next frame
-        this._codecParser.mapFrameStats(frame);
-        return frame;
+        this._codecParser[incrementRawData](frameLength); // increment to the next frame
+        this._codecParser[mapFrameStats](frameData);
+        return frameData;
       }
 
-      this._codecParser.logWarning(
-        `Missing frame frame at ${frameLength} bytes from current position.`,
-        "Dropping current frame and trying again."
+      this._codecParser[logWarning](
+        `Missing ${frame} at ${frameLength} bytes from current position.`,
+        `Dropping current ${frame} and trying again.`
       );
-      this._headerCache.reset(); // frame is invalid and must re-sync and clear cache
-      this._codecParser.incrementRawData(1); // increment to invalidate the current frame
+      this._headerCache[reset](); // frame is invalid and must re-sync and clear cache
+      this._codecParser[incrementRawData](1); // increment to invalidate the current frame
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -809,14 +1053,14 @@
    * @abstract
    */
   class Frame {
-    constructor(header, data) {
-      frameStore.set(this, { header });
+    constructor(headerValue, dataValue) {
+      frameStore.set(this, { [header]: headerValue });
 
-      this.data = data;
+      this[data] = dataValue;
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -835,157 +1079,44 @@
   */
 
   class CodecFrame extends Frame {
-    static *getFrame(Header, Frame, codecParser, headerCache, readOffset) {
-      const header = yield* Header.getHeader(
+    static *[getFrame](Header, Frame, codecParser, headerCache, readOffset) {
+      const headerValue = yield* Header[getHeader](
         codecParser,
         headerCache,
         readOffset
       );
 
-      if (header) {
-        const frameLength = headerStore.get(header).frameLength;
-        const samples = headerStore.get(header).samples;
+      if (headerValue) {
+        const frameLengthValue = headerStore.get(headerValue)[frameLength];
+        const samplesValue = headerStore.get(headerValue)[samples];
 
-        const frame = (yield* codecParser.readRawData(
-          frameLength,
+        const frame = (yield* codecParser[readRawData](
+          frameLengthValue,
           readOffset
-        )).subarray(0, frameLength);
+        ))[subarray](0, frameLengthValue);
 
-        return new Frame(header, frame, samples);
+        return new Frame(headerValue, frame, samplesValue);
       } else {
         return null;
       }
     }
 
-    constructor(header, data, samples) {
-      super(header, data);
+    constructor(headerValue, dataValue, samplesValue) {
+      super(headerValue, dataValue);
 
-      this.header = header;
-      this.samples = samples;
-      this.duration = (samples / header.sampleRate) * 1000;
-      this.frameNumber = null;
-      this.totalBytesOut = null;
-      this.totalSamples = null;
-      this.totalDuration = null;
+      this[header] = headerValue;
+      this[samples] = samplesValue;
+      this[duration] = (samplesValue / headerValue[sampleRate]) * 1000;
+      this[frameNumber] = null;
+      this[totalBytesOut] = null;
+      this[totalSamples] = null;
+      this[totalDuration] = null;
 
-      frameStore.get(this).length = data.length;
+      frameStore.get(this)[length] = dataValue[length];
     }
   }
 
-  const reserved = "reserved";
-  const bad = "bad";
-  const free = "free";
-  const none = "none";
-  const sixteenBitCRC = "16bit CRC";
-
-  // channel mappings
-  const mappingJoin = ", ";
-
-  const front = "front";
-  const side = "side";
-  const rear = "rear";
-  const left = "left";
-  const center = "center";
-  const right = "right";
-
-  // prettier-ignore
-  /*
-  [
-    [
-      "left, right",
-      "left, right, center",
-      "left, center, right",
-      "center, left, right",
-      "center"
-    ],
-    [
-      "front left, front right",
-      "front left, front right, front center",
-      "front left, front center, front right",
-      "front center, front left, front right",
-      "front center"
-    ],
-    [
-      "side left, side right",
-      "side left, side right, side center",
-      "side left, side center, side right",
-      "side center, side left, side right",
-      "side center"
-    ],
-    [
-      "rear left, rear right",
-      "rear left, rear right, rear center",
-      "rear left, rear center, rear right",
-      "rear center, rear left, rear right",
-      "rear center"
-    ]
-  ]
-  */
-  const channelMappings = 
-    [
-      "", 
-      front + " ",
-      side + " ",
-      rear + " "
-    ].map((x) =>
-    [
-      [left, right],
-      [left, right, center],
-      [left, center, right],
-      [center, left, right],
-      [center],
-    ].flatMap((y) => y.map((z) => x + z).join(mappingJoin))
-  );
-
-  const lfe = "LFE";
-  const monophonic = "monophonic (mono)";
-  const stereo = "stereo";
-  const surround = "surround";
-
-  const channels = [
-    monophonic,
-    stereo,
-    `linear ${surround}`,
-    "quadraphonic",
-    `5.0 ${surround}`,
-    `5.1 ${surround}`,
-    `6.1 ${surround}`,
-    `7.1 ${surround}`,
-  ];
-
-  const getChannelMapping = (channelCount, ...mappings) =>
-    `${channels[channelCount - 1]} (${mappings.join(mappingJoin)})`;
-
-  // prettier-ignore
-  const vorbisOpusChannelMapping = [
-    monophonic,
-    getChannelMapping(2,channelMappings[0][0]),
-    getChannelMapping(3,channelMappings[0][2]),
-    getChannelMapping(4,channelMappings[1][0],channelMappings[3][0]),
-    getChannelMapping(5,channelMappings[1][2],channelMappings[3][0]),
-    getChannelMapping(6,channelMappings[1][2],channelMappings[3][0],lfe),
-    getChannelMapping(7,channelMappings[1][2],channelMappings[2][0],channelMappings[3][4],lfe),
-    getChannelMapping(8,channelMappings[1][2],channelMappings[2][0],channelMappings[3][0],lfe),
-  ];
-
-  // sampleRates
-  const rate192000 = 192000;
-  const rate176400 = 176400;
-  const rate96000 = 96000;
-  const rate88200 = 88200;
-  const rate64000 = 64000;
-  const rate48000 = 48000;
-  const rate44100 = 44100;
-  const rate32000 = 32000;
-  const rate24000 = 24000;
-  const rate22050 = 22050;
-  const rate16000 = 16000;
-  const rate12000 = 12000;
-  const rate11025 = 11025;
-  const rate8000 = 8000;
-  const rate7350 = 7350;
-
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1003,23 +1134,27 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
-  // https://id3.org/Developer%20Information
+  const unsynchronizationFlag = "unsynchronizationFlag";
+  const extendedHeaderFlag = "extendedHeaderFlag";
+  const experimentalFlag = "experimentalFlag";
+  const footerPresent = "footerPresent";
 
   class ID3v2 {
     static *getID3v2Header(codecParser, headerCache, readOffset) {
-      const header = { headerLength: 10 };
+      const headerLength = 10;
+      const header = {};
 
-      let data = yield* codecParser.readRawData(3, readOffset);
+      let data = yield* codecParser[readRawData](3, readOffset);
       // Byte (0-2 of 9)
       // ID3
       if (data[0] !== 0x49 || data[1] !== 0x44 || data[2] !== 0x33) return null;
 
-      data = yield* codecParser.readRawData(header.headerLength, readOffset);
+      data = yield* codecParser[readRawData](headerLength, readOffset);
 
       // Byte (3-4 of 9)
       // * `BBBBBBBB|........`: Major version
       // * `........|BBBBBBBB`: Minor version
-      header.version = `id3v2.${data[3]}.${data[4]}`;
+      header[version] = `id3v2.${data[3]}.${data[4]}`;
 
       // Byte (5 of 9)
       // * `....0000.: Zeros (flags not implemented yet)
@@ -1031,10 +1166,10 @@
       // * `.D......`: Extended header (indicates whether or not the header is followed by an extended header)
       // * `..E.....`: Experimental indicator (indicates whether or not the tag is in an experimental stage)
       // * `...F....`: Footer present (indicates that a footer is present at the very end of the tag)
-      header.unsynchronizationFlag = Boolean(data[5] & 0b10000000);
-      header.extendedHeaderFlag = Boolean(data[5] & 0b01000000);
-      header.experimentalFlag = Boolean(data[5] & 0b00100000);
-      header.footerPresent = Boolean(data[5] & 0b00010000);
+      header[unsynchronizationFlag] = !!(data[5] & 0b10000000);
+      header[extendedHeaderFlag] = !!(data[5] & 0b01000000);
+      header[experimentalFlag] = !!(data[5] & 0b00100000);
+      header[footerPresent] = !!(data[5] & 0b00010000);
 
       // Byte (6-9 of 9)
       // * `0.......|0.......|0.......|0.......`: Zeros
@@ -1051,25 +1186,25 @@
       // The ID3v2 tag size is encoded with four bytes where the most significant bit (bit 7)
       // is set to zero in every byte, making a total of 28 bits. The zeroed bits are ignored,
       // so a 257 bytes long tag is represented as $00 00 02 01.
-      header.dataLength =
+      const dataLength =
         (data[6] << 21) | (data[7] << 14) | (data[8] << 7) | data[9];
 
-      header.length = header.headerLength + header.dataLength;
+      header[length] = headerLength + dataLength;
 
       return new ID3v2(header);
     }
 
     constructor(header) {
-      this.version = header.version;
-      this.unsynchronizationFlag = header.unsynchronizationFlag;
-      this.extendedHeaderFlag = header.extendedHeaderFlag;
-      this.experimentalFlag = header.experimentalFlag;
-      this.footerPresent = header.footerPresent;
-      this.length = header.length;
+      this[version] = header[version];
+      this[unsynchronizationFlag] = header[unsynchronizationFlag];
+      this[extendedHeaderFlag] = header[extendedHeaderFlag];
+      this[experimentalFlag] = header[experimentalFlag];
+      this[footerPresent] = header[footerPresent];
+      this[length] = header[length];
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1094,15 +1229,15 @@
     constructor(header) {
       headerStore.set(this, header);
 
-      this.bitDepth = header.bitDepth;
-      this.bitrate = null; // set during frame mapping
-      this.channels = header.channels;
-      this.channelMode = header.channelMode;
-      this.sampleRate = header.sampleRate;
+      this[bitDepth] = header[bitDepth];
+      this[bitrate] = null; // set during frame mapping
+      this[channels] = header[channels];
+      this[channelMode] = header[channelMode];
+      this[sampleRate] = header[sampleRate];
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1173,6 +1308,10 @@
     0b00110000: bands + 16 + to31,
   };
 
+  const bitrateIndex = "bitrateIndex";
+  const v2 = "v2";
+  const v1 = "v1";
+
   const intensityStereo = "Intensity stereo ";
   const msStereo = ", MS stereo ";
   const on = "on";
@@ -1183,67 +1322,66 @@
     0b00100000: intensityStereo + off + msStereo + on,
     0b00110000: intensityStereo + on + msStereo + on,
   };
-  const layers = {
-    0b00000000: { description: reserved },
+
+  const layersValues = {
+    0b00000000: { [description]: reserved },
     0b00000010: {
-      description: "Layer III",
-      framePadding: 1,
-      modeExtensions: layer3ModeExtensions,
-      v1: {
-        bitrateIndex: v1Layer3,
-        samples: 1152,
+      [description]: "Layer III",
+      [framePadding]: 1,
+      [modeExtension]: layer3ModeExtensions,
+      [v1]: {
+        [bitrateIndex]: v1Layer3,
+        [samples]: 1152,
       },
-      v2: {
-        bitrateIndex: v2Layer23,
-        samples: 576,
+      [v2]: {
+        [bitrateIndex]: v2Layer23,
+        [samples]: 576,
       },
     },
     0b00000100: {
-      description: "Layer II",
-      framePadding: 1,
-      modeExtensions: layer12ModeExtensions,
-      samples: 1152,
-      v1: {
-        bitrateIndex: v1Layer2,
+      [description]: "Layer II",
+      [framePadding]: 1,
+      [modeExtension]: layer12ModeExtensions,
+      [samples]: 1152,
+      [v1]: {
+        [bitrateIndex]: v1Layer2,
       },
-      v2: {
-        bitrateIndex: v2Layer23,
+      [v2]: {
+        [bitrateIndex]: v2Layer23,
       },
     },
     0b00000110: {
-      description: "Layer I",
-      framePadding: 4,
-      modeExtensions: layer12ModeExtensions,
-      samples: 384,
-      v1: {
-        bitrateIndex: v1Layer1,
+      [description]: "Layer I",
+      [framePadding]: 4,
+      [modeExtension]: layer12ModeExtensions,
+      [samples]: 384,
+      [v1]: {
+        [bitrateIndex]: v1Layer1,
       },
-      v2: {
-        bitrateIndex: v2Layer1,
+      [v2]: {
+        [bitrateIndex]: v2Layer1,
       },
     },
   };
 
-  const mpegVersion$1 = "MPEG Version ";
+  const mpegVersionDescription = "MPEG Version ";
   const isoIec = "ISO/IEC ";
-  const v2 = "v2";
-  const v1 = "v1";
   const mpegVersions = {
     0b00000000: {
-      description: `${mpegVersion$1}2.5 (later extension of MPEG 2)`,
-      layers: v2,
-      sampleRates: {
+      [description]: `${mpegVersionDescription}2.5 (later extension of MPEG 2)`,
+      [layer]: v2,
+      [sampleRate]: {
         0b00000000: rate11025,
         0b00000100: rate12000,
         0b00001000: rate8000,
         0b00001100: reserved,
       },
     },
-    0b00001000: { description: reserved },
+    0b00001000: { [description]: reserved },
     0b00010000: {
-      description: `${mpegVersion$1}2 (${isoIec}13818-3)`,
-      layers: v2,
-      sampleRates: {
+      [description]: `${mpegVersionDescription}2 (${isoIec}13818-3)`,
+      [layer]: v2,
+      [sampleRate]: {
         0b00000000: rate22050,
         0b00000100: rate24000,
         0b00001000: rate16000,
@@ -1251,23 +1389,24 @@
       },
     },
     0b00011000: {
-      description: `${mpegVersion$1}1 (${isoIec}11172-3)`,
-      layers: v1,
-      sampleRates: {
+      [description]: `${mpegVersionDescription}1 (${isoIec}11172-3)`,
+      [layer]: v1,
+      [sampleRate]: {
         0b00000000: rate44100,
         0b00000100: rate48000,
         0b00001000: rate32000,
         0b00001100: reserved,
       },
     },
+    length,
   };
 
-  const protection$1 = {
+  const protectionValues$1 = {
     0b00000000: sixteenBitCRC,
     0b00000001: none,
   };
 
-  const emphasis = {
+  const emphasisValues = {
     0b00000000: none,
     0b00000001: "50/15 ms",
     0b00000010: reserved,
@@ -1275,14 +1414,14 @@
   };
 
   const channelModes = {
-    0b00000000: { channels: 2, description: stereo },
-    0b01000000: { channels: 2, description: "joint " + stereo },
-    0b10000000: { channels: 2, description: "dual channel" },
-    0b11000000: { channels: 1, description: monophonic },
+    0b00000000: { [channels]: 2, [description]: stereo },
+    0b01000000: { [channels]: 2, [description]: "joint " + stereo },
+    0b10000000: { [channels]: 2, [description]: "dual channel" },
+    0b11000000: { [channels]: 1, [description]: monophonic },
   };
 
   class MPEGHeader extends CodecHeader {
-    static *getHeader(codecParser, headerCache, readOffset) {
+    static *[getHeader](codecParser, headerCache, readOffset) {
       const header = {};
 
       // check for id3 header
@@ -1294,16 +1433,16 @@
 
       if (id3v2Header) {
         // throw away the data. id3 parsing is not implemented yet.
-        yield* codecParser.readRawData(id3v2Header.length, readOffset);
-        codecParser.incrementRawData(id3v2Header.length);
+        yield* codecParser[readRawData](id3v2Header[length], readOffset);
+        codecParser[incrementRawData](id3v2Header[length]);
       }
 
       // Must be at least four bytes.
-      const data = yield* codecParser.readRawData(4, readOffset);
+      const data = yield* codecParser[readRawData](4, readOffset);
 
       // Check header cache
-      const key = bytesToString(data.subarray(0, 4));
-      const cachedHeader = headerCache.getHeader(key);
+      const key = bytesToString(data[subarray](0, 4));
+      const cachedHeader = headerCache[getHeader](key);
       if (cachedHeader) return new MPEGHeader(cachedHeader);
 
       // Frame sync (all bits must be set): `11111111|111`:
@@ -1316,23 +1455,23 @@
       // * `.......D`: Protection bit (0 - Protected by CRC (16bit CRC follows header), 1 = Not protected)
 
       // Mpeg version (1, 2, 2.5)
-      const mpegVersion = mpegVersions[data[1] & 0b00011000];
-      if (mpegVersion.description === reserved) return null;
+      const mpegVersionValues = mpegVersions[data[1] & 0b00011000];
+      if (mpegVersionValues[description] === reserved) return null;
 
       // Layer (I, II, III)
       const layerBits = data[1] & 0b00000110;
-      if (layers[layerBits].description === reserved) return null;
-      const layer = {
-        ...layers[layerBits],
-        ...layers[layerBits][mpegVersion.layers],
+      if (layersValues[layerBits][description] === reserved) return null;
+      const layerValues = {
+        ...layersValues[layerBits],
+        ...layersValues[layerBits][mpegVersionValues[layer]],
       };
 
-      header.mpegVersion = mpegVersion.description;
-      header.layer = layer.description;
-      header.samples = layer.samples;
-      header.protection = protection$1[data[1] & 0b00000001];
+      header[mpegVersion] = mpegVersionValues[description];
+      header[layer] = layerValues[description];
+      header[samples] = layerValues[samples];
+      header[protection] = protectionValues$1[data[1] & 0b00000001];
 
-      header.length = 4;
+      header[length] = 4;
 
       // Byte (3 of 4)
       // * `EEEEFFGH`
@@ -1340,20 +1479,21 @@
       // * `....FF..`: Sample rate
       // * `......G.`: Padding bit, 0=frame not padded, 1=frame padded
       // * `.......H`: Private bit.
-      header.bitrate = bitrateMatrix[data[2] & 0b11110000][layer.bitrateIndex];
-      if (header.bitrate === bad) return null;
+      header[bitrate] =
+        bitrateMatrix[data[2] & 0b11110000][layerValues[bitrateIndex]];
+      if (header[bitrate] === bad) return null;
 
-      header.sampleRate = mpegVersion.sampleRates[data[2] & 0b00001100];
-      if (header.sampleRate === reserved) return null;
+      header[sampleRate] = mpegVersionValues[sampleRate][data[2] & 0b00001100];
+      if (header[sampleRate] === reserved) return null;
 
-      header.framePadding = data[2] & 0b00000010 && layer.framePadding;
-      header.isPrivate = Boolean(data[2] & 0b00000001);
+      header[framePadding] = data[2] & 0b00000010 && layerValues[framePadding];
+      header[isPrivate] = !!(data[2] & 0b00000001);
 
-      header.frameLength = Math.floor(
-        (125 * header.bitrate * header.samples) / header.sampleRate +
-          header.framePadding
+      header[frameLength] = Math.floor(
+        (125 * header[bitrate] * header[samples]) / header[sampleRate] +
+          header[framePadding]
       );
-      if (!header.frameLength) return null;
+      if (!header[frameLength]) return null;
 
       // Byte (4 of 4)
       // * `IIJJKLMM`
@@ -1363,22 +1503,24 @@
       // * `.....L..`: Original
       // * `......MM`: Emphasis
       const channelModeBits = data[3] & 0b11000000;
-      header.channelMode = channelModes[channelModeBits].description;
-      header.channels = channelModes[channelModeBits].channels;
+      header[channelMode] = channelModes[channelModeBits][description];
+      header[channels] = channelModes[channelModeBits][channels];
 
-      header.modeExtension = layer.modeExtensions[data[3] & 0b00110000];
-      header.isCopyrighted = Boolean(data[3] & 0b00001000);
-      header.isOriginal = Boolean(data[3] & 0b00000100);
+      header[modeExtension] = layerValues[modeExtension][data[3] & 0b00110000];
+      header[isCopyrighted] = !!(data[3] & 0b00001000);
+      header[isOriginal] = !!(data[3] & 0b00000100);
 
-      header.emphasis = emphasis[data[3] & 0b00000011];
-      if (header.emphasis === reserved) return null;
+      header[emphasis] = emphasisValues[data[3] & 0b00000011];
+      if (header[emphasis] === reserved) return null;
 
-      header.bitDepth = 16;
+      header[bitDepth] = 16;
 
       // set header cache
-      const { length, frameLength, samples, ...codecUpdateFields } = header;
+      {
+        const { length, frameLength, samples, ...codecUpdateFields } = header;
 
-      headerCache.setHeader(key, header, codecUpdateFields);
+        headerCache[setHeader](key, header, codecUpdateFields);
+      }
       return new MPEGHeader(header);
     }
 
@@ -1389,20 +1531,20 @@
     constructor(header) {
       super(header);
 
-      this.bitrate = header.bitrate;
-      this.emphasis = header.emphasis;
-      this.framePadding = header.framePadding;
-      this.isCopyrighted = header.isCopyrighted;
-      this.isOriginal = header.isOriginal;
-      this.isPrivate = header.isPrivate;
-      this.layer = header.layer;
-      this.modeExtension = header.modeExtension;
-      this.mpegVersion = header.mpegVersion;
-      this.protection = header.protection;
+      this[bitrate] = header[bitrate];
+      this[emphasis] = header[emphasis];
+      this[framePadding] = header[framePadding];
+      this[isCopyrighted] = header[isCopyrighted];
+      this[isOriginal] = header[isOriginal];
+      this[isPrivate] = header[isPrivate];
+      this[layer] = header[layer];
+      this[modeExtension] = header[modeExtension];
+      this[mpegVersion] = header[mpegVersion];
+      this[protection] = header[protection];
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1421,8 +1563,8 @@
   */
 
   class MPEGFrame extends CodecFrame {
-    static *getFrame(codecParser, headerCache, readOffset) {
-      return yield* super.getFrame(
+    static *[getFrame](codecParser, headerCache, readOffset) {
+      return yield* super[getFrame](
         MPEGHeader,
         MPEGFrame,
         codecParser,
@@ -1436,7 +1578,7 @@
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1460,19 +1602,19 @@
       this.Frame = MPEGFrame;
       this.Header = MPEGHeader;
 
-      onCodec(this.codec);
+      onCodec(this[codec]);
     }
 
     get codec() {
-      return "mpeg";
+      return mpeg;
     }
 
-    *parseFrame() {
-      return yield* this.fixedLengthFrameSync();
+    *[parseFrame]() {
+      return yield* this[fixedLengthFrameSync]();
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1490,24 +1632,24 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
-  const mpegVersion = {
+  const mpegVersionValues = {
     0b00000000: "MPEG-4",
     0b00001000: "MPEG-2",
   };
 
-  const layer = {
+  const layerValues = {
     0b00000000: "valid",
     0b00000010: bad,
     0b00000100: bad,
     0b00000110: bad,
   };
 
-  const protection = {
+  const protectionValues = {
     0b00000000: sixteenBitCRC,
     0b00000001: none,
   };
 
-  const profile = {
+  const profileValues = {
     0b00000000: "AAC Main",
     0b01000000: "AAC LC (Low Complexity)",
     0b10000000: "AAC SSR (Scalable Sample Rate)",
@@ -1534,8 +1676,8 @@
   };
 
   // prettier-ignore
-  const channelMode = {
-    0b000000000: { channels: 0, description: "Defined in AOT Specific Config" },
+  const channelModeValues = {
+    0b000000000: { [channels]: 0, [description]: "Defined in AOT Specific Config" },
     /*
     'monophonic (mono)'
     'stereo (left, right)'
@@ -1545,21 +1687,21 @@
     '5.1 surround (front center, front left, front right, rear left, rear right, LFE)'
     '7.1 surround (front center, front left, front right, side left, side right, rear left, rear right, LFE)'
     */
-    0b001000000: { channels: 1, description: monophonic },
-    0b010000000: { channels: 2, description: getChannelMapping(2,channelMappings[0][0]) },
-    0b011000000: { channels: 3, description: getChannelMapping(3,channelMappings[1][3]), },
-    0b100000000: { channels: 4, description: getChannelMapping(4,channelMappings[1][3],channelMappings[3][4]), },
-    0b101000000: { channels: 5, description: getChannelMapping(5,channelMappings[1][3],channelMappings[3][0]), },
-    0b110000000: { channels: 6, description: getChannelMapping(6,channelMappings[1][3],channelMappings[3][0],lfe), },
-    0b111000000: { channels: 8, description: getChannelMapping(8,channelMappings[1][3],channelMappings[2][0],channelMappings[3][0],lfe), },
+    0b001000000: { [channels]: 1, [description]: monophonic },
+    0b010000000: { [channels]: 2, [description]: getChannelMapping(2,channelMappings[0][0]) },
+    0b011000000: { [channels]: 3, [description]: getChannelMapping(3,channelMappings[1][3]), },
+    0b100000000: { [channels]: 4, [description]: getChannelMapping(4,channelMappings[1][3],channelMappings[3][4]), },
+    0b101000000: { [channels]: 5, [description]: getChannelMapping(5,channelMappings[1][3],channelMappings[3][0]), },
+    0b110000000: { [channels]: 6, [description]: getChannelMapping(6,channelMappings[1][3],channelMappings[3][0],lfe), },
+    0b111000000: { [channels]: 8, [description]: getChannelMapping(8,channelMappings[1][3],channelMappings[2][0],channelMappings[3][0],lfe), },
   };
 
   class AACHeader extends CodecHeader {
-    static *getHeader(codecParser, headerCache, readOffset) {
+    static *[getHeader](codecParser, headerCache, readOffset) {
       const header = {};
 
       // Must be at least seven bytes. Out of data
-      const data = yield* codecParser.readRawData(7, readOffset);
+      const data = yield* codecParser[readRawData](7, readOffset);
 
       // Check header cache
       const key = bytesToString([
@@ -1568,7 +1710,7 @@
         data[2],
         (data[3] & 0b11111100) | (data[6] & 0b00000011), // frame length, buffer fullness varies so don't cache it
       ]);
-      const cachedHeader = headerCache.getHeader(key);
+      const cachedHeader = headerCache[getHeader](key);
 
       if (!cachedHeader) {
         // Frame sync (all bits must be set): `11111111|1111`:
@@ -1579,36 +1721,37 @@
         // * `....B...`: MPEG Version: 0 for MPEG-4, 1 for MPEG-2
         // * `.....CC.`: Layer: always 0
         // * `.......D`: protection absent, Warning, set to 1 if there is no CRC and 0 if there is CRC
-        header.mpegVersion = mpegVersion[data[1] & 0b00001000];
+        header[mpegVersion] = mpegVersionValues[data[1] & 0b00001000];
 
-        header.layer = layer[data[1] & 0b00000110];
-        if (header.layer === bad) return null;
+        header[layer] = layerValues[data[1] & 0b00000110];
+        if (header[layer] === bad) return null;
 
         const protectionBit = data[1] & 0b00000001;
-        header.protection = protection[protectionBit];
-        header.length = protectionBit ? 7 : 9;
+        header[protection] = protectionValues[protectionBit];
+        header[length] = protectionBit ? 7 : 9;
 
         // Byte (3 of 7)
         // * `EEFFFFGH`
         // * `EE......`: profile, the MPEG-4 Audio Object Type minus 1
         // * `..FFFF..`: MPEG-4 Sampling Frequency Index (15 is forbidden)
         // * `......G.`: private bit, guaranteed never to be used by MPEG, set to 0 when encoding, ignore when decoding
-        header.profileBits = data[2] & 0b11000000;
-        header.sampleRateBits = data[2] & 0b00111100;
+        header[profileBits] = data[2] & 0b11000000;
+        header[sampleRateBits] = data[2] & 0b00111100;
         const privateBit = data[2] & 0b00000010;
 
-        header.profile = profile[header.profileBits];
+        header[profile] = profileValues[header[profileBits]];
 
-        header.sampleRate = sampleRates[header.sampleRateBits];
-        if (header.sampleRate === reserved) return null;
+        header[sampleRate] = sampleRates[header[sampleRateBits]];
+        if (header[sampleRate] === reserved) return null;
 
-        header.isPrivate = Boolean(privateBit);
+        header[isPrivate] = !!privateBit;
 
         // Byte (3,4 of 7)
         // * `.......H|HH......`: MPEG-4 Channel Configuration (in the case of 0, the channel configuration is sent via an inband PCE)
-        header.channelModeBits = ((data[2] << 8) | data[3]) & 0b111000000;
-        header.channelMode = channelMode[header.channelModeBits].description;
-        header.channels = channelMode[header.channelModeBits].channels;
+        header[channelModeBits] = ((data[2] << 8) | data[3]) & 0b111000000;
+        header[channelMode] =
+          channelModeValues[header[channelModeBits]][description];
+        header[channels] = channelModeValues[header[channelModeBits]][channels];
 
         // Byte (4 of 7)
         // * `HHIJKLMM`
@@ -1616,42 +1759,44 @@
         // * `...J....`: home, set to 0 when encoding, ignore when decoding
         // * `....K...`: copyrighted id bit, the next bit of a centrally registered copyright identifier, set to 0 when encoding, ignore when decoding
         // * `.....L..`: copyright id start, signals that this frame's copyright id bit is the first bit of the copyright id, set to 0 when encoding, ignore when decoding
-        header.isOriginal = Boolean(data[3] & 0b00100000);
-        header.isHome = Boolean(data[3] & 0b00001000);
-        header.copyrightId = Boolean(data[3] & 0b00001000);
-        header.copyrightIdStart = Boolean(data[3] & 0b00000100);
-        header.bitDepth = 16;
-        header.samples = 1024;
+        header[isOriginal] = !!(data[3] & 0b00100000);
+        header[isHome] = !!(data[3] & 0b00001000);
+        header[copyrightId] = !!(data[3] & 0b00001000);
+        header[copyrightIdStart] = !!(data[3] & 0b00000100);
+        header[bitDepth] = 16;
+        header[samples] = 1024;
 
         // Byte (7 of 7)
         // * `......PP` Number of AAC frames (RDBs) in ADTS frame minus 1, for maximum compatibility always use 1 AAC frame per ADTS frame
-        header.numberAACFrames = data[6] & 0b00000011;
+        header[numberAACFrames] = data[6] & 0b00000011;
 
-        const {
-          length,
-          channelModeBits,
-          profileBits,
-          sampleRateBits,
-          frameLength,
-          samples,
-          numberAACFrames,
-          ...codecUpdateFields
-        } = header;
-        headerCache.setHeader(key, header, codecUpdateFields);
+        {
+          const {
+            length,
+            channelModeBits,
+            profileBits,
+            sampleRateBits,
+            frameLength,
+            samples,
+            numberAACFrames,
+            ...codecUpdateFields
+          } = header;
+          headerCache[setHeader](key, header, codecUpdateFields);
+        }
       } else {
         Object.assign(header, cachedHeader);
       }
 
       // Byte (4,5,6 of 7)
       // * `.......MM|MMMMMMMM|MMM.....`: frame length, this value must include 7 or 9 bytes of header length: FrameLength = (ProtectionAbsent == 1 ? 7 : 9) + size(AACFrame)
-      header.frameLength =
+      header[frameLength] =
         ((data[3] << 11) | (data[4] << 3) | (data[5] >> 5)) & 0x1fff;
-      if (!header.frameLength) return null;
+      if (!header[frameLength]) return null;
 
       // Byte (6,7 of 7)
       // * `...OOOOO|OOOOOO..`: Buffer fullness
       const bufferFullnessBits = ((data[5] << 6) | (data[6] >> 2)) & 0x7ff;
-      header.bufferFullness =
+      header[bufferFullness] =
         bufferFullnessBits === 0x7ff ? "VBR" : bufferFullnessBits;
 
       return new AACHeader(header);
@@ -1664,18 +1809,18 @@
     constructor(header) {
       super(header);
 
-      this.copyrightId = header.copyrightId;
-      this.copyrightIdStart = header.copyrightIdStart;
-      this.bufferFullness = header.bufferFullness;
-      this.isHome = header.isHome;
-      this.isOriginal = header.isOriginal;
-      this.isPrivate = header.isPrivate;
-      this.layer = header.layer;
-      this.length = header.length;
-      this.mpegVersion = header.mpegVersion;
-      this.numberAACFrames = header.numberAACFrames;
-      this.profile = header.profile;
-      this.protection = header.protection;
+      this[copyrightId] = header[copyrightId];
+      this[copyrightIdStart] = header[copyrightIdStart];
+      this[bufferFullness] = header[bufferFullness];
+      this[isHome] = header[isHome];
+      this[isOriginal] = header[isOriginal];
+      this[isPrivate] = header[isPrivate];
+      this[layer] = header[layer];
+      this[length] = header[length];
+      this[mpegVersion] = header[mpegVersion];
+      this[numberAACFrames] = header[numberAACFrames];
+      this[profile] = header[profile];
+      this[protection] = header[protection];
     }
 
     get audioSpecificConfig() {
@@ -1690,17 +1835,17 @@
       const header = headerStore.get(this);
 
       const audioSpecificConfig =
-        ((header.profileBits + 0x40) << 5) |
-        (header.sampleRateBits << 5) |
-        (header.channelModeBits >> 3);
+        ((header[profileBits] + 0x40) << 5) |
+        (header[sampleRateBits] << 5) |
+        (header[channelModeBits] >> 3);
 
-      const bytes = new Uint8Array(2);
-      new DataView(bytes.buffer).setUint16(0, audioSpecificConfig, false);
+      const bytes = new uint8Array(2);
+      new dataView(bytes[buffer]).setUint16(0, audioSpecificConfig, false);
       return bytes;
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1719,8 +1864,8 @@
   */
 
   class AACFrame extends CodecFrame {
-    static *getFrame(codecParser, headerCache, readOffset) {
-      return yield* super.getFrame(
+    static *[getFrame](codecParser, headerCache, readOffset) {
+      return yield* super[getFrame](
         AACHeader,
         AACFrame,
         codecParser,
@@ -1734,7 +1879,7 @@
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1758,19 +1903,19 @@
       this.Frame = AACFrame;
       this.Header = AACHeader;
 
-      onCodec(this.codec);
+      onCodec(this[codec]);
     }
 
     get codec() {
       return "aac";
     }
 
-    *parseFrame() {
-      return yield* this.fixedLengthFrameSync();
+    *[parseFrame]() {
+      return yield* this[fixedLengthFrameSync]();
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1789,28 +1934,28 @@
   */
 
   class FLACFrame extends CodecFrame {
-    static getFrameFooterCrc16(data) {
-      return (data[data.length - 2] << 8) + data[data.length - 1];
+    static _getFrameFooterCrc16(data) {
+      return (data[data[length] - 2] << 8) + data[data[length] - 1];
     }
 
     // check frame footer crc
     // https://xiph.org/flac/format.html#frame_footer
-    static checkFrameFooterCrc16(data) {
-      const expectedCrc16 = FLACFrame.getFrameFooterCrc16(data);
-      const actualCrc16 = flacCrc16(data.subarray(0, -2));
+    static [checkFrameFooterCrc16](data) {
+      const expectedCrc16 = FLACFrame._getFrameFooterCrc16(data);
+      const actualCrc16 = flacCrc16(data[subarray](0, -2));
 
       return expectedCrc16 === actualCrc16;
     }
 
-    constructor(data, header, streamInfo) {
-      header.streamInfo = streamInfo;
-      header.crc16 = FLACFrame.getFrameFooterCrc16(data);
+    constructor(data, header, streamInfoValue) {
+      header[streamInfo] = streamInfoValue;
+      header[crc16] = FLACFrame._getFrameFooterCrc16(data);
 
-      super(header, data, headerStore.get(header).samples);
+      super(header, data, headerStore.get(header)[samples]);
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -1830,12 +1975,12 @@
 
   const getFromStreamInfo = "get from STREAMINFO metadata block";
 
-  const blockingStrategy = {
+  const blockingStrategyValues = {
     0b00000000: "Fixed",
     0b00000001: "Variable",
   };
 
-  const blockSize = {
+  const blockSizeValues = {
     0b00000000: reserved,
     0b00010000: 192,
     // 0b00100000: 576,
@@ -1854,9 +1999,9 @@
     // 0b11110000: 32768,
   };
   for (let i = 2; i < 16; i++)
-    blockSize[i << 4] = i < 6 ? 576 * 2 ** (i - 2) : 2 ** i;
+    blockSizeValues[i << 4] = i < 6 ? 576 * 2 ** (i - 2) : 2 ** i;
 
-  const sampleRate = {
+  const sampleRateValues = {
     0b00000000: getFromStreamInfo,
     0b00000001: rate88200,
     0b00000010: rate176400,
@@ -1887,17 +2032,17 @@
     '6.1 surround (front left, front right, front center, LFE, rear center, side left, side right)'
     '7.1 surround (front left, front right, front center, LFE, rear left, rear right, side left, side right)'
     */
-    0b00000000: {channels: 1, description: monophonic},
-    0b00010000: {channels: 2, description: getChannelMapping(2,channelMappings[0][0])},
-    0b00100000: {channels: 3, description: getChannelMapping(3,channelMappings[0][1])},
-    0b00110000: {channels: 4, description: getChannelMapping(4,channelMappings[1][0],channelMappings[3][0])},
-    0b01000000: {channels: 5, description: getChannelMapping(5,channelMappings[1][1],channelMappings[3][0])},
-    0b01010000: {channels: 6, description: getChannelMapping(6,channelMappings[1][1],lfe,channelMappings[3][0])},
-    0b01100000: {channels: 7, description: getChannelMapping(7,channelMappings[1][1],lfe,channelMappings[3][4],channelMappings[2][0])},
-    0b01110000: {channels: 8, description: getChannelMapping(8,channelMappings[1][1],lfe,channelMappings[3][0],channelMappings[2][0])},
-    0b10000000: {channels: 2, description: `${stereo} (left, diff)`},
-    0b10010000: {channels: 2, description: `${stereo} (diff, right)`},
-    0b10100000: {channels: 2, description: `${stereo} (avg, diff)`},
+    0b00000000: {[channels]: 1, [description]: monophonic},
+    0b00010000: {[channels]: 2, [description]: getChannelMapping(2,channelMappings[0][0])},
+    0b00100000: {[channels]: 3, [description]: getChannelMapping(3,channelMappings[0][1])},
+    0b00110000: {[channels]: 4, [description]: getChannelMapping(4,channelMappings[1][0],channelMappings[3][0])},
+    0b01000000: {[channels]: 5, [description]: getChannelMapping(5,channelMappings[1][1],channelMappings[3][0])},
+    0b01010000: {[channels]: 6, [description]: getChannelMapping(6,channelMappings[1][1],lfe,channelMappings[3][0])},
+    0b01100000: {[channels]: 7, [description]: getChannelMapping(7,channelMappings[1][1],lfe,channelMappings[3][4],channelMappings[2][0])},
+    0b01110000: {[channels]: 8, [description]: getChannelMapping(8,channelMappings[1][1],lfe,channelMappings[3][0],channelMappings[2][0])},
+    0b10000000: {[channels]: 2, [description]: `${stereo} (left, diff)`},
+    0b10010000: {[channels]: 2, [description]: `${stereo} (diff, right)`},
+    0b10100000: {[channels]: 2, [description]: `${stereo} (avg, diff)`},
     0b10110000: reserved,
     0b11000000: reserved,
     0b11010000: reserved,
@@ -1905,7 +2050,7 @@
     0b11110000: reserved,
   };
 
-  const bitDepth = {
+  const bitDepthValues = {
     0b00000000: getFromStreamInfo,
     0b00000010: 8,
     0b00000100: 12,
@@ -1925,7 +2070,7 @@
     // 0000 0080-0000 07FF | 110xxxxx 10xxxxxx
     // 0000 0800-0000 FFFF | 1110xxxx 10xxxxxx 10xxxxxx
     // 0001 0000-0010 FFFF | 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-    static decodeUTF8Int(data) {
+    static _decodeUTF8Int(data) {
       if (data[0] > 0xfe) {
         return null; // length byte must have at least one zero as the lsb
       }
@@ -1960,19 +2105,19 @@
       return { value, length };
     }
 
-    static getHeaderFromUint8Array(data, headerCache) {
+    static [getHeaderFromUint8Array](data, headerCache) {
       const codecParserStub = {
-        readRawData: function* () {
+        [readRawData]: function* () {
           return data;
         },
       };
 
-      return FLACHeader.getHeader(codecParserStub, headerCache, 0).next().value;
+      return FLACHeader[getHeader](codecParserStub, headerCache, 0).next().value;
     }
 
-    static *getHeader(codecParser, headerCache, readOffset) {
+    static *[getHeader](codecParser, headerCache, readOffset) {
       // Must be at least 6 bytes.
-      let data = yield* codecParser.readRawData(6, readOffset);
+      let data = yield* codecParser[readRawData](6, readOffset);
 
       // Bytes (1-2 of 6)
       // * `11111111|111110..`: Frame sync
@@ -1984,28 +2129,29 @@
       const header = {};
 
       // Check header cache
-      const key = bytesToString(data.subarray(0, 4));
-      const cachedHeader = headerCache.getHeader(key);
+      const key = bytesToString(data[subarray](0, 4));
+      const cachedHeader = headerCache[getHeader](key);
 
       if (!cachedHeader) {
         // Byte (2 of 6)
         // * `.......C`: Blocking strategy, 0 - fixed, 1 - variable
-        header.blockingStrategyBits = data[1] & 0b00000001;
-        header.blockingStrategy = blockingStrategy[header.blockingStrategyBits];
+        header[blockingStrategyBits] = data[1] & 0b00000001;
+        header[blockingStrategy] =
+          blockingStrategyValues[header[blockingStrategyBits]];
 
         // Byte (3 of 6)
         // * `DDDD....`: Block size in inter-channel samples
         // * `....EEEE`: Sample rate
-        header.blockSizeBits = data[2] & 0b11110000;
-        header.sampleRateBits = data[2] & 0b00001111;
+        header[blockSizeBits] = data[2] & 0b11110000;
+        header[sampleRateBits] = data[2] & 0b00001111;
 
-        header.blockSize = blockSize[header.blockSizeBits];
-        if (header.blockSize === reserved) {
+        header[blockSize] = blockSizeValues[header[blockSizeBits]];
+        if (header[blockSize] === reserved) {
           return null;
         }
 
-        header.sampleRate = sampleRate[header.sampleRateBits];
-        if (header.sampleRate === bad) {
+        header[sampleRate] = sampleRateValues[header[sampleRateBits]];
+        if (header[sampleRate] === bad) {
           return null;
         }
 
@@ -2022,11 +2168,11 @@
           return null;
         }
 
-        header.channels = channelAssignment.channels;
-        header.channelMode = channelAssignment.description;
+        header[channels] = channelAssignment[channels];
+        header[channelMode] = channelAssignment[description];
 
-        header.bitDepth = bitDepth[data[3] & 0b00001110];
-        if (header.bitDepth === reserved) {
+        header[bitDepth] = bitDepthValues[data[3] & 0b00001110];
+        if (header[bitDepth] === reserved) {
           return null;
         }
       } else {
@@ -2035,94 +2181,97 @@
 
       // Byte (5...)
       // * `IIIIIIII|...`: VBR block size ? sample number : frame number
-      header.length = 5;
+      header[length] = 5;
 
       // check if there is enough data to parse UTF8
-      data = yield* codecParser.readRawData(header.length + 8, readOffset);
+      data = yield* codecParser[readRawData](header[length] + 8, readOffset);
 
-      const decodedUtf8 = FLACHeader.decodeUTF8Int(data.subarray(4));
+      const decodedUtf8 = FLACHeader._decodeUTF8Int(data[subarray](4));
       if (!decodedUtf8) {
         return null;
       }
 
-      if (header.blockingStrategyBits) {
-        header.sampleNumber = decodedUtf8.value;
+      if (header[blockingStrategyBits]) {
+        header[sampleNumber] = decodedUtf8.value;
       } else {
-        header.frameNumber = decodedUtf8.value;
+        header[frameNumber] = decodedUtf8.value;
       }
 
-      header.length += decodedUtf8.length;
+      header[length] += decodedUtf8[length];
 
       // Byte (...)
       // * `JJJJJJJJ|(JJJJJJJJ)`: Blocksize (8/16bit custom value)
-      if (header.blockSizeBits === 0b01100000) {
+      if (header[blockSizeBits] === 0b01100000) {
         // 8 bit
-        if (data.length < header.length)
-          data = yield* codecParser.readRawData(header.length, readOffset);
+        if (data[length] < header[length])
+          data = yield* codecParser[readRawData](header[length], readOffset);
 
-        header.blockSize = data[header.length - 1] + 1;
-        header.length += 1;
-      } else if (header.blockSizeBits === 0b01110000) {
+        header[blockSize] = data[header[length] - 1] + 1;
+        header[length] += 1;
+      } else if (header[blockSizeBits] === 0b01110000) {
         // 16 bit
-        if (data.length < header.length)
-          data = yield* codecParser.readRawData(header.length, readOffset);
+        if (data[length] < header[length])
+          data = yield* codecParser[readRawData](header[length], readOffset);
 
-        header.blockSize =
-          (data[header.length - 1] << 8) + data[header.length] + 1;
-        header.length += 2;
+        header[blockSize] =
+          (data[header[length] - 1] << 8) + data[header[length]] + 1;
+        header[length] += 2;
       }
 
-      header.samples = header.blockSize;
+      header[samples] = header[blockSize];
 
       // Byte (...)
       // * `KKKKKKKK|(KKKKKKKK)`: Sample rate (8/16bit custom value)
-      if (header.sampleRateBits === 0b00001100) {
+      if (header[sampleRateBits] === 0b00001100) {
         // 8 bit
-        if (data.length < header.length)
-          data = yield* codecParser.readRawData(header.length, readOffset);
+        if (data[length] < header[length])
+          data = yield* codecParser[readRawData](header[length], readOffset);
 
-        header.sampleRate = data[header.length - 1] * 1000;
-        header.length += 1;
-      } else if (header.sampleRateBits === 0b00001101) {
+        header[sampleRate] = data[header[length] - 1] * 1000;
+        header[length] += 1;
+      } else if (header[sampleRateBits] === 0b00001101) {
         // 16 bit
-        if (data.length < header.length)
-          data = yield* codecParser.readRawData(header.length, readOffset);
+        if (data[length] < header[length])
+          data = yield* codecParser[readRawData](header[length], readOffset);
 
-        header.sampleRate = (data[header.length - 1] << 8) + data[header.length];
-        header.length += 2;
-      } else if (header.sampleRateBits === 0b00001110) {
+        header[sampleRate] =
+          (data[header[length] - 1] << 8) + data[header[length]];
+        header[length] += 2;
+      } else if (header[sampleRateBits] === 0b00001110) {
         // 16 bit
-        if (data.length < header.length)
-          data = yield* codecParser.readRawData(header.length, readOffset);
+        if (data[length] < header[length])
+          data = yield* codecParser[readRawData](header[length], readOffset);
 
-        header.sampleRate =
-          ((data[header.length - 1] << 8) + data[header.length]) * 10;
-        header.length += 2;
+        header[sampleRate] =
+          ((data[header[length] - 1] << 8) + data[header[length]]) * 10;
+        header[length] += 2;
       }
 
       // Byte (...)
       // * `LLLLLLLL`: CRC-8
-      if (data.length < header.length)
-        data = yield* codecParser.readRawData(header.length, readOffset);
+      if (data[length] < header[length])
+        data = yield* codecParser[readRawData](header[length], readOffset);
 
-      header.crc = data[header.length - 1];
-      if (header.crc !== crc8(data.subarray(0, header.length - 1))) {
+      header[crc] = data[header[length] - 1];
+      if (header[crc] !== crc8(data[subarray](0, header[length] - 1))) {
         return null;
       }
 
-      if (!cachedHeader) {
-        const {
-          blockingStrategyBits,
-          frameNumber,
-          sampleNumber,
-          samples,
-          sampleRateBits,
-          blockSizeBits,
-          crc,
-          length,
-          ...codecUpdateFields
-        } = header;
-        headerCache.setHeader(key, header, codecUpdateFields);
+      {
+        if (!cachedHeader) {
+          const {
+            blockingStrategyBits,
+            frameNumber,
+            sampleNumber,
+            samples,
+            sampleRateBits,
+            blockSizeBits,
+            crc,
+            length,
+            ...codecUpdateFields
+          } = header;
+          headerCache[setHeader](key, header, codecUpdateFields);
+        }
       }
       return new FLACHeader(header);
     }
@@ -2134,16 +2283,16 @@
     constructor(header) {
       super(header);
 
-      this.crc16 = null; // set in FLACFrame
-      this.blockingStrategy = header.blockingStrategy;
-      this.blockSize = header.blockSize;
-      this.frameNumber = header.frameNumber;
-      this.sampleNumber = header.sampleNumber;
-      this.streamInfo = null; // set during ogg parsing
+      this[crc16] = null; // set in FLACFrame
+      this[blockingStrategy] = header[blockingStrategy];
+      this[blockSize] = header[blockSize];
+      this[frameNumber] = header[frameNumber];
+      this[sampleNumber] = header[sampleNumber];
+      this[streamInfo] = null; // set during ogg parsing
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2165,10 +2314,12 @@
   const MAX_FLAC_FRAME_SIZE = 512 * 1024;
 
   class FLACParser extends Parser {
-    constructor(codecParser, onCodecUpdate) {
-      super(codecParser, onCodecUpdate);
+    constructor(codecParser, headerCache, onCodec) {
+      super(codecParser, headerCache);
       this.Frame = FLACFrame;
       this.Header = FLACHeader;
+
+      onCodec(this[codec]);
     }
 
     get codec() {
@@ -2176,8 +2327,8 @@
     }
 
     *_getNextFrameSyncOffset(offset) {
-      const data = yield* this._codecParser.readRawData(2, 0);
-      const dataLength = data.length - 2;
+      const data = yield* this._codecParser[readRawData](2, 0);
+      const dataLength = data[length] - 2;
 
       while (offset < dataLength) {
         // * `11111111|111110..`: Frame sync
@@ -2194,10 +2345,10 @@
       return offset;
     }
 
-    *parseFrame() {
+    *[parseFrame]() {
       // find the first valid frame header
       do {
-        const header = yield* FLACHeader.getHeader(
+        const header = yield* FLACHeader[getHeader](
           this._codecParser,
           this._headerCache,
           0
@@ -2207,33 +2358,33 @@
           // found a valid frame header
           // find the next valid frame header
           let nextHeaderOffset =
-            headerStore.get(header).length + MIN_FLAC_FRAME_SIZE;
+            headerStore.get(header)[length] + MIN_FLAC_FRAME_SIZE;
 
           while (nextHeaderOffset <= MAX_FLAC_FRAME_SIZE) {
             if (
               this._codecParser._flushing ||
-              (yield* FLACHeader.getHeader(
+              (yield* FLACHeader[getHeader](
                 this._codecParser,
                 this._headerCache,
                 nextHeaderOffset
               ))
             ) {
               // found a valid next frame header
-              let frameData = yield* this._codecParser.readRawData(
+              let frameData = yield* this._codecParser[readRawData](
                 nextHeaderOffset
               );
 
               if (!this._codecParser._flushing)
-                frameData = frameData.subarray(0, nextHeaderOffset);
+                frameData = frameData[subarray](0, nextHeaderOffset);
 
               // check that this is actually the next header by validating the frame footer crc16
-              if (FLACFrame.checkFrameFooterCrc16(frameData)) {
+              if (FLACFrame[checkFrameFooterCrc16](frameData)) {
                 // both frame headers, and frame footer crc16 are valid, we are synced (odds are pretty low of a false positive)
                 const frame = new FLACFrame(frameData, header);
 
-                this._headerCache.enable(); // start caching when synced
-                this._codecParser.incrementRawData(nextHeaderOffset); // increment to the next frame
-                this._codecParser.mapFrameStats(frame);
+                this._headerCache[enable](); // start caching when synced
+                this._codecParser[incrementRawData](nextHeaderOffset); // increment to the next frame
+                this._codecParser[mapFrameStats](frame);
 
                 return frame;
               }
@@ -2244,30 +2395,30 @@
             );
           }
 
-          this._codecParser.logWarning(
+          this._codecParser[logWarning](
             `Unable to sync FLAC frame after searching ${nextHeaderOffset} bytes.`
           );
-          this._codecParser.incrementRawData(nextHeaderOffset);
+          this._codecParser[incrementRawData](nextHeaderOffset);
         } else {
           // not synced, increment data to continue syncing
-          this._codecParser.incrementRawData(
+          this._codecParser[incrementRawData](
             yield* this._getNextFrameSyncOffset(1)
           );
         }
       } while (true);
     }
 
-    parseOggPage(oggPage) {
-      if (oggPage.pageSequenceNumber === 0) {
+    [parseOggPage](oggPage) {
+      if (oggPage[pageSequenceNumber] === 0) {
         // Identification header
 
-        this._headerCache.enable();
-        this._streamInfo = oggPage.data.subarray(13);
-      } else if (oggPage.pageSequenceNumber === 1) ; else {
-        oggPage.codecFrames = frameStore
+        this._headerCache[enable]();
+        this._streamInfo = oggPage[data][subarray](13);
+      } else if (oggPage[pageSequenceNumber] === 1) ; else {
+        oggPage[codecFrames] = frameStore
           .get(oggPage)
-          .segments.map((segment) => {
-            const header = FLACHeader.getHeaderFromUint8Array(
+          [segments].map((segment) => {
+            const header = FLACHeader[getHeaderFromUint8Array](
               segment,
               this._headerCache
             );
@@ -2275,20 +2426,20 @@
             if (header) {
               return new FLACFrame(segment, header, this._streamInfo);
             } else {
-              this._codecParser.logWarning(
+              this._codecParser[logWarning](
                 "Failed to parse Ogg FLAC frame",
                 "Skipping invalid FLAC frame"
               );
             }
           })
-          .filter((frame) => Boolean(frame));
+          .filter((frame) => !!frame);
       }
 
       return oggPage;
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2307,11 +2458,11 @@
   */
 
   class OggPageHeader {
-    static *getHeader(codecParser, headerCache, readOffset) {
+    static *[getHeader](codecParser, headerCache, readOffset) {
       const header = {};
 
       // Must be at least 28 bytes.
-      let data = yield* codecParser.readRawData(28, readOffset);
+      let data = yield* codecParser[readRawData](28, readOffset);
 
       // Bytes (1-4 of 28)
       // Frame sync (must equal OggS): `AAAAAAAA|AAAAAAAA|AAAAAAAA|AAAAAAAA`:
@@ -2326,7 +2477,7 @@
 
       // Byte (5 of 28)
       // * `BBBBBBBB`: stream_structure_version
-      header.streamStructureVersion = data[4];
+      header[streamStructureVersion] = data[4];
 
       // Byte (6 of 28)
       // * `00000CDE`
@@ -2337,11 +2488,11 @@
       const zeros = data[5] & 0b11111000;
       if (zeros) return null;
 
-      header.isLastPage = Boolean(data[5] & 0b00000100);
-      header.isFirstPage = Boolean(data[5] & 0b00000010);
-      header.isContinuedPacket = Boolean(data[5] & 0b00000001);
+      header[isLastPage] = !!(data[5] & 0b00000100);
+      header[isFirstPage] = !!(data[5] & 0b00000010);
+      header[isContinuedPacket] = !!(data[5] & 0b00000001);
 
-      const view = new DataView(Uint8Array.from(data.subarray(0, 28)).buffer);
+      const view = new dataView(uint8Array.from(data[subarray](0, 28))[buffer]);
 
       // Byte (7-14 of 28)
       // * `FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF`
@@ -2351,43 +2502,45 @@
        * @todo Safari does not support getBigInt64, but it also doesn't support Ogg
        */
       try {
-        header.absoluteGranulePosition = view.getBigInt64(6, true);
+        header[absoluteGranulePosition] = view.getBigInt64(6, true);
       } catch {}
 
       // Byte (15-18 of 28)
       // * `GGGGGGGG|GGGGGGGG|GGGGGGGG|GGGGGGGG`
       // * Stream Serial Number
-      header.streamSerialNumber = view.getInt32(14, true);
+      header[streamSerialNumber] = view.getInt32(14, true);
 
       // Byte (19-22 of 28)
       // * `HHHHHHHH|HHHHHHHH|HHHHHHHH|HHHHHHHH`
       // * Page Sequence Number
-      header.pageSequenceNumber = view.getInt32(18, true);
+      header[pageSequenceNumber] = view.getInt32(18, true);
 
       // Byte (23-26 of 28)
       // * `IIIIIIII|IIIIIIII|IIIIIIII|IIIIIIII`
       // * Page Checksum
-      header.pageChecksum = view.getInt32(22, true);
+      header[pageChecksum] = view.getInt32(22, true);
 
       // Byte (27 of 28)
       // * `JJJJJJJJ`: Number of page segments in the segment table
       const pageSegmentTableLength = data[26];
-      header.length = pageSegmentTableLength + 27;
+      header[length] = pageSegmentTableLength + 27;
 
-      data = yield* codecParser.readRawData(header.length, readOffset); // read in the page segment table
+      data = yield* codecParser[readRawData](header[length], readOffset); // read in the page segment table
 
-      header.frameLength = 0;
-      header.pageSegmentTable = [];
-      header.pageSegmentBytes = Uint8Array.from(data.subarray(27, header.length));
+      header[frameLength] = 0;
+      header[pageSegmentTable] = [];
+      header[pageSegmentBytes] = uint8Array.from(
+        data[subarray](27, header[length])
+      );
 
       for (let i = 0, segmentLength = 0; i < pageSegmentTableLength; i++) {
-        const segmentByte = header.pageSegmentBytes[i];
+        const segmentByte = header[pageSegmentBytes][i];
 
-        header.frameLength += segmentByte;
+        header[frameLength] += segmentByte;
         segmentLength += segmentByte;
 
         if (segmentByte !== 0xff || i === pageSegmentTableLength - 1) {
-          header.pageSegmentTable.push(segmentLength);
+          header[pageSegmentTable].push(segmentLength);
           segmentLength = 0;
         }
       }
@@ -2402,18 +2555,18 @@
     constructor(header) {
       headerStore.set(this, header);
 
-      this.absoluteGranulePosition = header.absoluteGranulePosition;
-      this.isContinuedPacket = header.isContinuedPacket;
-      this.isFirstPage = header.isFirstPage;
-      this.isLastPage = header.isLastPage;
-      this.pageSegmentTable = header.pageSegmentTable;
-      this.pageSequenceNumber = header.pageSequenceNumber;
-      this.pageChecksum = header.pageChecksum;
-      this.streamSerialNumber = header.streamSerialNumber;
+      this[absoluteGranulePosition] = header[absoluteGranulePosition];
+      this[isContinuedPacket] = header[isContinuedPacket];
+      this[isFirstPage] = header[isFirstPage];
+      this[isLastPage] = header[isLastPage];
+      this[pageSegmentTable] = header[pageSegmentTable];
+      this[pageSequenceNumber] = header[pageSequenceNumber];
+      this[pageChecksum] = header[pageChecksum];
+      this[streamSerialNumber] = header[streamSerialNumber];
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2432,51 +2585,50 @@
   */
 
   class OggPage extends Frame {
-    static *getFrame(codecParser, headerCache, readOffset) {
-      const header = yield* OggPageHeader.getHeader(
+    static *[getFrame](codecParser, headerCache, readOffset) {
+      const header = yield* OggPageHeader[getHeader](
         codecParser,
         headerCache,
         readOffset
       );
 
       if (header) {
-        const frameLength = headerStore.get(header).frameLength;
-        const headerLength = headerStore.get(header).length;
-        const totalLength = headerLength + frameLength;
+        const frameLengthValue = headerStore.get(header)[frameLength];
+        const headerLength = headerStore.get(header)[length];
+        const totalLength = headerLength + frameLengthValue;
 
-        const rawData = (yield* codecParser.readRawData(totalLength, 0)).subarray(
-          0,
-          totalLength
-        );
+        const rawDataValue = (yield* codecParser[readRawData](totalLength, 0))[
+          subarray
+        ](0, totalLength);
 
-        const frame = rawData.subarray(headerLength, totalLength);
+        const frame = rawDataValue[subarray](headerLength, totalLength);
 
-        return new OggPage(header, frame, rawData);
+        return new OggPage(header, frame, rawDataValue);
       } else {
         return null;
       }
     }
 
-    constructor(header, frame, rawData) {
+    constructor(header, frame, rawDataValue) {
       super(header, frame);
 
-      frameStore.get(this).length = rawData.length;
+      frameStore.get(this)[length] = rawDataValue[length];
 
-      this.codecFrames = [];
-      this.rawData = rawData;
-      this.absoluteGranulePosition = header.absoluteGranulePosition;
-      this.crc32 = header.pageChecksum;
-      this.duration = 0;
-      this.isContinuedPacket = header.isContinuedPacket;
-      this.isFirstPage = header.isFirstPage;
-      this.isLastPage = header.isLastPage;
-      this.pageSequenceNumber = header.pageSequenceNumber;
-      this.samples = 0;
-      this.streamSerialNumber = header.streamSerialNumber;
+      this[codecFrames] = [];
+      this[rawData] = rawDataValue;
+      this[absoluteGranulePosition] = header[absoluteGranulePosition];
+      this[crc32] = header[pageChecksum];
+      this[duration] = 0;
+      this[isContinuedPacket] = header[isContinuedPacket];
+      this[isFirstPage] = header[isFirstPage];
+      this[isLastPage] = header[isLastPage];
+      this[pageSequenceNumber] = header[pageSequenceNumber];
+      this[samples] = 0;
+      this[streamSerialNumber] = header[streamSerialNumber];
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2499,12 +2651,12 @@
       super(
         header,
         data,
-        ((header.frameSize * header.frameCount) / 1000) * header.sampleRate
+        ((header[frameSize] * header[frameCount]) / 1000) * header[sampleRate]
       );
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2557,57 +2709,58 @@
   // +-+-+-+-+-+-+-+-+
   // | config  |s| c |
   // +-+-+-+-+-+-+-+-+
+  // prettier-ignore
   const configTable = {
-    0b00000000: { mode: silkOnly, bandwidth: narrowBand, frameSize: 10 },
-    0b00001000: { mode: silkOnly, bandwidth: narrowBand, frameSize: 20 },
-    0b00010000: { mode: silkOnly, bandwidth: narrowBand, frameSize: 40 },
-    0b00011000: { mode: silkOnly, bandwidth: narrowBand, frameSize: 60 },
-    0b00100000: { mode: silkOnly, bandwidth: mediumBand, frameSize: 10 },
-    0b00101000: { mode: silkOnly, bandwidth: mediumBand, frameSize: 20 },
-    0b00110000: { mode: silkOnly, bandwidth: mediumBand, frameSize: 40 },
-    0b00111000: { mode: silkOnly, bandwidth: mediumBand, frameSize: 60 },
-    0b01000000: { mode: silkOnly, bandwidth: wideBand, frameSize: 10 },
-    0b01001000: { mode: silkOnly, bandwidth: wideBand, frameSize: 20 },
-    0b01010000: { mode: silkOnly, bandwidth: wideBand, frameSize: 40 },
-    0b01011000: { mode: silkOnly, bandwidth: wideBand, frameSize: 60 },
-    0b01100000: { mode: hybrid, bandwidth: superWideBand, frameSize: 10 },
-    0b01101000: { mode: hybrid, bandwidth: superWideBand, frameSize: 20 },
-    0b01110000: { mode: hybrid, bandwidth: fullBand, frameSize: 10 },
-    0b01111000: { mode: hybrid, bandwidth: fullBand, frameSize: 20 },
-    0b10000000: { mode: celtOnly, bandwidth: narrowBand, frameSize: 2.5 },
-    0b10001000: { mode: celtOnly, bandwidth: narrowBand, frameSize: 5 },
-    0b10010000: { mode: celtOnly, bandwidth: narrowBand, frameSize: 10 },
-    0b10011000: { mode: celtOnly, bandwidth: narrowBand, frameSize: 20 },
-    0b10100000: { mode: celtOnly, bandwidth: wideBand, frameSize: 2.5 },
-    0b10101000: { mode: celtOnly, bandwidth: wideBand, frameSize: 5 },
-    0b10110000: { mode: celtOnly, bandwidth: wideBand, frameSize: 10 },
-    0b10111000: { mode: celtOnly, bandwidth: wideBand, frameSize: 20 },
-    0b11000000: { mode: celtOnly, bandwidth: superWideBand, frameSize: 2.5 },
-    0b11001000: { mode: celtOnly, bandwidth: superWideBand, frameSize: 5 },
-    0b11010000: { mode: celtOnly, bandwidth: superWideBand, frameSize: 10 },
-    0b11011000: { mode: celtOnly, bandwidth: superWideBand, frameSize: 20 },
-    0b11100000: { mode: celtOnly, bandwidth: fullBand, frameSize: 2.5 },
-    0b11101000: { mode: celtOnly, bandwidth: fullBand, frameSize: 5 },
-    0b11110000: { mode: celtOnly, bandwidth: fullBand, frameSize: 10 },
-    0b11111000: { mode: celtOnly, bandwidth: fullBand, frameSize: 20 },
+    0b00000000: { [mode]: silkOnly, [bandwidth]: narrowBand, [frameSize]: 10 },
+    0b00001000: { [mode]: silkOnly, [bandwidth]: narrowBand, [frameSize]: 20 },
+    0b00010000: { [mode]: silkOnly, [bandwidth]: narrowBand, [frameSize]: 40 },
+    0b00011000: { [mode]: silkOnly, [bandwidth]: narrowBand, [frameSize]: 60 },
+    0b00100000: { [mode]: silkOnly, [bandwidth]: mediumBand, [frameSize]: 10 },
+    0b00101000: { [mode]: silkOnly, [bandwidth]: mediumBand, [frameSize]: 20 },
+    0b00110000: { [mode]: silkOnly, [bandwidth]: mediumBand, [frameSize]: 40 },
+    0b00111000: { [mode]: silkOnly, [bandwidth]: mediumBand, [frameSize]: 60 },
+    0b01000000: { [mode]: silkOnly, [bandwidth]: wideBand, [frameSize]: 10 },
+    0b01001000: { [mode]: silkOnly, [bandwidth]: wideBand, [frameSize]: 20 },
+    0b01010000: { [mode]: silkOnly, [bandwidth]: wideBand, [frameSize]: 40 },
+    0b01011000: { [mode]: silkOnly, [bandwidth]: wideBand, [frameSize]: 60 },
+    0b01100000: { [mode]: hybrid, [bandwidth]: superWideBand, [frameSize]: 10 },
+    0b01101000: { [mode]: hybrid, [bandwidth]: superWideBand, [frameSize]: 20 },
+    0b01110000: { [mode]: hybrid, [bandwidth]: fullBand, [frameSize]: 10 },
+    0b01111000: { [mode]: hybrid, [bandwidth]: fullBand, [frameSize]: 20 },
+    0b10000000: { [mode]: celtOnly, [bandwidth]: narrowBand, [frameSize]: 2.5 },
+    0b10001000: { [mode]: celtOnly, [bandwidth]: narrowBand, [frameSize]: 5 },
+    0b10010000: { [mode]: celtOnly, [bandwidth]: narrowBand, [frameSize]: 10 },
+    0b10011000: { [mode]: celtOnly, [bandwidth]: narrowBand, [frameSize]: 20 },
+    0b10100000: { [mode]: celtOnly, [bandwidth]: wideBand, [frameSize]: 2.5 },
+    0b10101000: { [mode]: celtOnly, [bandwidth]: wideBand, [frameSize]: 5 },
+    0b10110000: { [mode]: celtOnly, [bandwidth]: wideBand, [frameSize]: 10 },
+    0b10111000: { [mode]: celtOnly, [bandwidth]: wideBand, [frameSize]: 20 },
+    0b11000000: { [mode]: celtOnly, [bandwidth]: superWideBand, [frameSize]: 2.5 },
+    0b11001000: { [mode]: celtOnly, [bandwidth]: superWideBand, [frameSize]: 5 },
+    0b11010000: { [mode]: celtOnly, [bandwidth]: superWideBand, [frameSize]: 10 },
+    0b11011000: { [mode]: celtOnly, [bandwidth]: superWideBand, [frameSize]: 20 },
+    0b11100000: { [mode]: celtOnly, [bandwidth]: fullBand, [frameSize]: 2.5 },
+    0b11101000: { [mode]: celtOnly, [bandwidth]: fullBand, [frameSize]: 5 },
+    0b11110000: { [mode]: celtOnly, [bandwidth]: fullBand, [frameSize]: 10 },
+    0b11111000: { [mode]: celtOnly, [bandwidth]: fullBand, [frameSize]: 20 },
   };
 
   class OpusHeader extends CodecHeader {
-    static getHeaderFromUint8Array(data, packetData, headerCache) {
+    static [getHeaderFromUint8Array](dataValue, packetData, headerCache) {
       const header = {};
 
       // get length of header
       // Byte (10 of 19)
       // * `CCCCCCCC`: Channel Count
-      header.channels = data[9];
+      header[channels] = dataValue[9];
       // Byte (19 of 19)
       // * `GGGGGGGG`: Channel Mapping Family
-      header.channelMappingFamily = data[18];
+      header[channelMappingFamily] = dataValue[18];
 
-      header.length =
-        header.channelMappingFamily !== 0 ? 21 + header.channels : 19;
+      header[length] =
+        header[channelMappingFamily] !== 0 ? 21 + header[channels] : 19;
 
-      if (data.length < header.length)
+      if (dataValue[length] < header[length])
         throw new Error("Out of data while inside an Ogg Page");
 
       // Page Segment Bytes (1-2)
@@ -2619,9 +2772,9 @@
 
       // Check header cache
       const key =
-        bytesToString(data.subarray(0, header.length)) +
-        bytesToString(packetData.subarray(0, packetLength));
-      const cachedHeader = headerCache.getHeader(key);
+        bytesToString(dataValue[subarray](0, header[length])) +
+        bytesToString(packetData[subarray](0, packetLength));
+      const cachedHeader = headerCache[getHeader](key);
 
       if (cachedHeader) return new OpusHeader(cachedHeader);
 
@@ -2632,13 +2785,13 @@
 
       // Byte (9 of 19)
       // * `00000001`: Version number
-      if (data[8] !== 1) return null;
+      if (dataValue[8] !== 1) return null;
 
-      header.data = Uint8Array.from(data.subarray(0, header.length));
+      header[data] = uint8Array.from(dataValue[subarray](0, header[length]));
 
-      const view = new DataView(header.data.buffer);
+      const view = new dataView(header[data][buffer]);
 
-      header.bitDepth = 16;
+      header[bitDepth] = 16;
 
       // Byte (10 of 19)
       // * `CCCCCCCC`: Channel Count
@@ -2646,76 +2799,80 @@
 
       // Byte (11-12 of 19)
       // * `DDDDDDDD|DDDDDDDD`: Pre skip
-      header.preSkip = view.getUint16(10, true);
+      header[preSkip] = view.getUint16(10, true);
 
       // Byte (13-16 of 19)
       // * `EEEEEEEE|EEEEEEEE|EEEEEEEE|EEEEEEEE`: Sample Rate
-      header.inputSampleRate = view.getUint32(12, true);
+      header[inputSampleRate] = view.getUint32(12, true);
       // Opus is always decoded at 48kHz
-      header.sampleRate = rate48000;
+      header[sampleRate] = rate48000;
 
       // Byte (17-18 of 19)
       // * `FFFFFFFF|FFFFFFFF`: Output Gain
-      header.outputGain = view.getInt16(16, true);
+      header[outputGain] = view.getInt16(16, true);
 
       // Byte (19 of 19)
       // * `GGGGGGGG`: Channel Mapping Family
       // set earlier to determine length
-      if (header.channelMappingFamily in channelMappingFamilies) {
-        header.channelMode =
-          channelMappingFamilies[header.channelMappingFamily][
-            header.channels - 1
+      if (header[channelMappingFamily] in channelMappingFamilies) {
+        header[channelMode] =
+          channelMappingFamilies[header[channelMappingFamily]][
+            header[channels] - 1
           ];
-        if (!header.channelMode) return null;
+        if (!header[channelMode]) return null;
       }
 
-      if (header.channelMappingFamily !== 0) {
+      if (header[channelMappingFamily] !== 0) {
         // * `HHHHHHHH`: Stream count
-        header.streamCount = data[19];
+        header[streamCount] = dataValue[19];
 
         // * `IIIIIIII`: Coupled Stream count
-        header.coupledStreamCount = data[20];
+        header[coupledStreamCount] = dataValue[20];
 
         // * `JJJJJJJJ|...` Channel Mapping table
-        header.channelMappingTable = [...data.subarray(21, header.channels + 21)];
+        header[channelMappingTable] = [
+          ...dataValue[subarray](21, header[channels] + 21),
+        ];
       }
 
       const packetConfig = configTable[0b11111000 & packetData[0]];
-      header.mode = packetConfig.mode;
-      header.bandwidth = packetConfig.bandwidth;
-      header.frameSize = packetConfig.frameSize;
+      header[mode] = packetConfig[mode];
+      header[bandwidth] = packetConfig[bandwidth];
+      header[frameSize] = packetConfig[frameSize];
 
       // https://tools.ietf.org/html/rfc6716#appendix-B
       switch (packetMode) {
         case 0:
           // 0: 1 frame in the packet
-          header.frameCount = 1;
+          header[frameCount] = 1;
           break;
         case 1:
         // 1: 2 frames in the packet, each with equal compressed size
         case 2:
           // 2: 2 frames in the packet, with different compressed sizes
-          header.frameCount = 2;
+          header[frameCount] = 2;
           break;
         case 3:
           // 3: an arbitrary number of frames in the packet
-          header.isVbr = Boolean(0b10000000 & packetData[1]);
-          header.hasOpusPadding = Boolean(0b01000000 & packetData[1]);
-          header.frameCount = 0b00111111 & packetData[1];
+          header[isVbr] = !!(0b10000000 & packetData[1]);
+          header[hasOpusPadding] = !!(0b01000000 & packetData[1]);
+          header[frameCount] = 0b00111111 & packetData[1];
           break;
         default:
           return null;
       }
 
       // set header cache
-      const {
-        length,
-        data: headerData,
-        channelMappingFamily,
-        ...codecUpdateFields
-      } = header;
+      {
+        const {
+          length,
+          data: headerData,
+          channelMappingFamily,
+          ...codecUpdateFields
+        } = header;
 
-      headerCache.setHeader(key, header, codecUpdateFields);
+        headerCache[setHeader](key, header, codecUpdateFields);
+      }
 
       return new OpusHeader(header);
     }
@@ -2727,24 +2884,24 @@
     constructor(header) {
       super(header);
 
-      this.data = header.data;
-      this.bandwidth = header.bandwidth;
-      this.channelMappingFamily = header.channelMappingFamily;
-      this.channelMappingTable = header.channelMappingTable;
-      this.coupledStreamCount = header.coupledStreamCount;
-      this.frameCount = header.frameCount;
-      this.frameSize = header.frameSize;
-      this.hasOpusPadding = header.hasOpusPadding;
-      this.inputSampleRate = header.inputSampleRate;
-      this.isVbr = header.isVbr;
-      this.mode = header.mode;
-      this.outputGain = header.outputGain;
-      this.preSkip = header.preSkip;
-      this.streamCount = header.streamCount;
+      this[data] = header[data];
+      this[bandwidth] = header[bandwidth];
+      this[channelMappingFamily] = header[channelMappingFamily];
+      this[channelMappingTable] = header[channelMappingTable];
+      this[coupledStreamCount] = header[coupledStreamCount];
+      this[frameCount] = header[frameCount];
+      this[frameSize] = header[frameSize];
+      this[hasOpusPadding] = header[hasOpusPadding];
+      this[inputSampleRate] = header[inputSampleRate];
+      this[isVbr] = header[isVbr];
+      this[mode] = header[mode];
+      this[outputGain] = header[outputGain];
+      this[preSkip] = header[preSkip];
+      this[streamCount] = header[streamCount];
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2763,11 +2920,12 @@
   */
 
   class OpusParser extends Parser {
-    constructor(codecParser, headerCache) {
+    constructor(codecParser, headerCache, onCodec) {
       super(codecParser, headerCache);
       this.Frame = OpusFrame;
       this.Header = OpusHeader;
 
+      onCodec(this[codec]);
       this._identificationHeader = null;
     }
 
@@ -2778,34 +2936,36 @@
     /**
      * @todo implement continued page support
      */
-    parseOggPage(oggPage) {
-      if (oggPage.pageSequenceNumber === 0) {
+    [parseOggPage](oggPage) {
+      if (oggPage[pageSequenceNumber] === 0) {
         // Identification header
 
-        this._headerCache.enable();
-        this._identificationHeader = oggPage.data;
-      } else if (oggPage.pageSequenceNumber === 1) ; else {
-        oggPage.codecFrames = frameStore.get(oggPage).segments.map((segment) => {
-          const header = OpusHeader.getHeaderFromUint8Array(
-            this._identificationHeader,
-            segment,
-            this._headerCache
-          );
+        this._headerCache[enable]();
+        this._identificationHeader = oggPage[data];
+      } else if (oggPage[pageSequenceNumber] === 1) ; else {
+        oggPage[codecFrames] = frameStore
+          .get(oggPage)
+          [segments].map((segment) => {
+            const header = OpusHeader[getHeaderFromUint8Array](
+              this._identificationHeader,
+              segment,
+              this._headerCache
+            );
 
-          if (header) return new OpusFrame(segment, header);
+            if (header) return new OpusFrame(segment, header);
 
-          this._codecParser.logError(
-            "Failed to parse Ogg Opus Header",
-            "Not a valid Ogg Opus file"
-          );
-        });
+            this._codecParser[logError](
+              "Failed to parse Ogg Opus Header",
+              "Not a valid Ogg Opus file"
+            );
+          });
       }
 
       return oggPage;
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2829,7 +2989,7 @@
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2860,70 +3020,84 @@
   for (let i = 0; i < 8; i++) blockSizes[i + 6] = 2 ** (6 + i);
 
   class VorbisHeader extends CodecHeader {
-    static getHeaderFromUint8Array(data, headerCache) {
+    static [getHeaderFromUint8Array](
+      dataValue,
+      headerCache,
+      vorbisCommentsData,
+      vorbisSetupData
+    ) {
       // Must be at least 30 bytes.
-      if (data.length < 30)
+      if (dataValue[length] < 30)
         throw new Error("Out of data while inside an Ogg Page");
 
       // Check header cache
-      const key = bytesToString(data.subarray(0, 30));
-      const cachedHeader = headerCache.getHeader(key);
+      const key = bytesToString(dataValue[subarray](0, 30));
+      const cachedHeader = headerCache[getHeader](key);
       if (cachedHeader) return new VorbisHeader(cachedHeader);
 
-      const header = { length: 30 };
+      const header = { [length]: 30 };
 
       // Bytes (1-7 of 30): /01vorbis - Magic Signature
       if (key.substr(0, 7) !== "\x01vorbis") {
         return null;
       }
 
-      header.data = Uint8Array.from(data.subarray(0, 30));
-      const view = new DataView(header.data.buffer);
+      header[data] = uint8Array.from(dataValue[subarray](0, 30));
+      const view = new dataView(header[data][buffer]);
 
       // Byte (8-11 of 30)
       // * `CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC`: Version number
-      header.version = view.getUint32(7, true);
-      if (header.version !== 0) return null;
+      header[version] = view.getUint32(7, true);
+      if (header[version] !== 0) return null;
 
       // Byte (12 of 30)
       // * `DDDDDDDD`: Channel Count
-      header.channels = data[11];
-      header.channelMode =
-        vorbisOpusChannelMapping[header.channels - 1] || "application defined";
+      header[channels] = dataValue[11];
+      header[channelMode] =
+        vorbisOpusChannelMapping[header[channels] - 1] || "application defined";
 
       // Byte (13-16 of 30)
       // * `EEEEEEEE|EEEEEEEE|EEEEEEEE|EEEEEEEE`: Sample Rate
-      header.sampleRate = view.getUint32(12, true);
+      header[sampleRate] = view.getUint32(12, true);
 
       // Byte (17-20 of 30)
       // * `FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF`: Bitrate Maximum
-      header.bitrateMaximum = view.getInt32(16, true);
+      header[bitrateMaximum] = view.getInt32(16, true);
 
       // Byte (21-24 of 30)
       // * `GGGGGGGG|GGGGGGGG|GGGGGGGG|GGGGGGGG`: Bitrate Nominal
-      header.bitrateNominal = view.getInt32(20, true);
+      header[bitrateNominal] = view.getInt32(20, true);
 
       // Byte (25-28 of 30)
       // * `HHHHHHHH|HHHHHHHH|HHHHHHHH|HHHHHHHH`: Bitrate Minimum
-      header.bitrateMinimum = view.getInt32(24, true);
+      header[bitrateMinimum] = view.getInt32(24, true);
 
       // Byte (29 of 30)
       // * `IIII....` Blocksize 1
       // * `....JJJJ` Blocksize 0
-      header.blocksize1 = blockSizes[(data[28] & 0b11110000) >> 4];
-      header.blocksize0 = blockSizes[data[28] & 0b00001111];
-      if (header.blocksize0 > header.blocksize1) return null;
+      header[blocksize1] = blockSizes[(dataValue[28] & 0b11110000) >> 4];
+      header[blocksize0] = blockSizes[dataValue[28] & 0b00001111];
+      if (header[blocksize0] > header[blocksize1]) return null;
 
       // Byte (29 of 30)
       // * `00000001` Framing bit
-      if (data[29] !== 0x01) return null;
+      if (dataValue[29] !== 0x01) return null;
 
-      header.bitDepth = 32;
+      header[bitDepth] = 32;
+      header[vorbisSetup] = vorbisSetupData;
+      header[vorbisComments] = vorbisCommentsData;
 
       {
         // set header cache
-        const { length, data, version, ...codecUpdateFields } = header;
-        headerCache.setHeader(key, header, codecUpdateFields);
+        const {
+          length,
+          data,
+          version,
+          vorbisSetup,
+          vorbisComments,
+          ...codecUpdateFields
+        } = header;
+        headerCache[setHeader](key, header, codecUpdateFields);
       }
 
       return new VorbisHeader(header);
@@ -2936,18 +3110,18 @@
     constructor(header) {
       super(header);
 
-      this.bitrateMaximum = header.bitrateMaximum;
-      this.bitrateMinimum = header.bitrateMinimum;
-      this.bitrateNominal = header.bitrateNominal;
-      this.blocksize0 = header.blocksize0;
-      this.blocksize1 = header.blocksize1;
-      this.data = header.data;
-      this.vorbisComments = null; // set during ogg parsing
-      this.vorbisSetup = null; // set during ogg parsing
+      this[bitrateMaximum] = header[bitrateMaximum];
+      this[bitrateMinimum] = header[bitrateMinimum];
+      this[bitrateNominal] = header[bitrateNominal];
+      this[blocksize0] = header[blocksize0];
+      this[blocksize1] = header[blocksize1];
+      this[data] = header[data];
+      this[vorbisComments] = header[vorbisComments];
+      this[vorbisSetup] = header[vorbisSetup];
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -2966,9 +3140,11 @@
   */
 
   class VorbisParser extends Parser {
-    constructor(codecParser, headerCache) {
+    constructor(codecParser, headerCache, onCodec) {
       super(codecParser, headerCache);
       this.Frame = VorbisFrame;
+
+      onCodec(this[codec]);
 
       this._identificationHeader = null;
 
@@ -2980,18 +3156,18 @@
     }
 
     get codec() {
-      return "vorbis";
+      return vorbis;
     }
 
-    parseOggPage(oggPage) {
-      const oggPageSegments = frameStore.get(oggPage).segments;
+    [parseOggPage](oggPage) {
+      const oggPageSegments = frameStore.get(oggPage)[segments];
 
-      if (oggPage.pageSequenceNumber === 0) {
+      if (oggPage[pageSequenceNumber] === 0) {
         // Identification header
 
-        this._headerCache.enable();
-        this._identificationHeader = oggPage.data;
-      } else if (oggPage.pageSequenceNumber === 1) {
+        this._headerCache[enable]();
+        this._identificationHeader = oggPage[data];
+      } else if (oggPage[pageSequenceNumber] === 1) {
         // gather WEBM CodecPrivate data
         if (oggPageSegments[1]) {
           this._vorbisComments = oggPageSegments[0];
@@ -3000,16 +3176,15 @@
           this._mode = this._parseSetupHeader(oggPageSegments[1]);
         }
       } else {
-        oggPage.codecFrames = oggPageSegments.map((segment) => {
-          const header = VorbisHeader.getHeaderFromUint8Array(
+        oggPage[codecFrames] = oggPageSegments.map((segment) => {
+          const header = VorbisHeader[getHeaderFromUint8Array](
             this._identificationHeader,
-            this._headerCache
+            this._headerCache,
+            this._vorbisComments,
+            this._vorbisSetup
           );
 
           if (header) {
-            header.vorbisComments = this._vorbisComments;
-            header.vorbisSetup = this._vorbisSetup;
-
             return new VorbisFrame(
               segment,
               header,
@@ -3017,7 +3192,7 @@
             );
           }
 
-          this._codecParser.logError(
+          this._codecParser[logError](
             "Failed to parse Ogg Vorbis Header",
             "Not a valid Ogg Vorbis file"
           );
@@ -3035,15 +3210,15 @@
       // is this a large window
       if (blockFlag) {
         this._prevBlockSize =
-          byte & this._mode.prevMask ? header.blocksize1 : header.blocksize0;
+          byte & this._mode.prevMask ? header[blocksize1] : header[blocksize0];
       }
 
-      this._currBlockSize = blockFlag ? header.blocksize1 : header.blocksize0;
+      this._currBlockSize = blockFlag ? header[blocksize1] : header[blocksize0];
 
-      const samples = (this._prevBlockSize + this._currBlockSize) >> 2;
+      const samplesValue = (this._prevBlockSize + this._currBlockSize) >> 2;
       this._prevBlockSize = this._currBlockSize;
 
-      return samples;
+      return samplesValue;
     }
 
     // https://gitlab.xiph.org/xiph/liboggz/-/blob/master/src/liboggz/oggz_auto.c
@@ -3084,8 +3259,8 @@
      */
     _parseSetupHeader(setup) {
       const bitReader = new BitReader(setup);
-      const failedToParseVorbisStream = "Failed to read Vorbis stream";
-      const failedToParseVorbisModes = ", failed to parse vorbis modes";
+      const failedToParseVorbisStream = "Failed to read " + vorbis + " stream";
+      const failedToParseVorbisModes = ", failed to parse " + vorbis + " modes";
 
       let mode = {
         count: 0,
@@ -3103,7 +3278,7 @@
           mapping in mode &&
           !(mode.count === 1 && mapping === 0) // allows for the possibility of only one mode
         ) {
-          this._codecParser.logError(
+          this._codecParser[logError](
             "received duplicate mode mapping" + failedToParseVorbisModes
           );
           throw new Error(failedToParseVorbisStream);
@@ -3123,7 +3298,7 @@
           // transform type and window type were not all zeros
           // check for mode count using previous iteration modeBits
           if (((reverse(modeBits) & 0b01111110) >> 1) + 1 !== mode.count) {
-            this._codecParser.logError(
+            this._codecParser[logError](
               "mode count did not match actual modes" + failedToParseVorbisModes
             );
             throw new Error(failedToParseVorbisStream);
@@ -3142,7 +3317,7 @@
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -3168,7 +3343,7 @@
       this.Frame = OggPage;
       this.Header = OggPageHeader;
       this._codec = null;
-      this._continuedPacket = new Uint8Array();
+      this._continuedPacket = new uint8Array();
 
       this._pageSequenceNumber = 0;
     }
@@ -3179,14 +3354,18 @@
 
     _updateCodec(codec, Parser) {
       if (this._codec !== codec) {
-        this._parser = new Parser(this._codecParser, this._headerCache);
+        this._headerCache[reset]();
+        this._parser = new Parser(
+          this._codecParser,
+          this._headerCache,
+          this._onCodec
+        );
         this._codec = codec;
-        this._onCodec(codec);
       }
     }
 
     _checkForIdentifier({ data }) {
-      const idString = bytesToString(data.subarray(0, 8));
+      const idString = bytesToString(data[subarray](0, 8));
 
       switch (idString) {
         case "fishead\0":
@@ -3200,68 +3379,68 @@
           this._updateCodec("flac", FLACParser);
           return true;
         case /^\x01vorbis/.test(idString) && idString:
-          this._updateCodec("vorbis", VorbisParser);
+          this._updateCodec(vorbis, VorbisParser);
           return true;
       }
     }
 
     _checkPageSequenceNumber(oggPage) {
       if (
-        oggPage.pageSequenceNumber !== this._pageSequenceNumber + 1 &&
+        oggPage[pageSequenceNumber] !== this._pageSequenceNumber + 1 &&
         this._pageSequenceNumber > 1 &&
-        oggPage.pageSequenceNumber > 1
+        oggPage[pageSequenceNumber] > 1
       ) {
-        this._codecParser.logWarning(
+        this._codecParser[logWarning](
           "Unexpected gap in Ogg Page Sequence Number.",
           `Expected: ${this._pageSequenceNumber + 1}, Got: ${
-          oggPage.pageSequenceNumber
+          oggPage[pageSequenceNumber]
         }`
         );
       }
 
-      this._pageSequenceNumber = oggPage.pageSequenceNumber;
+      this._pageSequenceNumber = oggPage[pageSequenceNumber];
     }
 
-    *parseFrame() {
-      const oggPage = yield* this.fixedLengthFrameSync(true);
+    *[parseFrame]() {
+      const oggPage = yield* this[fixedLengthFrameSync](true);
 
       this._checkPageSequenceNumber(oggPage);
 
       const oggPageStore = frameStore.get(oggPage);
       const { pageSegmentBytes, pageSegmentTable } = headerStore.get(
-        oggPageStore.header
+        oggPageStore[header]
       );
 
       let offset = 0;
 
-      oggPageStore.segments = pageSegmentTable.map((segmentLength) =>
-        oggPage.data.subarray(offset, (offset += segmentLength))
+      oggPageStore[segments] = pageSegmentTable.map((segmentLength) =>
+        oggPage[data][subarray](offset, (offset += segmentLength))
       );
 
-      if (pageSegmentBytes[pageSegmentBytes.length - 1] === 0xff) {
+      if (pageSegmentBytes[pageSegmentBytes[length] - 1] === 0xff) {
         // continued packet
         this._continuedPacket = concatBuffers(
           this._continuedPacket,
-          oggPageStore.segments.pop()
+          oggPageStore[segments].pop()
         );
-      } else if (this._continuedPacket.length) {
-        oggPageStore.segments[0] = concatBuffers(
+      } else if (this._continuedPacket[length]) {
+        oggPageStore[segments][0] = concatBuffers(
           this._continuedPacket,
-          oggPageStore.segments[0]
+          oggPageStore[segments][0]
         );
 
-        this._continuedPacket = new Uint8Array();
+        this._continuedPacket = new uint8Array();
       }
 
       if (this._codec || this._checkForIdentifier(oggPage)) {
-        const frame = this._parser.parseOggPage(oggPage);
-        this._codecParser.mapFrameStats(frame);
+        const frame = this._parser[parseOggPage](oggPage);
+        this._codecParser[mapFrameStats](frame);
         return frame;
       }
     }
   }
 
-  /* Copyright 2020-2022 Ethan Halsall
+  /* Copyright 2020-2023 Ethan Halsall
       
       This file is part of codec-parser.
       
@@ -3285,17 +3464,19 @@
     constructor(
       mimeType,
       {
-        onCodecUpdate,
         onCodec,
+        onCodecHeader,
+        onCodecUpdate,
         enableLogging = false,
         enableFrameCRC32 = true,
       } = {}
     ) {
       this._inputMimeType = mimeType;
       this._onCodec = onCodec || noOp;
+      this._onCodecHeader = onCodecHeader || noOp;
       this._onCodecUpdate = onCodecUpdate;
       this._enableLogging = enableLogging;
-      this._crc32 = enableFrameCRC32 ? crc32 : noOp;
+      this._crc32 = enableFrameCRC32 ? crc32Function : noOp;
 
       this._generator = this._getGenerator();
       this._generator.next();
@@ -3306,7 +3487,7 @@
      * @returns The detected codec
      */
     get codec() {
-      return this._parser.codec;
+      return this._parser[codec];
     }
 
     /**
@@ -3359,7 +3540,10 @@
      * @private
      */
     *_getGenerator() {
-      this._headerCache = new HeaderCache(this._onCodecUpdate);
+      this._headerCache = new HeaderCache(
+        this._onCodecHeader,
+        this._onCodecUpdate
+      );
 
       if (this._inputMimeType.match(/aac/)) {
         this._parser = new AACParser(this, this._headerCache, this._onCodec);
@@ -3384,7 +3568,7 @@
 
       // start parsing out frames
       while (true) {
-        const frame = yield* this._parser.parseFrame();
+        const frame = yield* this._parser[parseFrame]();
         if (frame) yield frame;
       }
     }
@@ -3394,71 +3578,73 @@
      * @param {number} minSize Minimum bytes to have present in buffer
      * @returns {Uint8Array} rawData
      */
-    *readRawData(minSize = 0, readOffset = 0) {
+    *[readRawData](minSize = 0, readOffset = 0) {
       let rawData;
 
-      while (this._rawData.length <= minSize + readOffset) {
+      while (this._rawData[length] <= minSize + readOffset) {
         rawData = yield;
 
-        if (this._flushing) return this._rawData.subarray(readOffset);
+        if (this._flushing) return this._rawData[subarray](readOffset);
 
         if (rawData) {
-          this._totalBytesIn += rawData.length;
+          this._totalBytesIn += rawData[length];
           this._rawData = concatBuffers(this._rawData, rawData);
         }
       }
 
-      return this._rawData.subarray(readOffset);
+      return this._rawData[subarray](readOffset);
     }
 
     /**
      * @protected
      * @param {number} increment Bytes to increment codec data
      */
-    incrementRawData(increment) {
+    [incrementRawData](increment) {
       this._currentReadPosition += increment;
-      this._rawData = this._rawData.subarray(increment);
+      this._rawData = this._rawData[subarray](increment);
     }
 
     /**
      * @protected
      */
-    mapCodecFrameStats(frame) {
-      this._sampleRate = frame.header.sampleRate;
+    [mapCodecFrameStats](frame) {
+      this._sampleRate = frame[header][sampleRate];
 
-      frame.header.bitrate = Math.round(frame.data.length / frame.duration) * 8;
-      frame.frameNumber = this._frameNumber++;
-      frame.totalBytesOut = this._totalBytesOut;
-      frame.totalSamples = this._totalSamples;
-      frame.totalDuration = (this._totalSamples / this._sampleRate) * 1000;
-      frame.crc32 = this._crc32(frame.data);
+      frame[header][bitrate] =
+        Math.round(frame[data][length] / frame[duration]) * 8;
+      frame[frameNumber] = this._frameNumber++;
+      frame[totalBytesOut] = this._totalBytesOut;
+      frame[totalSamples] = this._totalSamples;
+      frame[totalDuration] = (this._totalSamples / this._sampleRate) * 1000;
+      frame[crc32] = this._crc32(frame[data]);
 
-      this._headerCache.checkCodecUpdate(
-        frame.header.bitrate,
-        frame.totalDuration
+      this._headerCache[checkCodecUpdate](
+        frame[header][bitrate],
+        frame[totalDuration]
       );
 
-      this._totalBytesOut += frame.data.length;
-      this._totalSamples += frame.samples;
+      this._totalBytesOut += frame[data][length];
+      this._totalSamples += frame[samples];
     }
 
     /**
      * @protected
      */
-    mapFrameStats(frame) {
-      if (frame.codecFrames) {
+    [mapFrameStats](frame) {
+      if (frame[codecFrames]) {
         // Ogg container
-        frame.codecFrames.forEach((codecFrame) => {
-          frame.duration += codecFrame.duration;
-          frame.samples += codecFrame.samples;
-          this.mapCodecFrameStats(codecFrame);
+        frame[codecFrames].forEach((codecFrame) => {
+          frame[duration] += codecFrame[duration];
+          frame[samples] += codecFrame[samples];
+          this[mapCodecFrameStats](codecFrame);
         });
 
-        frame.totalSamples = this._totalSamples;
-        frame.totalDuration = (this._totalSamples / this._sampleRate) * 1000 || 0;
-        frame.totalBytesOut = this._totalBytesOut;
+        frame[totalSamples] = this._totalSamples;
+        frame[totalDuration] =
+          (this._totalSamples / this._sampleRate) * 1000 || 0;
+        frame[totalBytesOut] = this._totalBytesOut;
       } else {
-        this.mapCodecFrameStats(frame);
+        this[mapCodecFrameStats](frame);
       }
     }
 
@@ -3468,14 +3654,14 @@
     _log(logger, messages) {
       if (this._enableLogging) {
         const stats = [
-          `codec:         ${this.codec}`,
+          `${codec}:         ${this[codec]}`,
           `inputMimeType: ${this._inputMimeType}`,
           `readPosition:  ${this._currentReadPosition}`,
           `totalBytesIn:  ${this._totalBytesIn}`,
-          `totalBytesOut: ${this._totalBytesOut}`,
+          `${totalBytesOut}: ${this._totalBytesOut}`,
         ];
 
-        const width = Math.max(...stats.map((s) => s.length));
+        const width = Math.max(...stats.map((s) => s[length]));
 
         messages.push(
           `--stats--${"-".repeat(width - 9)}`,
@@ -3493,14 +3679,14 @@
     /**
      * @protected
      */
-    logWarning(...messages) {
+    [logWarning](...messages) {
       this._log(console.warn, messages);
     }
 
     /**
      * @protected
      */
-    logError(...messages) {
+    [logError](...messages) {
       this._log(console.error, messages);
     }
   }
