@@ -1,6 +1,14 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import { OpusDecoder } from "opus-decoder";
-import CodecParser from "codec-parser";
+import CodecParser, {
+  codecFrames,
+  header,
+  channels,
+  streamCount,
+  coupledStreamCount,
+  channelMappingTable,
+  preSkip,
+} from "codec-parser";
 
 class DecoderState {
   constructor(instance) {
@@ -21,13 +29,18 @@ class DecoderState {
         this._decoded,
         this._channelsDecoded,
         this._totalSamples,
-        48000,
+        this._instance._sampleRate || 48000,
       ]);
   }
 
   async _instantiateDecoder(header) {
     this._instance._decoder = new this._instance._decoderClass({
-      ...header,
+      channels: header[channels],
+      streamCount: header[streamCount],
+      coupledStreamCount: header[coupledStreamCount],
+      channelMappingTable: header[channelMappingTable],
+      preSkip: header[preSkip],
+      sampleRate: this._instance._sampleRate,
       forceStereo: this._instance._forceStereo,
     });
     this._instance._ready = this._instance._decoder.ready;
@@ -45,8 +58,8 @@ class DecoderState {
 
   async _decode(codecFrames) {
     if (codecFrames.length) {
-      if (!this._instance._decoder && codecFrames[0].header)
-        this._instantiateDecoder(codecFrames[0].header);
+      if (!this._instance._decoder && codecFrames[0][header])
+        this._instantiateDecoder(codecFrames[0][header]);
 
       await this._instance.ready;
 
@@ -59,6 +72,7 @@ class DecoderState {
 
 export default class OggOpusDecoder {
   constructor(options = {}) {
+    this._sampleRate = options.sampleRate;
     this._forceStereo =
       options.forceStereo !== undefined ? options.forceStereo : false;
 
@@ -100,8 +114,8 @@ export default class OggOpusDecoder {
   }
 
   async _flush(decoderState) {
-    for (const { codecFrames } of this._codecParser.flush()) {
-      decoderState._decode(codecFrames);
+    for (const frame of this._codecParser.flush()) {
+      decoderState._decode(frame[codecFrames]);
     }
 
     const decoded = await decoderState.decoded;
@@ -111,8 +125,8 @@ export default class OggOpusDecoder {
   }
 
   async _decode(oggOpusData, decoderState) {
-    for (const { codecFrames } of this._codecParser.parseChunk(oggOpusData)) {
-      decoderState._decode(codecFrames);
+    for (const frame of this._codecParser.parseChunk(oggOpusData)) {
+      decoderState._decode(frame[codecFrames]);
     }
 
     return decoderState.decoded;

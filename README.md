@@ -22,7 +22,7 @@ Decodes MPEG Layer I/II/III into PCM
 
 ### [`@wasm-audio-decoders/flac`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac)
 Decodes FLAC data into PCM
-  * 62.3 KiB minified bundle size
+  * 63.7 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
@@ -32,7 +32,7 @@ Decodes FLAC data into PCM
 
 ### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 105.1 KiB minified bundle size
+  * 107.5 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
@@ -41,7 +41,7 @@ Decodes Ogg Opus data into PCM
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
 Decodes raw Opus audio frames into PCM
-  * 83.3 KiB minified bundle size
+  * 84.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
@@ -51,7 +51,7 @@ Decodes raw Opus audio frames into PCM
 
 ### [`@wasm-audio-decoders/ogg-vorbis`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-vorbis)
 Decodes Ogg Vorbis data into PCM
-  * 93.7 KiB minified bundle size
+  * 95.1 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)

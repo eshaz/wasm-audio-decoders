@@ -24,14 +24,26 @@ const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
 const TEST_DATA_PATH = new URL("data", import.meta.url).pathname;
 
-const getTestPaths = (fileName, outputFileName, isWorker = false) => ({
+const getTestPaths = (
+  fileName,
+  outputFileName,
+  expectedPathModifiers = [],
+  actualPathModifiers = []
+) => ({
   fileName,
   inputPath: path.join(TEST_DATA_PATH, fileName),
   actualPath: path.join(
     ACTUAL_PATH,
-    (outputFileName || fileName) + (isWorker ? ".worker" : "") + ".wav"
+    (outputFileName || fileName) +
+      ["", ...actualPathModifiers].join(".") +
+      ".wav"
   ),
-  expectedPath: path.join(EXPECTED_PATH, (outputFileName || fileName) + ".wav"),
+  expectedPath: path.join(
+    EXPECTED_PATH,
+    (outputFileName || fileName) +
+      ["", ...expectedPathModifiers].join(".") +
+      ".wav"
+  ),
 });
 
 const test_decode = async (
@@ -39,11 +51,19 @@ const test_decode = async (
   method,
   testName,
   fileName,
-  outputFileName
+  outputFileName,
+  expectedPathModifiers = [],
+  actualPathModifiers = []
 ) => {
   try {
-    const isWorker = decoder.constructor.name.match(/WebWorker/);
-    const paths = getTestPaths(fileName, outputFileName, isWorker);
+    if (decoder.constructor.name.match(/WebWorker/))
+      actualPathModifiers.push("worker");
+    const paths = getTestPaths(
+      fileName,
+      outputFileName,
+      expectedPathModifiers,
+      actualPathModifiers
+    );
 
     const result = await decoder.ready.then(() =>
       testDecoder_decode(
@@ -114,10 +134,18 @@ const test_decodeFrame = async (
   testName,
   fileName,
   frames,
-  framesLength
+  framesLength,
+  expectedPathModifiers = [],
+  actualPathModifiers = []
 ) => {
-  const isWorker = decoder.constructor.name.match(/WebWorker/);
-  const paths = getTestPaths(fileName, null, isWorker);
+  if (decoder.constructor.name.match(/WebWorker/))
+    actualPathModifiers.push("worker");
+  const paths = getTestPaths(
+    fileName,
+    null,
+    expectedPathModifiers,
+    actualPathModifiers
+  );
 
   const result = await decoder.ready.then(() =>
     testDecoder_decodeFrame(
@@ -139,10 +167,18 @@ const test_decodeFrames = async (
   testName,
   fileName,
   frames,
-  framesLength
+  framesLength,
+  expectedPathModifiers = [],
+  actualPathModifiers = []
 ) => {
-  const isWorker = decoder.constructor.name.match(/WebWorker/);
-  const paths = getTestPaths(fileName, null, isWorker);
+  if (decoder.constructor.name.match(/WebWorker/))
+    actualPathModifiers.push("worker");
+  const paths = getTestPaths(
+    fileName,
+    null,
+    expectedPathModifiers,
+    actualPathModifiers
+  );
 
   const result = await decoder.ready.then(() =>
     testDecoder_decodeFrames(
@@ -814,6 +850,143 @@ describe("wasm-audio-decoders", () => {
       });
     });
 
+    describe("sampleRates", () => {
+      it("should decode 8000Hz opus frames", async () => {
+        const sampleRate = 8000;
+        const { preSkip } = opusStereoHeader;
+
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoder({
+            sampleRate,
+            preSkip,
+          }),
+          "should decode 8000Hz opus frames",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(634248); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 12000Hz opus frames", async () => {
+        const sampleRate = 12000;
+        const { preSkip } = opusStereoHeader;
+
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoder({
+            sampleRate,
+            preSkip,
+          }),
+          "should decode 12000Hz opus frames",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(951528); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 16000Hz opus frames", async () => {
+        const sampleRate = 16000;
+        const { preSkip } = opusStereoHeader;
+
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoder({
+            sampleRate,
+            preSkip,
+          }),
+          "should decode 16000Hz opus frames",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(1268808); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 24000Hz opus frames", async () => {
+        const sampleRate = 24000;
+        const { preSkip } = opusStereoHeader;
+
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoder({
+            sampleRate,
+            preSkip,
+          }),
+          "should decode 24000Hz opus frames",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(1903368); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 48000Hz opus frames", async () => {
+        const sampleRate = 48000;
+        const { preSkip } = opusStereoHeader;
+
+        const { paths, result } = await test_decodeFrames(
+          new OpusDecoder({
+            sampleRate,
+            preSkip,
+          }),
+          "should decode 48000Hz opus frames",
+          opusStereoTestFile,
+          opusStereoFrames,
+          opusStereoFramesLength,
+          [],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+
     describe("decodeFrames with errors", () => {
       let opusStereoFramesWithErrors,
         opusStereoFramesLengthWithErrors,
@@ -1230,6 +1403,133 @@ describe("wasm-audio-decoders", () => {
           outputSamples: 95688,
         },
       ]);
+    });
+
+    describe("sampleRates", () => {
+      it("should decode 8000Hz ogg opus", async () => {
+        const sampleRate = 8000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 8000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(634248); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 12000Hz ogg opus", async () => {
+        const sampleRate = 12000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 12000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(951528); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 16000Hz ogg opus", async () => {
+        const sampleRate = 16000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 16000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(1268808); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 24000Hz ogg opus", async () => {
+        const sampleRate = 24000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 24000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(1903368); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 48000Hz ogg opus", async () => {
+        const sampleRate = 48000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 48000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
     });
 
     it("should decode multi channel ogg opus", async () => {
