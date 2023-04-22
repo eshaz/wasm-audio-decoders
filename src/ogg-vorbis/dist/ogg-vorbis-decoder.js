@@ -549,17 +549,17 @@
   const buffer = "buffer";
   const bufferFullness = buffer + "Fullness";
   const codec = "codec";
-  const codecFrames = codec + "Frames";
+  const codecFrames$1 = codec + "Frames";
   const coupledStreamCount = "coupledStreamCount";
   const crc = "crc";
   const crc16 = crc + "16";
   const crc32 = crc + "32";
-  const data = "data";
+  const data$1 = "data";
   const description = "description";
   const duration = "duration";
   const emphasis = "emphasis";
   const hasOpusPadding = "hasOpusPadding";
-  const header = "header";
+  const header$1 = "header";
   const isContinuedPacket = "isContinuedPacket";
   const isCopyrighted = "isCopyrighted";
   const isFirstPage = "isFirstPage";
@@ -578,29 +578,29 @@
   const outputGain = "outputGain";
   const preSkip = "preSkip";
   const profile = "profile";
-  const profileBits = profile + "Bits";
+  const profileBits = symbol();
   const protection = "protection";
   const rawData = "rawData";
   const segments = "segments";
   const subarray = "subarray";
   const version = "version";
   const vorbis = "vorbis";
-  const vorbisComments = vorbis + "Comments";
-  const vorbisSetup = vorbis + "Setup";
+  const vorbisComments$1 = vorbis + "Comments";
+  const vorbisSetup$1 = vorbis + "Setup";
 
   const block = "block";
   const blockingStrategy = block + "ingStrategy";
-  const blockingStrategyBits = block + "ingStrategyBits";
+  const blockingStrategyBits = symbol();
   const blockSize = block + "Size";
   const blocksize0 = block + "size0";
   const blocksize1 = block + "size1";
-  const blockSizeBits = block + "SizeBits";
+  const blockSizeBits = symbol();
 
   const channel = "channel";
   const channelMappingFamily = channel + "MappingFamily";
   const channelMappingTable = channel + "MappingTable";
   const channelMode = channel + "Mode";
-  const channelModeBits = channel + "ModeBits";
+  const channelModeBits = symbol();
   const channels = channel + "s";
 
   const copyright = "copyright";
@@ -621,14 +621,14 @@
 
   const page = "page";
   const pageChecksum = page + "Checksum";
-  const pageSegmentBytes = page + "SegmentBytes";
+  const pageSegmentBytes = symbol();
   const pageSegmentTable = page + "SegmentTable";
-  const pageSequenceNumber = page + "Sequence" + Number$1;
+  const pageSequenceNumber$1 = page + "Sequence" + Number$1;
 
   const sample = "sample";
   const sampleNumber = sample + Number$1;
   const sampleRate = sample + Rate;
-  const sampleRateBits = sample + Rate + "Bits";
+  const sampleRateBits = symbol();
   const samples = sample + "s";
 
   const stream = "stream";
@@ -1054,9 +1054,9 @@
    */
   class Frame {
     constructor(headerValue, dataValue) {
-      frameStore.set(this, { [header]: headerValue });
+      frameStore.set(this, { [header$1]: headerValue });
 
-      this[data] = dataValue;
+      this[data$1] = dataValue;
     }
   }
 
@@ -1104,7 +1104,7 @@
     constructor(headerValue, dataValue, samplesValue) {
       super(headerValue, dataValue);
 
-      this[header] = headerValue;
+      this[header$1] = headerValue;
       this[samples] = samplesValue;
       this[duration] = (samplesValue / headerValue[sampleRate]) * 1000;
       this[frameNumber] = null;
@@ -1605,7 +1605,7 @@
       onCodec(this[codec]);
     }
 
-    get codec() {
+    get [codec]() {
       return mpeg;
     }
 
@@ -1906,7 +1906,7 @@
       onCodec(this[codec]);
     }
 
-    get codec() {
+    get [codec]() {
       return "aac";
     }
 
@@ -2322,7 +2322,7 @@
       onCodec(this[codec]);
     }
 
-    get codec() {
+    get [codec]() {
       return "flac";
     }
 
@@ -2409,13 +2409,13 @@
     }
 
     [parseOggPage](oggPage) {
-      if (oggPage[pageSequenceNumber] === 0) {
+      if (oggPage[pageSequenceNumber$1] === 0) {
         // Identification header
 
         this._headerCache[enable]();
-        this._streamInfo = oggPage[data][subarray](13);
-      } else if (oggPage[pageSequenceNumber] === 1) ; else {
-        oggPage[codecFrames] = frameStore
+        this._streamInfo = oggPage[data$1][subarray](13);
+      } else if (oggPage[pageSequenceNumber$1] === 1) ; else {
+        oggPage[codecFrames$1] = frameStore
           .get(oggPage)
           [segments].map((segment) => {
             const header = FLACHeader[getHeaderFromUint8Array](
@@ -2513,7 +2513,7 @@
       // Byte (19-22 of 28)
       // * `HHHHHHHH|HHHHHHHH|HHHHHHHH|HHHHHHHH`
       // * Page Sequence Number
-      header[pageSequenceNumber] = view.getInt32(18, true);
+      header[pageSequenceNumber$1] = view.getInt32(18, true);
 
       // Byte (23-26 of 28)
       // * `IIIIIIII|IIIIIIII|IIIIIIII|IIIIIIII`
@@ -2560,7 +2560,7 @@
       this[isFirstPage] = header[isFirstPage];
       this[isLastPage] = header[isLastPage];
       this[pageSegmentTable] = header[pageSegmentTable];
-      this[pageSequenceNumber] = header[pageSequenceNumber];
+      this[pageSequenceNumber$1] = header[pageSequenceNumber$1];
       this[pageChecksum] = header[pageChecksum];
       this[streamSerialNumber] = header[streamSerialNumber];
     }
@@ -2614,7 +2614,7 @@
 
       frameStore.get(this)[length] = rawDataValue[length];
 
-      this[codecFrames] = [];
+      this[codecFrames$1] = [];
       this[rawData] = rawDataValue;
       this[absoluteGranulePosition] = header[absoluteGranulePosition];
       this[crc32] = header[pageChecksum];
@@ -2622,7 +2622,7 @@
       this[isContinuedPacket] = header[isContinuedPacket];
       this[isFirstPage] = header[isFirstPage];
       this[isLastPage] = header[isLastPage];
-      this[pageSequenceNumber] = header[pageSequenceNumber];
+      this[pageSequenceNumber$1] = header[pageSequenceNumber$1];
       this[samples] = 0;
       this[streamSerialNumber] = header[streamSerialNumber];
     }
@@ -2787,9 +2787,9 @@
       // * `00000001`: Version number
       if (dataValue[8] !== 1) return null;
 
-      header[data] = uint8Array.from(dataValue[subarray](0, header[length]));
+      header[data$1] = uint8Array.from(dataValue[subarray](0, header[length]));
 
-      const view = new dataView(header[data][buffer]);
+      const view = new dataView(header[data$1][buffer]);
 
       header[bitDepth] = 16;
 
@@ -2884,7 +2884,7 @@
     constructor(header) {
       super(header);
 
-      this[data] = header[data];
+      this[data$1] = header[data$1];
       this[bandwidth] = header[bandwidth];
       this[channelMappingFamily] = header[channelMappingFamily];
       this[channelMappingTable] = header[channelMappingTable];
@@ -2929,7 +2929,7 @@
       this._identificationHeader = null;
     }
 
-    get codec() {
+    get [codec]() {
       return "opus";
     }
 
@@ -2937,13 +2937,13 @@
      * @todo implement continued page support
      */
     [parseOggPage](oggPage) {
-      if (oggPage[pageSequenceNumber] === 0) {
+      if (oggPage[pageSequenceNumber$1] === 0) {
         // Identification header
 
         this._headerCache[enable]();
-        this._identificationHeader = oggPage[data];
-      } else if (oggPage[pageSequenceNumber] === 1) ; else {
-        oggPage[codecFrames] = frameStore
+        this._identificationHeader = oggPage[data$1];
+      } else if (oggPage[pageSequenceNumber$1] === 1) ; else {
+        oggPage[codecFrames$1] = frameStore
           .get(oggPage)
           [segments].map((segment) => {
             const header = OpusHeader[getHeaderFromUint8Array](
@@ -3042,8 +3042,8 @@
         return null;
       }
 
-      header[data] = uint8Array.from(dataValue[subarray](0, 30));
-      const view = new dataView(header[data][buffer]);
+      header[data$1] = uint8Array.from(dataValue[subarray](0, 30));
+      const view = new dataView(header[data$1][buffer]);
 
       // Byte (8-11 of 30)
       // * `CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC`: Version number
@@ -3084,8 +3084,8 @@
       if (dataValue[29] !== 0x01) return null;
 
       header[bitDepth] = 32;
-      header[vorbisSetup] = vorbisSetupData;
-      header[vorbisComments] = vorbisCommentsData;
+      header[vorbisSetup$1] = vorbisSetupData;
+      header[vorbisComments$1] = vorbisCommentsData;
 
       {
         // set header cache
@@ -3115,9 +3115,9 @@
       this[bitrateNominal] = header[bitrateNominal];
       this[blocksize0] = header[blocksize0];
       this[blocksize1] = header[blocksize1];
-      this[data] = header[data];
-      this[vorbisComments] = header[vorbisComments];
-      this[vorbisSetup] = header[vorbisSetup];
+      this[data$1] = header[data$1];
+      this[vorbisComments$1] = header[vorbisComments$1];
+      this[vorbisSetup$1] = header[vorbisSetup$1];
     }
   }
 
@@ -3155,19 +3155,19 @@
       this._currBlockSize = 0;
     }
 
-    get codec() {
+    get [codec]() {
       return vorbis;
     }
 
     [parseOggPage](oggPage) {
       const oggPageSegments = frameStore.get(oggPage)[segments];
 
-      if (oggPage[pageSequenceNumber] === 0) {
+      if (oggPage[pageSequenceNumber$1] === 0) {
         // Identification header
 
         this._headerCache[enable]();
-        this._identificationHeader = oggPage[data];
-      } else if (oggPage[pageSequenceNumber] === 1) {
+        this._identificationHeader = oggPage[data$1];
+      } else if (oggPage[pageSequenceNumber$1] === 1) {
         // gather WEBM CodecPrivate data
         if (oggPageSegments[1]) {
           this._vorbisComments = oggPageSegments[0];
@@ -3176,7 +3176,7 @@
           this._mode = this._parseSetupHeader(oggPageSegments[1]);
         }
       } else {
-        oggPage[codecFrames] = oggPageSegments.map((segment) => {
+        oggPage[codecFrames$1] = oggPageSegments.map((segment) => {
           const header = VorbisHeader[getHeaderFromUint8Array](
             this._identificationHeader,
             this._headerCache,
@@ -3348,7 +3348,7 @@
       this._pageSequenceNumber = 0;
     }
 
-    get codec() {
+    get [codec]() {
       return this._codec || "";
     }
 
@@ -3386,19 +3386,19 @@
 
     _checkPageSequenceNumber(oggPage) {
       if (
-        oggPage[pageSequenceNumber] !== this._pageSequenceNumber + 1 &&
+        oggPage[pageSequenceNumber$1] !== this._pageSequenceNumber + 1 &&
         this._pageSequenceNumber > 1 &&
-        oggPage[pageSequenceNumber] > 1
+        oggPage[pageSequenceNumber$1] > 1
       ) {
         this._codecParser[logWarning](
           "Unexpected gap in Ogg Page Sequence Number.",
           `Expected: ${this._pageSequenceNumber + 1}, Got: ${
-          oggPage[pageSequenceNumber]
+          oggPage[pageSequenceNumber$1]
         }`
         );
       }
 
-      this._pageSequenceNumber = oggPage[pageSequenceNumber];
+      this._pageSequenceNumber = oggPage[pageSequenceNumber$1];
     }
 
     *[parseFrame]() {
@@ -3407,17 +3407,18 @@
       this._checkPageSequenceNumber(oggPage);
 
       const oggPageStore = frameStore.get(oggPage);
-      const { pageSegmentBytes, pageSegmentTable } = headerStore.get(
-        oggPageStore[header]
-      );
+      const headerData = headerStore.get(oggPageStore[header$1]);
 
       let offset = 0;
 
-      oggPageStore[segments] = pageSegmentTable.map((segmentLength) =>
-        oggPage[data][subarray](offset, (offset += segmentLength))
+      oggPageStore[segments] = headerData[pageSegmentTable].map((segmentLength) =>
+        oggPage[data$1][subarray](offset, (offset += segmentLength))
       );
 
-      if (pageSegmentBytes[pageSegmentBytes[length] - 1] === 0xff) {
+      if (
+        headerData[pageSegmentBytes][headerData[pageSegmentBytes][length] - 1] ===
+        0xff
+      ) {
         // continued packet
         this._continuedPacket = concatBuffers(
           this._continuedPacket,
@@ -3486,7 +3487,7 @@
      * @public
      * @returns The detected codec
      */
-    get codec() {
+    get [codec]() {
       return this._parser[codec];
     }
 
@@ -3608,22 +3609,22 @@
      * @protected
      */
     [mapCodecFrameStats](frame) {
-      this._sampleRate = frame[header][sampleRate];
+      this._sampleRate = frame[header$1][sampleRate];
 
-      frame[header][bitrate] =
-        Math.round(frame[data][length] / frame[duration]) * 8;
+      frame[header$1][bitrate] =
+        Math.round(frame[data$1][length] / frame[duration]) * 8;
       frame[frameNumber] = this._frameNumber++;
       frame[totalBytesOut] = this._totalBytesOut;
       frame[totalSamples] = this._totalSamples;
       frame[totalDuration] = (this._totalSamples / this._sampleRate) * 1000;
-      frame[crc32] = this._crc32(frame[data]);
+      frame[crc32] = this._crc32(frame[data$1]);
 
       this._headerCache[checkCodecUpdate](
-        frame[header][bitrate],
+        frame[header$1][bitrate],
         frame[totalDuration]
       );
 
-      this._totalBytesOut += frame[data][length];
+      this._totalBytesOut += frame[data$1][length];
       this._totalSamples += frame[samples];
     }
 
@@ -3631,9 +3632,9 @@
      * @protected
      */
     [mapFrameStats](frame) {
-      if (frame[codecFrames]) {
+      if (frame[codecFrames$1]) {
         // Ogg container
-        frame[codecFrames].forEach((codecFrame) => {
+        frame[codecFrames$1].forEach((codecFrame) => {
           frame[duration] += codecFrame[duration];
           frame[samples] += codecFrame[samples];
           this[mapCodecFrameStats](codecFrame);
@@ -3690,6 +3691,13 @@
       this._log(console.error, messages);
     }
   }
+
+  const codecFrames = codecFrames$1;
+  const data = data$1;
+  const header = header$1;
+  const vorbisComments = vorbisComments$1;
+  const vorbisSetup = vorbisSetup$1;
+  const pageSequenceNumber = pageSequenceNumber$1;
 
   /* **************************************************
    * This file is auto-generated during the build process.
@@ -4214,14 +4222,14 @@ cAë¢þÍÍ­ý×ß'$|ð÷= È8a7ç^oÚ~Ò;hTÐ¸Ô£|¸Øÿ£2±õR�
         const oggPage = oggPages[i];
 
         if (this._vorbisSetupInProgress) {
-          if (oggPage.pageSequenceNumber === 0) {
-            this._decoder.sendSetupHeader(oggPage.data);
-          } else if (oggPage.pageSequenceNumber > 1) {
+          if (oggPage[pageSequenceNumber] === 0) {
+            this._decoder.sendSetupHeader(oggPage[data]);
+          } else if (oggPage[pageSequenceNumber] > 1) {
             if (this._vorbisSetupInProgress) {
-              const header = oggPage.codecFrames[0].header;
+              const headerData = oggPage[codecFrames][0][header];
 
-              this._decoder.sendSetupHeader(header.vorbisComments);
-              this._decoder.sendSetupHeader(header.vorbisSetup);
+              this._decoder.sendSetupHeader(headerData[vorbisComments]);
+              this._decoder.sendSetupHeader(headerData[vorbisSetup]);
               this._decoder.initDsp();
 
               this._vorbisSetupInProgress = false;
@@ -4229,7 +4237,7 @@ cAë¢þÍÍ­ý×ß'$|ð÷= È8a7ç^oÚ~Ò;hTÐ¸Ô£|¸Øÿ£2±õR�
           }
         }
 
-        packets.push(...oggPage.codecFrames.map((f) => f.data));
+        packets.push(...oggPage[codecFrames].map((f) => f[data]));
       }
 
       return this._decoder.decodePackets(packets);

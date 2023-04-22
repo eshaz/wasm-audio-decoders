@@ -1,5 +1,12 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
-import CodecParser from "codec-parser";
+import CodecParser, {
+  pageSequenceNumber,
+  data,
+  codecFrames,
+  header,
+  vorbisComments,
+  vorbisSetup,
+} from "codec-parser";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
@@ -212,14 +219,14 @@ export default class OggVorbisDecoder {
       const oggPage = oggPages[i];
 
       if (this._vorbisSetupInProgress) {
-        if (oggPage.pageSequenceNumber === 0) {
-          this._decoder.sendSetupHeader(oggPage.data);
-        } else if (oggPage.pageSequenceNumber > 1) {
+        if (oggPage[pageSequenceNumber] === 0) {
+          this._decoder.sendSetupHeader(oggPage[data]);
+        } else if (oggPage[pageSequenceNumber] > 1) {
           if (this._vorbisSetupInProgress) {
-            const header = oggPage.codecFrames[0].header;
+            const headerData = oggPage[codecFrames][0][header];
 
-            this._decoder.sendSetupHeader(header.vorbisComments);
-            this._decoder.sendSetupHeader(header.vorbisSetup);
+            this._decoder.sendSetupHeader(headerData[vorbisComments]);
+            this._decoder.sendSetupHeader(headerData[vorbisSetup]);
             this._decoder.initDsp();
 
             this._vorbisSetupInProgress = false;
@@ -227,7 +234,7 @@ export default class OggVorbisDecoder {
         }
       }
 
-      packets.push(...oggPage.codecFrames.map((f) => f.data));
+      packets.push(...oggPage[codecFrames].map((f) => f[data]));
     }
 
     return this._decoder.decodePackets(packets);
