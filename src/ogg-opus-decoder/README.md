@@ -128,6 +128,9 @@ const decoder = new OggOpusDecoder({ forceStereo: true });
 * `forceStereo` *optional, defaults to `false`*
   * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
   * If there are more than 8 channels, this option is ignored.
+* `sampleRate` *optional, defaults to `48000`*
+  * Sample rate the decoder will output.
+  * Valid sample rates: `8000, 12000, 16000, 24000, or 48000`
 
 ### Getters
 * `decoder.ready` *async*
@@ -164,6 +167,9 @@ const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
 * `forceStereo` *optional, defaults to `false`*
   * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
   * If there are more than 8 channels, this option is ignored.
+* `sampleRate` *optional, defaults to `48000`*
+  * Sample rate the decoder will output.
+  * Valid sample rates: `8000, 12000, 16000, 24000, or 48000`
 
 ### Getters
 * `decoder.ready` *async*

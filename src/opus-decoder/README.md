@@ -200,6 +200,9 @@ See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus he
   * If there are more than 8 channels, this option is ignored.
 * `preSkip` *optional, defaults to `0`*
   * Number of samples to skip at the beginning reported by the Opus header.
+* `sampleRate` *optional, defaults to `48000`*
+  * Sample rate the decoder will output.
+  * Valid sample rates: `8000, 12000, 16000, 24000, or 48000`
 #### ***Required for Multichannel Decoding.** (Channel Mapping Family >= 1)*
 * `channels` *optional, defaults to `2`*
   * Number of channels reported by the Opus header.

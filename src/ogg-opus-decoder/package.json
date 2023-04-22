@@ -52,6 +52,6 @@
   "dependencies": {
     "@wasm-audio-decoders/common": "9.0.0",
     "codec-parser": "2.3.0",
-    "opus-decoder": "0.6.7"
+    "opus-decoder": "file:../opus-decoder"
   }
 }

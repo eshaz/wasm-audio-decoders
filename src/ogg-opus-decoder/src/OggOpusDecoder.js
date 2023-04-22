@@ -21,13 +21,14 @@ class DecoderState {
         this._decoded,
         this._channelsDecoded,
         this._totalSamples,
-        48000,
+        this._instance._sampleRate || 48000,
       ]);
   }
 
   async _instantiateDecoder(header) {
     this._instance._decoder = new this._instance._decoderClass({
       ...header,
+      sampleRate: this._instance._sampleRate,
       forceStereo: this._instance._forceStereo,
     });
     this._instance._ready = this._instance._decoder.ready;
@@ -59,6 +60,7 @@ class DecoderState {
 
 export default class OggOpusDecoder {
   constructor(options = {}) {
+    this._sampleRate = options.sampleRate;
     this._forceStereo =
       options.forceStereo !== undefined ? options.forceStereo : false;
 

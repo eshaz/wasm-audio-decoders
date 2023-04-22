@@ -1405,6 +1405,133 @@ describe("wasm-audio-decoders", () => {
       ]);
     });
 
+    describe("sampleRates", () => {
+      it("should decode 8000Hz ogg opus", async () => {
+        const sampleRate = 8000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 8000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(634248); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 12000Hz ogg opus", async () => {
+        const sampleRate = 12000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 12000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(951528); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 16000Hz ogg opus", async () => {
+        const sampleRate = 16000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 16000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(1268808); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 24000Hz ogg opus", async () => {
+        const sampleRate = 24000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 24000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(1903368); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 48000Hz ogg opus", async () => {
+        const sampleRate = 48000;
+
+        const { paths, result } = await test_decode(
+          new OggOpusDecoder({
+            sampleRate,
+          }),
+          "decodeFile",
+          "should decode 48000Hz ogg opus",
+          opusStereoTestFile,
+          opusStereoTestFile,
+          [sampleRate],
+          [sampleRate]
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3807048); //3807154, 204
+        expect(result.sampleRate).toEqual(sampleRate);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+
     it("should decode multi channel ogg opus", async () => {
       const { paths, result } = await test_decode(
         new OggOpusDecoder(),
