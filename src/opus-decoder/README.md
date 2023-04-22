@@ -1,7 +1,7 @@
 # `opus-decoder`
 
 `opus-decoder` is a Web Assembly Opus audio decoder.
-  * 83.3 KiB minified bundle size
+  * 84.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`libopus`](https://github.com/xiph/opus)
@@ -129,6 +129,7 @@ Class that decodes Opus frames synchronously on the main thread.
 ```javascript
 const decoder = new OpusDecoder({ 
   forceStereo: false,
+  sampleRate: 48000,
   preSkip: 0,
   channels: 2,
   streamCount: 1,
@@ -145,6 +146,9 @@ See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus he
   * If there are more than 8 channels, this option is ignored.
 * `preSkip` *optional, defaults to `0`*
   * Number of samples to skip at the beginning reported by the Opus header.
+* `sampleRate` *optional, defaults to `48000`*
+  * Sample rate the decoder will output.
+  * Valid sample rates: `8000, 12000, 16000, 24000, or 48000`
 #### ***Required for Multichannel Decoding.** (Channel Mapping Family >= 1)*
 * `channels` *optional, defaults to `2`*
   * Number of channels reported by the Opus header.

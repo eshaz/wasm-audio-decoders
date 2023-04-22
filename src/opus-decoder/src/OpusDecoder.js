@@ -51,6 +51,7 @@ export default function OpusDecoder(options = {}) {
         mapping.buf.set(this._channelMappingTable);
 
         this._decoder = this._common.wasm.opus_frame_decoder_create(
+          this._sampleRate,
           this._channels,
           this._streamCount,
           this._coupledStreamCount,
@@ -141,7 +142,7 @@ export default function OpusDecoder(options = {}) {
       [decoded.outputBuffer],
       this._outputChannels,
       decoded.samplesDecoded,
-      48000
+      this._sampleRate
     );
   };
 
@@ -178,7 +179,7 @@ export default function OpusDecoder(options = {}) {
       outputBuffers,
       this._outputChannels,
       samplesDecoded,
-      48000
+      this._sampleRate
     );
   };
 
@@ -192,6 +193,7 @@ export default function OpusDecoder(options = {}) {
   const MAX_FORCE_STEREO_CHANNELS = 8;
   const isNumber = (param) => typeof param === "number";
 
+  const sampleRate = options.sampleRate;
   const channels = options.channels;
   const streamCount = options.streamCount;
   const coupledStreamCount = options.coupledStreamCount;
@@ -208,6 +210,13 @@ export default function OpusDecoder(options = {}) {
   ) {
     throw new Error("Invalid Opus Decoder Options for multichannel decoding.");
   }
+
+  // libopus sample rate
+  this._sampleRate = [8, 12, 16, 24, 48]
+    .map((e) => e * 1e3)
+    .includes(sampleRate)
+    ? sampleRate
+    : 48000;
 
   // channel mapping family 0
   this._channels = isNumber(channels) ? channels : 2;

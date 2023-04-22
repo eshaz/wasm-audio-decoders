@@ -41,7 +41,7 @@ Decodes Ogg Opus data into PCM
 
 ### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
 Decodes raw Opus audio frames into PCM
-  * 83.3 KiB minified bundle size
+  * 84.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
