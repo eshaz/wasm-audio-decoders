@@ -212,9 +212,7 @@ export default function OpusDecoder(options = {}) {
   }
 
   // libopus sample rate
-  this._sampleRate = [8, 12, 16, 24, 48]
-    .map((e) => e * 1e3)
-    .includes(sampleRate)
+  this._sampleRate = [8e3, 12e3, 16e3, 24e3, 48e3].includes(sampleRate)
     ? sampleRate
     : 48000;
 
