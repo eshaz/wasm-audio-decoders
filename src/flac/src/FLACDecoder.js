@@ -1,5 +1,5 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
-import CodecParser from "codec-parser";
+import CodecParser, { data } from "codec-parser";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
@@ -222,13 +222,13 @@ export default class FLACDecoder {
 
   async decode(flacData) {
     return this._decoder.decodeFrames(
-      [...this._codecParser.parseChunk(flacData)].map((f) => f.data)
+      [...this._codecParser.parseChunk(flacData)].map((f) => f[data])
     );
   }
 
   async flush() {
     const decoded = this._decoder.decodeFrames(
-      [...this._codecParser.flush()].map((f) => f.data)
+      [...this._codecParser.flush()].map((f) => f[data])
     );
 
     await this.reset();
@@ -237,7 +237,7 @@ export default class FLACDecoder {
 
   async decodeFile(flacData) {
     const decoded = this._decoder.decodeFrames(
-      [...this._codecParser.parseAll(flacData)].map((f) => f.data)
+      [...this._codecParser.parseAll(flacData)].map((f) => f[data])
     );
 
     await this.reset();

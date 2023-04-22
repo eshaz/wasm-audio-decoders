@@ -554,7 +554,7 @@
   const crc = "crc";
   const crc16 = crc + "16";
   const crc32 = crc + "32";
-  const data = "data";
+  const data$1 = "data";
   const description = "description";
   const duration = "duration";
   const emphasis = "emphasis";
@@ -578,7 +578,7 @@
   const outputGain = "outputGain";
   const preSkip = "preSkip";
   const profile = "profile";
-  const profileBits = profile + "Bits";
+  const profileBits = symbol();
   const protection = "protection";
   const rawData = "rawData";
   const segments = "segments";
@@ -590,17 +590,17 @@
 
   const block = "block";
   const blockingStrategy = block + "ingStrategy";
-  const blockingStrategyBits = block + "ingStrategyBits";
+  const blockingStrategyBits = symbol();
   const blockSize = block + "Size";
   const blocksize0 = block + "size0";
   const blocksize1 = block + "size1";
-  const blockSizeBits = block + "SizeBits";
+  const blockSizeBits = symbol();
 
   const channel = "channel";
   const channelMappingFamily = channel + "MappingFamily";
   const channelMappingTable = channel + "MappingTable";
   const channelMode = channel + "Mode";
-  const channelModeBits = channel + "ModeBits";
+  const channelModeBits = symbol();
   const channels = channel + "s";
 
   const copyright = "copyright";
@@ -621,14 +621,14 @@
 
   const page = "page";
   const pageChecksum = page + "Checksum";
-  const pageSegmentBytes = page + "SegmentBytes";
+  const pageSegmentBytes = symbol();
   const pageSegmentTable = page + "SegmentTable";
   const pageSequenceNumber = page + "Sequence" + Number$1;
 
   const sample = "sample";
   const sampleNumber = sample + Number$1;
   const sampleRate = sample + Rate;
-  const sampleRateBits = sample + Rate + "Bits";
+  const sampleRateBits = symbol();
   const samples = sample + "s";
 
   const stream = "stream";
@@ -1056,7 +1056,7 @@
     constructor(headerValue, dataValue) {
       frameStore.set(this, { [header]: headerValue });
 
-      this[data] = dataValue;
+      this[data$1] = dataValue;
     }
   }
 
@@ -1605,7 +1605,7 @@
       onCodec(this[codec]);
     }
 
-    get codec() {
+    get [codec]() {
       return mpeg;
     }
 
@@ -1906,7 +1906,7 @@
       onCodec(this[codec]);
     }
 
-    get codec() {
+    get [codec]() {
       return "aac";
     }
 
@@ -2322,7 +2322,7 @@
       onCodec(this[codec]);
     }
 
-    get codec() {
+    get [codec]() {
       return "flac";
     }
 
@@ -2413,7 +2413,7 @@
         // Identification header
 
         this._headerCache[enable]();
-        this._streamInfo = oggPage[data][subarray](13);
+        this._streamInfo = oggPage[data$1][subarray](13);
       } else if (oggPage[pageSequenceNumber] === 1) ; else {
         oggPage[codecFrames] = frameStore
           .get(oggPage)
@@ -2787,9 +2787,9 @@
       // * `00000001`: Version number
       if (dataValue[8] !== 1) return null;
 
-      header[data] = uint8Array.from(dataValue[subarray](0, header[length]));
+      header[data$1] = uint8Array.from(dataValue[subarray](0, header[length]));
 
-      const view = new dataView(header[data][buffer]);
+      const view = new dataView(header[data$1][buffer]);
 
       header[bitDepth] = 16;
 
@@ -2884,7 +2884,7 @@
     constructor(header) {
       super(header);
 
-      this[data] = header[data];
+      this[data$1] = header[data$1];
       this[bandwidth] = header[bandwidth];
       this[channelMappingFamily] = header[channelMappingFamily];
       this[channelMappingTable] = header[channelMappingTable];
@@ -2929,7 +2929,7 @@
       this._identificationHeader = null;
     }
 
-    get codec() {
+    get [codec]() {
       return "opus";
     }
 
@@ -2941,7 +2941,7 @@
         // Identification header
 
         this._headerCache[enable]();
-        this._identificationHeader = oggPage[data];
+        this._identificationHeader = oggPage[data$1];
       } else if (oggPage[pageSequenceNumber] === 1) ; else {
         oggPage[codecFrames] = frameStore
           .get(oggPage)
@@ -3042,8 +3042,8 @@
         return null;
       }
 
-      header[data] = uint8Array.from(dataValue[subarray](0, 30));
-      const view = new dataView(header[data][buffer]);
+      header[data$1] = uint8Array.from(dataValue[subarray](0, 30));
+      const view = new dataView(header[data$1][buffer]);
 
       // Byte (8-11 of 30)
       // * `CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC`: Version number
@@ -3115,7 +3115,7 @@
       this[bitrateNominal] = header[bitrateNominal];
       this[blocksize0] = header[blocksize0];
       this[blocksize1] = header[blocksize1];
-      this[data] = header[data];
+      this[data$1] = header[data$1];
       this[vorbisComments] = header[vorbisComments];
       this[vorbisSetup] = header[vorbisSetup];
     }
@@ -3155,7 +3155,7 @@
       this._currBlockSize = 0;
     }
 
-    get codec() {
+    get [codec]() {
       return vorbis;
     }
 
@@ -3166,7 +3166,7 @@
         // Identification header
 
         this._headerCache[enable]();
-        this._identificationHeader = oggPage[data];
+        this._identificationHeader = oggPage[data$1];
       } else if (oggPage[pageSequenceNumber] === 1) {
         // gather WEBM CodecPrivate data
         if (oggPageSegments[1]) {
@@ -3348,7 +3348,7 @@
       this._pageSequenceNumber = 0;
     }
 
-    get codec() {
+    get [codec]() {
       return this._codec || "";
     }
 
@@ -3407,17 +3407,18 @@
       this._checkPageSequenceNumber(oggPage);
 
       const oggPageStore = frameStore.get(oggPage);
-      const { pageSegmentBytes, pageSegmentTable } = headerStore.get(
-        oggPageStore[header]
-      );
+      const headerData = headerStore.get(oggPageStore[header]);
 
       let offset = 0;
 
-      oggPageStore[segments] = pageSegmentTable.map((segmentLength) =>
-        oggPage[data][subarray](offset, (offset += segmentLength))
+      oggPageStore[segments] = headerData[pageSegmentTable].map((segmentLength) =>
+        oggPage[data$1][subarray](offset, (offset += segmentLength))
       );
 
-      if (pageSegmentBytes[pageSegmentBytes[length] - 1] === 0xff) {
+      if (
+        headerData[pageSegmentBytes][headerData[pageSegmentBytes][length] - 1] ===
+        0xff
+      ) {
         // continued packet
         this._continuedPacket = concatBuffers(
           this._continuedPacket,
@@ -3486,7 +3487,7 @@
      * @public
      * @returns The detected codec
      */
-    get codec() {
+    get [codec]() {
       return this._parser[codec];
     }
 
@@ -3611,19 +3612,19 @@
       this._sampleRate = frame[header][sampleRate];
 
       frame[header][bitrate] =
-        Math.round(frame[data][length] / frame[duration]) * 8;
+        Math.round(frame[data$1][length] / frame[duration]) * 8;
       frame[frameNumber] = this._frameNumber++;
       frame[totalBytesOut] = this._totalBytesOut;
       frame[totalSamples] = this._totalSamples;
       frame[totalDuration] = (this._totalSamples / this._sampleRate) * 1000;
-      frame[crc32] = this._crc32(frame[data]);
+      frame[crc32] = this._crc32(frame[data$1]);
 
       this._headerCache[checkCodecUpdate](
         frame[header][bitrate],
         frame[totalDuration]
       );
 
-      this._totalBytesOut += frame[data][length];
+      this._totalBytesOut += frame[data$1][length];
       this._totalSamples += frame[samples];
     }
 
@@ -3690,6 +3691,8 @@
       this._log(console.error, messages);
     }
   }
+
+  const data = data$1;
 
   /* **************************************************
    * This file is auto-generated during the build process.
@@ -4158,13 +4161,13 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
 
     async decode(flacData) {
       return this._decoder.decodeFrames(
-        [...this._codecParser.parseChunk(flacData)].map((f) => f.data)
+        [...this._codecParser.parseChunk(flacData)].map((f) => f[data])
       );
     }
 
     async flush() {
       const decoded = this._decoder.decodeFrames(
-        [...this._codecParser.flush()].map((f) => f.data)
+        [...this._codecParser.flush()].map((f) => f[data])
       );
 
       await this.reset();
@@ -4173,7 +4176,7 @@ z­-w9lþkbö>së®QSU,â~ANÃuã^X1]Ü¯Ap%9µ±àÂÄï±ÍãõÄÔ�
 
     async decodeFile(flacData) {
       const decoded = this._decoder.decodeFrames(
-        [...this._codecParser.parseAll(flacData)].map((f) => f.data)
+        [...this._codecParser.parseAll(flacData)].map((f) => f[data])
       );
 
       await this.reset();

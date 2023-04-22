@@ -22,7 +22,7 @@ Decodes MPEG Layer I/II/III into PCM
 
 ### [`@wasm-audio-decoders/flac`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac)
 Decodes FLAC data into PCM
-  * 62.3 KiB minified bundle size
+  * 63.7 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
