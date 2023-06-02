@@ -11,6 +11,8 @@ import {
   testDecoder_decodeFrames,
 } from "./utilities";
 
+import { nestedWorker } from "./nested-worker";
+
 import { MPEGDecoder, MPEGDecoderWebWorker } from "mpg123-decoder";
 import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
 import { OggOpusDecoder, OggOpusDecoderWebWorker } from "ogg-opus-decoder";
@@ -262,6 +264,22 @@ describe("wasm-audio-decoders", () => {
     await decompressExpectedFiles();
   });
 
+  describe("common", () => {
+    const mpegTestFile = path.join(TEST_DATA_PATH, "mpeg.cbr.mp3");
+
+    it("should decode within a worker thread", async () => {
+      await nestedWorker(mpegTestFile, "mpg123-decoder", "MPEGDecoder");
+    });
+
+    it("should decode within a worker thread nested worker", async () => {
+      await nestedWorker(
+        mpegTestFile,
+        "mpg123-decoder",
+        "MPEGDecoderWebWorker"
+      );
+    });
+  });
+  
   describe("mpg123-decoder", () => {
     it("should have name as an instance and static property for MPEGDecoder", () => {
       const decoder = new MPEGDecoder();

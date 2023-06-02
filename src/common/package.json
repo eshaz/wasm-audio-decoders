@@ -1,6 +1,6 @@
 {
   "name": "@wasm-audio-decoders/common",
-  "version": "9.0.0",
+  "version": "9.0.1",
   "description": "Web Assembly Audio Decoders Common",
   "module": "index.js",
   "main": "index.js",
@@ -25,6 +25,6 @@
   },
   "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/common",
   "dependencies": {
-    "@eshaz/web-worker": "1.2.0"
+    "@eshaz/web-worker": "1.2.1"
   }
 }
