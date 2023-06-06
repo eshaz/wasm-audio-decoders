@@ -1256,6 +1256,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   const getCrcTable = (crcTable, crcInitialValueFunction, crcFunction) => {
     for (let byte = 0; byte < crcTable[length]; byte++) {
       let crc = crcInitialValueFunction(byte);
@@ -1441,6 +1442,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class HeaderCache {
     constructor(onCodecHeader, onCodecUpdate) {
       this._onCodecHeader = onCodecHeader;
@@ -1539,6 +1541,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   /**
    * @abstract
    * @description Abstract class containing methods for parsing codec frames
@@ -1616,6 +1619,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   /**
    * @abstract
    */
@@ -1644,6 +1648,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class CodecFrame extends Frame {
     static *[getFrame](Header, Frame, codecParser, headerCache, readOffset) {
@@ -1700,6 +1705,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const unsynchronizationFlag = "unsynchronizationFlag";
   const extendedHeaderFlag = "extendedHeaderFlag";
@@ -1789,6 +1795,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class CodecHeader {
     /**
      * @private
@@ -1821,6 +1828,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   // http://www.mp3-tech.org/programmer/frame_header.html
 
@@ -2129,6 +2137,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class MPEGFrame extends CodecFrame {
     static *[getFrame](codecParser, headerCache, readOffset) {
       return yield* super[getFrame](
@@ -2162,6 +2171,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class MPEGParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
@@ -2198,6 +2208,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const mpegVersionValues = {
     0b00000000: "MPEG-4",
@@ -2430,6 +2441,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class AACFrame extends CodecFrame {
     static *[getFrame](codecParser, headerCache, readOffset) {
       return yield* super[getFrame](
@@ -2463,6 +2475,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class AACParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
@@ -2499,6 +2512,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class FLACFrame extends CodecFrame {
     static _getFrameFooterCrc16(data) {
@@ -2539,6 +2553,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const getFromStreamInfo = "get from STREAMINFO metadata block";
 
@@ -2877,6 +2892,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   const MIN_FLAC_FRAME_SIZE = 2;
   const MAX_FLAC_FRAME_SIZE = 512 * 1024;
 
@@ -3024,6 +3040,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OggPageHeader {
     static *[getHeader](codecParser, headerCache, readOffset) {
       const header = {};
@@ -3151,6 +3168,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OggPage extends Frame {
     static *[getFrame](codecParser, headerCache, readOffset) {
       const header = yield* OggPageHeader[getHeader](
@@ -3213,6 +3231,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OpusFrame extends CodecFrame {
     constructor(data, header) {
       super(
@@ -3240,6 +3259,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   /* prettier-ignore */
   const channelMappingFamilies = {
@@ -3486,6 +3506,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OpusParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
       super(codecParser, headerCache);
@@ -3550,6 +3571,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class VorbisFrame extends CodecFrame {
     constructor(data, header, samples) {
       super(header, data, samples);
@@ -3573,6 +3595,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const blockSizes = {
     // 0b0110: 64,
@@ -3705,6 +3728,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class VorbisParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
@@ -3902,6 +3926,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OggParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
       super(codecParser, headerCache);
@@ -4025,6 +4050,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const noOp = () => {};
 
