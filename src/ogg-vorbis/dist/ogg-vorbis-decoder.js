@@ -689,6 +689,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   const getCrcTable = (crcTable, crcInitialValueFunction, crcFunction) => {
     for (let byte = 0; byte < crcTable[length]; byte++) {
       let crc = crcInitialValueFunction(byte);
@@ -874,6 +875,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class HeaderCache {
     constructor(onCodecHeader, onCodecUpdate) {
       this._onCodecHeader = onCodecHeader;
@@ -972,6 +974,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   /**
    * @abstract
    * @description Abstract class containing methods for parsing codec frames
@@ -1049,6 +1052,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   /**
    * @abstract
    */
@@ -1077,6 +1081,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class CodecFrame extends Frame {
     static *[getFrame](Header, Frame, codecParser, headerCache, readOffset) {
@@ -1133,6 +1138,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const unsynchronizationFlag = "unsynchronizationFlag";
   const extendedHeaderFlag = "extendedHeaderFlag";
@@ -1222,6 +1228,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class CodecHeader {
     /**
      * @private
@@ -1254,6 +1261,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   // http://www.mp3-tech.org/programmer/frame_header.html
 
@@ -1562,6 +1570,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class MPEGFrame extends CodecFrame {
     static *[getFrame](codecParser, headerCache, readOffset) {
       return yield* super[getFrame](
@@ -1595,6 +1604,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class MPEGParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
@@ -1631,6 +1641,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const mpegVersionValues = {
     0b00000000: "MPEG-4",
@@ -1863,6 +1874,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class AACFrame extends CodecFrame {
     static *[getFrame](codecParser, headerCache, readOffset) {
       return yield* super[getFrame](
@@ -1896,6 +1908,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class AACParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
@@ -1932,6 +1945,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class FLACFrame extends CodecFrame {
     static _getFrameFooterCrc16(data) {
@@ -1972,6 +1986,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const getFromStreamInfo = "get from STREAMINFO metadata block";
 
@@ -2310,6 +2325,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   const MIN_FLAC_FRAME_SIZE = 2;
   const MAX_FLAC_FRAME_SIZE = 512 * 1024;
 
@@ -2457,6 +2473,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OggPageHeader {
     static *[getHeader](codecParser, headerCache, readOffset) {
       const header = {};
@@ -2584,6 +2601,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OggPage extends Frame {
     static *[getFrame](codecParser, headerCache, readOffset) {
       const header = yield* OggPageHeader[getHeader](
@@ -2646,6 +2664,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OpusFrame extends CodecFrame {
     constructor(data, header) {
       super(
@@ -2673,6 +2692,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   /* prettier-ignore */
   const channelMappingFamilies = {
@@ -2919,6 +2939,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OpusParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
       super(codecParser, headerCache);
@@ -2983,6 +3004,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class VorbisFrame extends CodecFrame {
     constructor(data, header, samples) {
       super(header, data, samples);
@@ -3006,6 +3028,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const blockSizes = {
     // 0b0110: 64,
@@ -3138,6 +3161,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   class VorbisParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
@@ -3335,6 +3359,7 @@
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
 
+
   class OggParser extends Parser {
     constructor(codecParser, headerCache, onCodec) {
       super(codecParser, headerCache);
@@ -3458,6 +3483,7 @@
       You should have received a copy of the GNU Lesser General Public License
       along with this program.  If not, see <https://www.gnu.org/licenses/>
   */
+
 
   const noOp = () => {};
 

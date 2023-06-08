@@ -8,12 +8,16 @@ import CodecParser, {
   coupledStreamCount,
   channelMappingTable,
   preSkip,
+  isLastPage,
+  absoluteGranulePosition,
+  samples,
 } from "codec-parser";
 
 class DecoderState {
   constructor(instance) {
     this._instance = instance;
 
+    this._sampleRate = this._instance._sampleRate;
     this._decoderOperations = [];
     this._errors = [];
     this._decoded = [];
@@ -29,50 +33,87 @@ class DecoderState {
         this._decoded,
         this._channelsDecoded,
         this._totalSamples,
-        this._instance._sampleRate || 48000,
+        this._sampleRate,
       ]);
   }
 
   async _instantiateDecoder(header) {
+    this._preSkip = header[preSkip];
+
     this._instance._decoder = new this._instance._decoderClass({
       channels: header[channels],
       streamCount: header[streamCount],
       coupledStreamCount: header[coupledStreamCount],
       channelMappingTable: header[channelMappingTable],
-      preSkip: header[preSkip],
-      sampleRate: this._instance._sampleRate,
+      preSkip: Math.round((this._preSkip / 48000) * this._sampleRate),
+      sampleRate: this._sampleRate,
       forceStereo: this._instance._forceStereo,
     });
     this._instance._ready = this._instance._decoder.ready;
   }
 
-  async _sendToDecoder(frames) {
+  async _sendToDecoder(oggPage) {
+    const dataFrames = oggPage[codecFrames].map((f) => f.data);
+
     const { channelData, samplesDecoded, errors } =
-      await this._instance._decoder.decodeFrames(frames);
+      await this._instance._decoder.decodeFrames(dataFrames);
+
+    this._totalSamples += samplesDecoded;
+
+    if (
+      this._beginningSampleOffset === undefined &&
+      Number(oggPage[absoluteGranulePosition]) > -1
+    ) {
+      this._beginningSampleOffset =
+        oggPage[absoluteGranulePosition] -
+        BigInt(oggPage[samples]) +
+        BigInt(this._preSkip);
+    }
+
+    // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
+    if (oggPage[isLastPage] && oggPage[absoluteGranulePosition] !== undefined) {
+      const totalDecodedSamples =
+        (this._totalSamples / this._sampleRate) * 48000;
+      const totalOggSamples = Number(
+        oggPage[absoluteGranulePosition] - this._beginningSampleOffset
+      );
+
+      // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+      const samplesToTrim = Math.round(
+        ((totalDecodedSamples - totalOggSamples) / 48000) * this._sampleRate
+      );
+
+      for (let i = 0; i < channelData.length; i++)
+        channelData[i] = channelData[i].subarray(
+          0,
+          samplesDecoded - samplesToTrim
+        );
+
+      this._totalSamples -= samplesToTrim;
+    }
 
     this._decoded.push(channelData);
     this._errors = this._errors.concat(errors);
-    this._totalSamples += samplesDecoded;
     this._channelsDecoded = channelData.length;
   }
 
-  async _decode(codecFrames) {
-    if (codecFrames.length) {
-      if (!this._instance._decoder && codecFrames[0][header])
-        this._instantiateDecoder(codecFrames[0][header]);
+  async _decode(oggPage) {
+    const frames = oggPage[codecFrames];
+
+    if (frames.length) {
+      if (!this._instance._decoder && frames[0][header])
+        this._instantiateDecoder(frames[0][header]);
 
       await this._instance.ready;
 
-      this._decoderOperations.push(
-        this._sendToDecoder(codecFrames.map((f) => f.data))
-      );
+      this._decoderOperations.push(this._sendToDecoder(oggPage));
     }
   }
 }
 
 export default class OggOpusDecoder {
   constructor(options = {}) {
-    this._sampleRate = options.sampleRate;
+    this._sampleRate = options.sampleRate || 48000;
     this._forceStereo =
       options.forceStereo !== undefined ? options.forceStereo : false;
 
@@ -114,8 +155,8 @@ export default class OggOpusDecoder {
   }
 
   async _flush(decoderState) {
-    for (const frame of this._codecParser.flush()) {
-      decoderState._decode(frame[codecFrames]);
+    for (const oggPage of this._codecParser.flush()) {
+      decoderState._decode(oggPage);
     }
 
     const decoded = await decoderState.decoded;
@@ -125,8 +166,8 @@ export default class OggOpusDecoder {
   }
 
   async _decode(oggOpusData, decoderState) {
-    for (const frame of this._codecParser.parseChunk(oggOpusData)) {
-      decoderState._decode(frame[codecFrames]);
+    for (const oggPage of this._codecParser.parseChunk(oggOpusData)) {
+      decoderState._decode(oggPage);
     }
 
     return decoderState.decoded;
