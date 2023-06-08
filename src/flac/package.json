@@ -1,6 +1,6 @@
 {
   "name": "@wasm-audio-decoders/flac",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Web Assembly streaming FLAC decoder",
   "type": "module",
   "main": "./index.js",
@@ -49,6 +49,6 @@
   },
   "dependencies": {
     "@wasm-audio-decoders/common": "9.0.1",
-    "codec-parser": "2.4.0"
+    "codec-parser": "2.4.1"
   }
 }

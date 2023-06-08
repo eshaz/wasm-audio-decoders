@@ -3440,22 +3440,25 @@
         oggPage[data$1][subarray](offset, (offset += segmentLength))
       );
 
-      if (
-        headerData[pageSegmentBytes][headerData[pageSegmentBytes][length] - 1] ===
-        0xff
-      ) {
-        // continued packet
-        this._continuedPacket = concatBuffers(
-          this._continuedPacket,
-          oggPageStore[segments].pop()
-        );
-      } else if (this._continuedPacket[length]) {
+      // prepend any existing continued packet data
+      if (this._continuedPacket[length]) {
         oggPageStore[segments][0] = concatBuffers(
           this._continuedPacket,
           oggPageStore[segments][0]
         );
 
         this._continuedPacket = new uint8Array();
+      }
+
+      // save any new continued packet data
+      if (
+        headerData[pageSegmentBytes][headerData[pageSegmentBytes][length] - 1] ===
+        0xff
+      ) {
+        this._continuedPacket = concatBuffers(
+          this._continuedPacket,
+          oggPageStore[segments].pop()
+        );
       }
 
       if (this._codec || this._checkForIdentifier(oggPage)) {
