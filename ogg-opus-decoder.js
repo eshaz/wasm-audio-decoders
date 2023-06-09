@@ -4,308 +4,6 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["ogg-opus-decoder"] = {}, global.Worker));
 })(this, (function (exports, NodeWorker) { 'use strict';
 
-  function WASMAudioDecoderCommon$1() {
-    // setup static methods
-    const uint8Array = Uint8Array;
-    const float32Array = Float32Array;
-
-    if (!WASMAudioDecoderCommon$1.modules) {
-      Object.defineProperties(WASMAudioDecoderCommon$1, {
-        modules: {
-          value: new WeakMap(),
-        },
-
-        setModule: {
-          value(Ref, module) {
-            WASMAudioDecoderCommon$1.modules.set(Ref, Promise.resolve(module));
-          },
-        },
-
-        getModule: {
-          value(Ref, wasmString) {
-            let module = WASMAudioDecoderCommon$1.modules.get(Ref);
-
-            if (!module) {
-              if (!wasmString) {
-                wasmString = Ref.wasm;
-                module = WASMAudioDecoderCommon$1.inflateDynEncodeString(
-                  wasmString
-                ).then((data) => WebAssembly.compile(data));
-              } else {
-                module = WebAssembly.compile(
-                  WASMAudioDecoderCommon$1.decodeDynString(wasmString)
-                );
-              }
-
-              WASMAudioDecoderCommon$1.modules.set(Ref, module);
-            }
-
-            return module;
-          },
-        },
-
-        concatFloat32: {
-          value(buffers, length) {
-            let ret = new float32Array(length),
-              i = 0,
-              offset = 0;
-
-            while (i < buffers.length) {
-              ret.set(buffers[i], offset);
-              offset += buffers[i++].length;
-            }
-
-            return ret;
-          },
-        },
-
-        getDecodedAudio: {
-          value: (errors, channelData, samplesDecoded, sampleRate, bitDepth) => ({
-            errors,
-            channelData,
-            samplesDecoded,
-            sampleRate,
-            bitDepth,
-          }),
-        },
-
-        getDecodedAudioMultiChannel: {
-          value(
-            errors,
-            input,
-            channelsDecoded,
-            samplesDecoded,
-            sampleRate,
-            bitDepth
-          ) {
-            let channelData = [],
-              i,
-              j;
-
-            for (i = 0; i < channelsDecoded; i++) {
-              const channel = [];
-              for (j = 0; j < input.length; ) channel.push(input[j++][i] || []);
-              channelData.push(
-                WASMAudioDecoderCommon$1.concatFloat32(channel, samplesDecoded)
-              );
-            }
-
-            return WASMAudioDecoderCommon$1.getDecodedAudio(
-              errors,
-              channelData,
-              samplesDecoded,
-              sampleRate,
-              bitDepth
-            );
-          },
-        },
-
-        /*
-         ******************
-         * Compression Code
-         ******************
-         */
-
-        crc32Table: {
-          value: (() => {
-            let crc32Table = new Int32Array(256),
-              i,
-              j,
-              c;
-
-            for (i = 0; i < 256; i++) {
-              for (c = i << 24, j = 8; j > 0; --j)
-                c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : c << 1;
-              crc32Table[i] = c;
-            }
-            return crc32Table;
-          })(),
-        },
-
-        decodeDynString: {
-          value(source) {
-            let output = new uint8Array(source.length);
-            let offset = parseInt(source.substring(11, 13), 16);
-            let offsetReverse = 256 - offset;
-
-            let crcIdx,
-              escaped = false,
-              byteIndex = 0,
-              byte,
-              i = 21,
-              expectedCrc,
-              resultCrc = 0xffffffff;
-
-            while (i < source.length) {
-              byte = source.charCodeAt(i++);
-
-              if (byte === 61 && !escaped) {
-                escaped = true;
-                continue;
-              }
-
-              if (escaped) {
-                escaped = false;
-                byte -= 64;
-              }
-
-              output[byteIndex] =
-                byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
-
-              resultCrc =
-                (resultCrc << 8) ^
-                WASMAudioDecoderCommon$1.crc32Table[
-                  ((resultCrc >> 24) ^ output[byteIndex++]) & 255
-                ];
-            }
-
-            // expected crc
-            for (crcIdx = 0; crcIdx <= 8; crcIdx += 2)
-              expectedCrc |=
-                parseInt(source.substring(13 + crcIdx, 15 + crcIdx), 16) <<
-                (crcIdx * 4);
-
-            if (expectedCrc !== resultCrc)
-              throw new Error("WASM string decode failed crc32 validation");
-
-            return output.subarray(0, byteIndex);
-          },
-        },
-
-        inflateDynEncodeString: {
-          value(source) {
-            source = WASMAudioDecoderCommon$1.decodeDynString(source);
-
-            return new Promise((resolve) => {
-              // prettier-ignore
-              const puffString = String.raw`dynEncode0114db91da9bu*ttt$#U¤¤U¤¤3yzzss|yusvuyÚ&4<054<,5T44^T44<(6U~J(44< ~A544U~6J0444545 444J0444J,4U4UÒ7U454U4Z4U4U^/6545T4T44BU~64CU~O4U54U~5 U5T4B4Z!4U~5U5U5T4U~6U4ZTU5U5T44~4O4U2ZTU5T44Z!4B6T44U~64B6U~O44U~4O4U~54U~5 44~C4~54U~5 44~5454U4B6Ub!444~UO4U~5 U54U4ZTU#44U$464<4~B6^4<444~U~B4U~54U544~544~U5 µUä#UJUè#5TT4U0ZTTUX5U5T4T4Uà#~4OU4U $~C4~54U~5 T44$6U\!TTT4UaT4<6T4<64<Z!44~4N4<U~5 4UZ!4U±_TU#44UU6UÔ~B$544$6U\!4U6U¤#~B44Uä#~B$~64<6_TU#444U~B~6~54<Y!44<_!T4Y!4<64~444~AN44<U~6J4U5 44J4U[!U#44UO4U~54U~5 U54 7U6844J44J 4UJ4UJ04VK(44<J44<J$4U´~54U~5 4U¤~5!TTT4U$5"U5TTTTTTT4U$"4VK,U54<(6U~64<$6_!4< 64~6A54A544U~6#J(U54A4U[!44J(44#~A4U6UUU[!4464~64_!4<64~54<6T4<4]TU5 T4Y!44~44~AN4U~54U~54U5 44J(44J UÄA!U5U#UôJU"UÔJU#UÔ"JU#U´"JT4U´ZTU5T4UôZTU5T4UDZTU5T4U$[T44~UO4U~5 UÔUô4U~U´$.U5T4UP[T4U~4~UO4U~5 U#<U#<4U~U2$.UÄUN 44 ~UO4U~5 44!~UO4U~5 4U~4~UO4U~5 44J44J(U5 44U¤~J@44Uä~J<44UD~J844U~J44U$54U$5U54U$54U1^4U1^!4U~54U~5U54U~6U4U^/65T4T4U$54U~4BU~4O4U54U~5 UU'464U'_/54UU~5T4T4U~4BU~UO4U54U~5 U54Uä~4U¤~4U~U'$!44~5U5T44\T44U<~$6U\!4U#aT4U~4U~4O4U~5 U5U5U5TTT4U$"4YTU5 4U4~C5U5 U5U5444$4~64~\TU5 4U~4U~5T4Y!44O4U~54U~54U5 4CYTU5 4Uä~4U¤~4U~4$6TU54U\!44Bæ4Bä~[!4U~4UD~4U~4U~4$6TU54U\!44B4B~[!44U<~4U4~$5 4U"U#$544"Y!454U^!44<J44<(J454U~84­UN!#%'+/37?GOWgw·×÷Uä;U9$%& !"#`;
-
-              WASMAudioDecoderCommon$1.getModule(WASMAudioDecoderCommon$1, puffString)
-                .then((wasm) => WebAssembly.instantiate(wasm, {}))
-                .then(({ exports }) => {
-                  // required for minifiers that mangle the __heap_base property
-                  const instanceExports = new Map(Object.entries(exports));
-
-                  const puff = instanceExports.get("puff");
-                  const memory = instanceExports.get("memory")["buffer"];
-                  const dataArray = new uint8Array(memory);
-                  const heapView = new DataView(memory);
-
-                  let heapPos = instanceExports.get("__heap_base");
-
-                  // source length
-                  const sourceLength = source.length;
-                  const sourceLengthPtr = heapPos;
-                  heapPos += 4;
-                  heapView.setInt32(sourceLengthPtr, sourceLength, true);
-
-                  // source data
-                  const sourcePtr = heapPos;
-                  heapPos += sourceLength;
-                  dataArray.set(source, sourcePtr);
-
-                  // destination length
-                  const destLengthPtr = heapPos;
-                  heapPos += 4;
-                  heapView.setInt32(
-                    destLengthPtr,
-                    dataArray.byteLength - heapPos,
-                    true
-                  );
-
-                  // destination data fills in the rest of the heap
-                  puff(heapPos, destLengthPtr, sourcePtr, sourceLengthPtr);
-
-                  resolve(
-                    dataArray.slice(
-                      heapPos,
-                      heapPos + heapView.getInt32(destLengthPtr, true)
-                    )
-                  );
-                });
-            });
-          },
-        },
-      });
-    }
-
-    Object.defineProperty(this, "wasm", {
-      enumerable: true,
-      get: () => this._wasm,
-    });
-
-    this.getOutputChannels = (outputData, channelsDecoded, samplesDecoded) => {
-      let output = [],
-        i = 0;
-
-      while (i < channelsDecoded)
-        output.push(
-          outputData.slice(
-            i * samplesDecoded,
-            i++ * samplesDecoded + samplesDecoded
-          )
-        );
-
-      return output;
-    };
-
-    this.allocateTypedArray = (len, TypedArray, setPointer = true) => {
-      const ptr = this._wasm.malloc(TypedArray.BYTES_PER_ELEMENT * len);
-      if (setPointer) this._pointers.add(ptr);
-
-      return {
-        ptr: ptr,
-        len: len,
-        buf: new TypedArray(this._wasm.HEAP, ptr, len),
-      };
-    };
-
-    this.free = () => {
-      this._pointers.forEach((ptr) => {
-        this._wasm.free(ptr);
-      });
-      this._pointers.clear();
-    };
-
-    this.codeToString = (ptr) => {
-      const characters = [],
-        heap = new Uint8Array(this._wasm.HEAP);
-      for (let character = heap[ptr]; character !== 0; character = heap[++ptr])
-        characters.push(character);
-
-      return String.fromCharCode.apply(null, characters);
-    };
-
-    this.addError = (
-      errors,
-      message,
-      frameLength,
-      frameNumber,
-      inputBytes,
-      outputSamples
-    ) => {
-      errors.push({
-        message: message,
-        frameLength: frameLength,
-        frameNumber: frameNumber,
-        inputBytes: inputBytes,
-        outputSamples: outputSamples,
-      });
-    };
-
-    this.instantiate = (_EmscriptenWASM, _module) => {
-      if (_module) WASMAudioDecoderCommon$1.setModule(_EmscriptenWASM, _module);
-      this._wasm = new _EmscriptenWASM(WASMAudioDecoderCommon$1).instantiate();
-      this._pointers = new Set();
-
-      return this._wasm.ready.then(() => this);
-    };
-  }
-
-  const assignNames$1 = (Class, name) => {
-    Object.defineProperty(Class, "name", { value: name });
-  };
-
   function WASMAudioDecoderCommon() {
     // setup static methods
     const uint8Array = Uint8Array;
@@ -4040,6 +3738,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       onCodec(this[codec]);
 
       this._identificationHeader = null;
+      this._setupComplete = false;
 
       this._mode = {
         count: 0,
@@ -4053,23 +3752,26 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     }
 
     [parseOggPage](oggPage) {
-      const oggPageSegments = frameStore.get(oggPage)[segments];
+      oggPage[codecFrames$1] = [];
 
-      if (oggPage[pageSequenceNumber] === 0) {
-        // Identification header
+      for (const oggPageSegment of frameStore.get(oggPage)[segments]) {
+        if (oggPageSegment[0] === 1) {
+          // Identification header
 
-        this._headerCache[enable]();
-        this._identificationHeader = oggPage[data];
-      } else if (oggPage[pageSequenceNumber] === 1) {
-        // gather WEBM CodecPrivate data
-        if (oggPageSegments[1]) {
-          this._vorbisComments = oggPageSegments[0];
-          this._vorbisSetup = oggPageSegments[1];
+          this._headerCache[enable]();
+          this._identificationHeader = oggPage[data];
+          this._setupComplete = false;
+        } else if (oggPageSegment[0] === 3) {
+          // comment header
 
-          this._mode = this._parseSetupHeader(oggPageSegments[1]);
-        }
-      } else {
-        oggPage[codecFrames$1] = oggPageSegments.map((segment) => {
+          this._vorbisComments = oggPageSegment;
+        } else if (oggPageSegment[0] === 5) {
+          // setup header
+
+          this._vorbisSetup = oggPageSegment;
+          this._mode = this._parseSetupHeader(oggPageSegment);
+          this._setupComplete = true;
+        } else if (this._setupComplete) {
           const header = VorbisHeader[getHeaderFromUint8Array](
             this._identificationHeader,
             this._headerCache,
@@ -4078,18 +3780,20 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
           );
 
           if (header) {
-            return new VorbisFrame(
-              segment,
-              header,
-              this._getSamples(segment, header)
+            oggPage[codecFrames$1].push(
+              new VorbisFrame(
+                oggPageSegment,
+                header,
+                this._getSamples(oggPageSegment, header)
+              )
+            );
+          } else {
+            this._codecParser[logError](
+              "Failed to parse Ogg Vorbis Header",
+              "Not a valid Ogg Vorbis file"
             );
           }
-
-          this._codecParser[logError](
-            "Failed to parse Ogg Vorbis Header",
-            "Not a valid Ogg Vorbis file"
-          );
-        });
+        }
       }
 
       return oggPage;
@@ -4229,17 +3933,15 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
   */
 
 
-  class OggParser extends Parser {
+  class OggStream {
     constructor(codecParser, headerCache, onCodec) {
-      super(codecParser, headerCache);
-
+      this._codecParser = codecParser;
+      this._headerCache = headerCache;
       this._onCodec = onCodec;
-      this.Frame = OggPage;
-      this.Header = OggPageHeader;
-      this._codec = null;
-      this._continuedPacket = new uint8Array();
 
-      this._pageSequenceNumber = 0;
+      this._continuedPacket = new uint8Array();
+      this._codec = null;
+      this._isSupported = null;
     }
 
     get [codec]() {
@@ -4258,13 +3960,11 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       }
     }
 
-    _checkForIdentifier({ data }) {
+    _checkCodecSupport({ data }) {
       const idString = bytesToString(data[subarray](0, 8));
 
       switch (idString) {
         case "fishead\0":
-        case "fisbone\0":
-        case "index\0\0\0":
           return false; // ignore ogg skeleton packets
         case "OpusHead":
           this._updateCodec("opus", OpusParser);
@@ -4275,6 +3975,8 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         case /^\x01vorbis/.test(idString) && idString:
           this._updateCodec(vorbis, VorbisParser);
           return true;
+        default:
+          return false;
       }
     }
 
@@ -4295,8 +3997,11 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       this._pageSequenceNumber = oggPage[pageSequenceNumber];
     }
 
-    *[parseFrame]() {
-      const oggPage = yield* this[fixedLengthFrameSync](true);
+    _parsePage(oggPage) {
+      if (this._isSupported === null) {
+        this._pageSequenceNumber = oggPage[pageSequenceNumber];
+        this._isSupported = this._checkCodecSupport(oggPage);
+      }
 
       this._checkPageSequenceNumber(oggPage);
 
@@ -4304,21 +4009,12 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       const headerData = headerStore.get(oggPageStore[header$1]);
 
       let offset = 0;
-
       oggPageStore[segments] = headerData[pageSegmentTable].map((segmentLength) =>
         oggPage[data][subarray](offset, (offset += segmentLength))
       );
 
-      if (
-        headerData[pageSegmentBytes][headerData[pageSegmentBytes][length] - 1] ===
-        0xff
-      ) {
-        // continued packet
-        this._continuedPacket = concatBuffers(
-          this._continuedPacket,
-          oggPageStore[segments].pop()
-        );
-      } else if (this._continuedPacket[length]) {
+      // prepend any existing continued packet data
+      if (this._continuedPacket[length]) {
         oggPageStore[segments][0] = concatBuffers(
           this._continuedPacket,
           oggPageStore[segments][0]
@@ -4327,11 +4023,63 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         this._continuedPacket = new uint8Array();
       }
 
-      if (this._codec || this._checkForIdentifier(oggPage)) {
+      // save any new continued packet data
+      if (
+        headerData[pageSegmentBytes][headerData[pageSegmentBytes][length] - 1] ===
+        0xff
+      ) {
+        this._continuedPacket = concatBuffers(
+          this._continuedPacket,
+          oggPageStore[segments].pop()
+        );
+      }
+
+      if (this._isSupported) {
         const frame = this._parser[parseOggPage](oggPage);
         this._codecParser[mapFrameStats](frame);
+
         return frame;
+      } else {
+        return oggPage;
       }
+    }
+  }
+
+  class OggParser extends Parser {
+    constructor(codecParser, headerCache, onCodec) {
+      super(codecParser, headerCache);
+
+      this._onCodec = onCodec;
+      this.Frame = OggPage;
+      this.Header = OggPageHeader;
+
+      this._streams = new Map();
+      this._currentSerialNumber = null;
+    }
+
+    get [codec]() {
+      const oggStream = this._streams.get(this._currentSerialNumber);
+
+      return oggStream ? oggStream.codec : "";
+    }
+
+    *[parseFrame]() {
+      const oggPage = yield* this[fixedLengthFrameSync](true);
+      this._currentSerialNumber = oggPage[streamSerialNumber];
+
+      let oggStream = this._streams.get(this._currentSerialNumber);
+      if (!oggStream) {
+        oggStream = new OggStream(
+          this._codecParser,
+          this._headerCache,
+          this._onCodec
+        );
+        this._streams.set(this._currentSerialNumber, oggStream);
+      }
+
+      if (oggPage[isLastPage$1]) this._streams.delete(this._currentSerialNumber);
+
+      return oggStream._parsePage(oggPage);
     }
   }
 
@@ -4710,7 +4458,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       };
 
       // instantiate to create static properties
-      new WASMAudioDecoderCommon$1();
+      new WASMAudioDecoderCommon();
       this._decoderClass = OpusDecoder;
 
       this._init();
@@ -4759,7 +4507,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     }
 
     async decode(oggOpusData) {
-      return WASMAudioDecoderCommon$1.getDecodedAudioMultiChannel(
+      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
         ...(await this._decode(oggOpusData, new DecoderState(this)))
       );
     }
@@ -4767,7 +4515,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     async decodeFile(oggOpusData) {
       const decoderState = new DecoderState(this);
 
-      return WASMAudioDecoderCommon$1.getDecodedAudioMultiChannel(
+      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
         ...(await this._decode(oggOpusData, decoderState).then(() =>
           this._flush(decoderState)
         ))
@@ -4775,7 +4523,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     }
 
     async flush() {
-      return WASMAudioDecoderCommon$1.getDecodedAudioMultiChannel(
+      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
         ...(await this._flush(new DecoderState(this)))
       );
     }
@@ -4793,8 +4541,8 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     }
   }
 
-  assignNames$1(OggOpusDecoder, "OggOpusDecoder");
-  assignNames$1(OggOpusDecoderWebWorker, "OggOpusDecoderWebWorker");
+  assignNames(OggOpusDecoder, "OggOpusDecoder");
+  assignNames(OggOpusDecoderWebWorker, "OggOpusDecoderWebWorker");
 
   exports.OggOpusDecoder = OggOpusDecoder;
   exports.OggOpusDecoderWebWorker = OggOpusDecoderWebWorker;
