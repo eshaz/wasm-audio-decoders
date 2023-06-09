@@ -219,18 +219,18 @@ export default class OggVorbisDecoder {
       const oggPage = oggPages[i];
 
       if (this._vorbisSetupInProgress) {
-        if (oggPage[pageSequenceNumber] === 0) {
+        if (oggPage[data][0] === 1) {
           this._decoder.sendSetupHeader(oggPage[data]);
-        } else if (oggPage[pageSequenceNumber] > 1) {
-          if (this._vorbisSetupInProgress) {
-            const headerData = oggPage[codecFrames][0][header];
+        }
 
-            this._decoder.sendSetupHeader(headerData[vorbisComments]);
-            this._decoder.sendSetupHeader(headerData[vorbisSetup]);
-            this._decoder.initDsp();
+        if (oggPage[codecFrames].length) {
+          const headerData = oggPage[codecFrames][0][header];
 
-            this._vorbisSetupInProgress = false;
-          }
+          this._decoder.sendSetupHeader(headerData[vorbisComments]);
+          this._decoder.sendSetupHeader(headerData[vorbisSetup]);
+          this._decoder.initDsp();
+
+          this._vorbisSetupInProgress = false;
         }
       }
 

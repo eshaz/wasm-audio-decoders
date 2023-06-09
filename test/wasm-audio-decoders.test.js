@@ -255,6 +255,8 @@ describe("wasm-audio-decoders", () => {
   const oggVorbis64TestFile = "ogg.vorbis.64.ogg";
   const oggVorbis255TestFile = "ogg.vorbis.255.ogg";
   const oggVorbisChained2TestFile = "ogg.vorbis.chained2.ogg";
+  const oggVorbisPacketsTestFile = "ogg.vorbis.packets.ogg";
+  const oggVorbisFisheadTestFile = "ogg.vorbis.fishead.ogg";
 
   const opusStereoTestFile = "ogg.opus";
   const opusStereoErrorsTestFile = "ogg.errors.opus";
@@ -2272,6 +2274,48 @@ describe("wasm-audio-decoders", () => {
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
+
+      it("should decode vorbis with unusual packet structures", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode vorbis with unusual packet structures",
+          oggVorbisPacketsTestFile,
+          oggVorbisPacketsTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(229952);
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode vorbis with fishead metadata", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode vorbis with fishead metadata",
+          oggVorbisFisheadTestFile,
+          oggVorbisFisheadTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3497536);
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
     });
 
     describe("web worker", () => {
@@ -2417,6 +2461,48 @@ describe("wasm-audio-decoders", () => {
 
         expect(result.errors.length).toEqual(0);
         expect(result.samplesDecoded).toEqual(8785152); // 50560 from codec parser
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode vorbis with unusual packet structures", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode vorbis with unusual packet structures",
+          oggVorbisPacketsTestFile,
+          oggVorbisPacketsTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(229952);
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode vorbis with fishead metadata", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode vorbis with fishead metadata",
+          oggVorbisFisheadTestFile,
+          oggVorbisFisheadTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3497536);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);

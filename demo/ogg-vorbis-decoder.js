@@ -623,7 +623,7 @@
   const pageChecksum = page + "Checksum";
   const pageSegmentBytes = symbol();
   const pageSegmentTable = page + "SegmentTable";
-  const pageSequenceNumber$1 = page + "Sequence" + Number$1;
+  const pageSequenceNumber = page + "Sequence" + Number$1;
 
   const sample = "sample";
   const sampleNumber = sample + Number$1;
@@ -2425,12 +2425,12 @@
     }
 
     [parseOggPage](oggPage) {
-      if (oggPage[pageSequenceNumber$1] === 0) {
+      if (oggPage[pageSequenceNumber] === 0) {
         // Identification header
 
         this._headerCache[enable]();
         this._streamInfo = oggPage[data$1][subarray](13);
-      } else if (oggPage[pageSequenceNumber$1] === 1) ; else {
+      } else if (oggPage[pageSequenceNumber] === 1) ; else {
         oggPage[codecFrames$1] = frameStore
           .get(oggPage)
           [segments].map((segment) => {
@@ -2530,7 +2530,7 @@
       // Byte (19-22 of 28)
       // * `HHHHHHHH|HHHHHHHH|HHHHHHHH|HHHHHHHH`
       // * Page Sequence Number
-      header[pageSequenceNumber$1] = view.getInt32(18, true);
+      header[pageSequenceNumber] = view.getInt32(18, true);
 
       // Byte (23-26 of 28)
       // * `IIIIIIII|IIIIIIII|IIIIIIII|IIIIIIII`
@@ -2577,7 +2577,7 @@
       this[isFirstPage] = header[isFirstPage];
       this[isLastPage] = header[isLastPage];
       this[pageSegmentTable] = header[pageSegmentTable];
-      this[pageSequenceNumber$1] = header[pageSequenceNumber$1];
+      this[pageSequenceNumber] = header[pageSequenceNumber];
       this[pageChecksum] = header[pageChecksum];
       this[streamSerialNumber] = header[streamSerialNumber];
     }
@@ -2640,7 +2640,7 @@
       this[isContinuedPacket] = header[isContinuedPacket];
       this[isFirstPage] = header[isFirstPage];
       this[isLastPage] = header[isLastPage];
-      this[pageSequenceNumber$1] = header[pageSequenceNumber$1];
+      this[pageSequenceNumber] = header[pageSequenceNumber];
       this[samples] = 0;
       this[streamSerialNumber] = header[streamSerialNumber];
     }
@@ -2958,12 +2958,12 @@
      * @todo implement continued page support
      */
     [parseOggPage](oggPage) {
-      if (oggPage[pageSequenceNumber$1] === 0) {
+      if (oggPage[pageSequenceNumber] === 0) {
         // Identification header
 
         this._headerCache[enable]();
         this._identificationHeader = oggPage[data$1];
-      } else if (oggPage[pageSequenceNumber$1] === 1) ; else {
+      } else if (oggPage[pageSequenceNumber] === 1) ; else {
         oggPage[codecFrames$1] = frameStore
           .get(oggPage)
           [segments].map((segment) => {
@@ -3171,6 +3171,7 @@
       onCodec(this[codec]);
 
       this._identificationHeader = null;
+      this._setupComplete = false;
 
       this._mode = {
         count: 0,
@@ -3184,23 +3185,26 @@
     }
 
     [parseOggPage](oggPage) {
-      const oggPageSegments = frameStore.get(oggPage)[segments];
+      oggPage[codecFrames$1] = [];
 
-      if (oggPage[pageSequenceNumber$1] === 0) {
-        // Identification header
+      for (const oggPageSegment of frameStore.get(oggPage)[segments]) {
+        if (oggPageSegment[0] === 1) {
+          // Identification header
 
-        this._headerCache[enable]();
-        this._identificationHeader = oggPage[data$1];
-      } else if (oggPage[pageSequenceNumber$1] === 1) {
-        // gather WEBM CodecPrivate data
-        if (oggPageSegments[1]) {
-          this._vorbisComments = oggPageSegments[0];
-          this._vorbisSetup = oggPageSegments[1];
+          this._headerCache[enable]();
+          this._identificationHeader = oggPage[data$1];
+          this._setupComplete = false;
+        } else if (oggPageSegment[0] === 3) {
+          // comment header
 
-          this._mode = this._parseSetupHeader(oggPageSegments[1]);
-        }
-      } else {
-        oggPage[codecFrames$1] = oggPageSegments.map((segment) => {
+          this._vorbisComments = oggPageSegment;
+        } else if (oggPageSegment[0] === 5) {
+          // setup header
+
+          this._vorbisSetup = oggPageSegment;
+          this._mode = this._parseSetupHeader(oggPageSegment);
+          this._setupComplete = true;
+        } else if (this._setupComplete) {
           const header = VorbisHeader[getHeaderFromUint8Array](
             this._identificationHeader,
             this._headerCache,
@@ -3209,18 +3213,20 @@
           );
 
           if (header) {
-            return new VorbisFrame(
-              segment,
-              header,
-              this._getSamples(segment, header)
+            oggPage[codecFrames$1].push(
+              new VorbisFrame(
+                oggPageSegment,
+                header,
+                this._getSamples(oggPageSegment, header)
+              )
+            );
+          } else {
+            this._codecParser[logError](
+              "Failed to parse Ogg Vorbis Header",
+              "Not a valid Ogg Vorbis file"
             );
           }
-
-          this._codecParser[logError](
-            "Failed to parse Ogg Vorbis Header",
-            "Not a valid Ogg Vorbis file"
-          );
-        });
+        }
       }
 
       return oggPage;
@@ -3360,17 +3366,15 @@
   */
 
 
-  class OggParser extends Parser {
+  class OggStream {
     constructor(codecParser, headerCache, onCodec) {
-      super(codecParser, headerCache);
-
+      this._codecParser = codecParser;
+      this._headerCache = headerCache;
       this._onCodec = onCodec;
-      this.Frame = OggPage;
-      this.Header = OggPageHeader;
-      this._codec = null;
-      this._continuedPacket = new uint8Array();
 
-      this._pageSequenceNumber = 0;
+      this._continuedPacket = new uint8Array();
+      this._codec = null;
+      this._isSupported = null;
     }
 
     get [codec]() {
@@ -3389,13 +3393,11 @@
       }
     }
 
-    _checkForIdentifier({ data }) {
+    _checkCodecSupport({ data }) {
       const idString = bytesToString(data[subarray](0, 8));
 
       switch (idString) {
         case "fishead\0":
-        case "fisbone\0":
-        case "index\0\0\0":
           return false; // ignore ogg skeleton packets
         case "OpusHead":
           this._updateCodec("opus", OpusParser);
@@ -3406,28 +3408,33 @@
         case /^\x01vorbis/.test(idString) && idString:
           this._updateCodec(vorbis, VorbisParser);
           return true;
+        default:
+          return false;
       }
     }
 
     _checkPageSequenceNumber(oggPage) {
       if (
-        oggPage[pageSequenceNumber$1] !== this._pageSequenceNumber + 1 &&
+        oggPage[pageSequenceNumber] !== this._pageSequenceNumber + 1 &&
         this._pageSequenceNumber > 1 &&
-        oggPage[pageSequenceNumber$1] > 1
+        oggPage[pageSequenceNumber] > 1
       ) {
         this._codecParser[logWarning](
           "Unexpected gap in Ogg Page Sequence Number.",
           `Expected: ${this._pageSequenceNumber + 1}, Got: ${
-          oggPage[pageSequenceNumber$1]
+          oggPage[pageSequenceNumber]
         }`
         );
       }
 
-      this._pageSequenceNumber = oggPage[pageSequenceNumber$1];
+      this._pageSequenceNumber = oggPage[pageSequenceNumber];
     }
 
-    *[parseFrame]() {
-      const oggPage = yield* this[fixedLengthFrameSync](true);
+    _parsePage(oggPage) {
+      if (this._isSupported === null) {
+        this._pageSequenceNumber = oggPage[pageSequenceNumber];
+        this._isSupported = this._checkCodecSupport(oggPage);
+      }
 
       this._checkPageSequenceNumber(oggPage);
 
@@ -3435,7 +3442,6 @@
       const headerData = headerStore.get(oggPageStore[header$1]);
 
       let offset = 0;
-
       oggPageStore[segments] = headerData[pageSegmentTable].map((segmentLength) =>
         oggPage[data$1][subarray](offset, (offset += segmentLength))
       );
@@ -3461,11 +3467,52 @@
         );
       }
 
-      if (this._codec || this._checkForIdentifier(oggPage)) {
+      if (this._isSupported) {
         const frame = this._parser[parseOggPage](oggPage);
         this._codecParser[mapFrameStats](frame);
+
         return frame;
+      } else {
+        return oggPage;
       }
+    }
+  }
+
+  class OggParser extends Parser {
+    constructor(codecParser, headerCache, onCodec) {
+      super(codecParser, headerCache);
+
+      this._onCodec = onCodec;
+      this.Frame = OggPage;
+      this.Header = OggPageHeader;
+
+      this._streams = new Map();
+      this._currentSerialNumber = null;
+    }
+
+    get [codec]() {
+      const oggStream = this._streams.get(this._currentSerialNumber);
+
+      return oggStream ? oggStream.codec : "";
+    }
+
+    *[parseFrame]() {
+      const oggPage = yield* this[fixedLengthFrameSync](true);
+      this._currentSerialNumber = oggPage[streamSerialNumber];
+
+      let oggStream = this._streams.get(this._currentSerialNumber);
+      if (!oggStream) {
+        oggStream = new OggStream(
+          this._codecParser,
+          this._headerCache,
+          this._onCodec
+        );
+        this._streams.set(this._currentSerialNumber, oggStream);
+      }
+
+      if (oggPage[isLastPage]) this._streams.delete(this._currentSerialNumber);
+
+      return oggStream._parsePage(oggPage);
     }
   }
 
@@ -3726,7 +3773,6 @@
   const header = header$1;
   const vorbisComments = vorbisComments$1;
   const vorbisSetup = vorbisSetup$1;
-  const pageSequenceNumber = pageSequenceNumber$1;
 
   /* **************************************************
    * This file is auto-generated during the build process.
@@ -4251,18 +4297,18 @@ cAë¢þÍÍ­ý×ß'$|ð÷= È8a7ç^oÚ~Ò;hTÐ¸Ô£|¸Øÿ£2±õR�
         const oggPage = oggPages[i];
 
         if (this._vorbisSetupInProgress) {
-          if (oggPage[pageSequenceNumber] === 0) {
+          if (oggPage[data][0] === 1) {
             this._decoder.sendSetupHeader(oggPage[data]);
-          } else if (oggPage[pageSequenceNumber] > 1) {
-            if (this._vorbisSetupInProgress) {
-              const headerData = oggPage[codecFrames][0][header];
+          }
 
-              this._decoder.sendSetupHeader(headerData[vorbisComments]);
-              this._decoder.sendSetupHeader(headerData[vorbisSetup]);
-              this._decoder.initDsp();
+          if (oggPage[codecFrames].length) {
+            const headerData = oggPage[codecFrames][0][header];
 
-              this._vorbisSetupInProgress = false;
-            }
+            this._decoder.sendSetupHeader(headerData[vorbisComments]);
+            this._decoder.sendSetupHeader(headerData[vorbisSetup]);
+            this._decoder.initDsp();
+
+            this._vorbisSetupInProgress = false;
           }
         }
 
