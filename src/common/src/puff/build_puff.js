@@ -23,7 +23,7 @@ const wasmCommonWithPuff = Buffer.concat(
     puffEncoded,
     "`;",
     wasmCommon.substring(wasmEndIdx),
-  ].map(Buffer.from)
+  ].map(Buffer.from),
 );
 
 fs.writeFileSync(wasmCommonPath, wasmCommonWithPuff, { encoding: "binary" });

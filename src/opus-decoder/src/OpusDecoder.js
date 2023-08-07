@@ -35,17 +35,17 @@ export default function OpusDecoder(options = {}) {
 
         this._input = this._common.allocateTypedArray(
           this._inputSize,
-          Uint8Array
+          Uint8Array,
         );
 
         this._output = this._common.allocateTypedArray(
           this._outputChannels * this._outputChannelSize,
-          Float32Array
+          Float32Array,
         );
 
         const mapping = this._common.allocateTypedArray(
           this._channels,
-          Uint8Array
+          Uint8Array,
         );
 
         mapping.buf.set(this._channelMappingTable);
@@ -57,7 +57,7 @@ export default function OpusDecoder(options = {}) {
           this._coupledStreamCount,
           mapping.ptr,
           this._preSkip,
-          this._forceStereo
+          this._forceStereo,
         );
       });
 
@@ -81,7 +81,7 @@ export default function OpusDecoder(options = {}) {
   this._decode = (opusFrame) => {
     if (!(opusFrame instanceof Uint8Array))
       throw Error(
-        "Data to decode must be Uint8Array. Instead got " + typeof opusFrame
+        "Data to decode must be Uint8Array. Instead got " + typeof opusFrame,
       );
 
     this._input.buf.set(opusFrame);
@@ -91,7 +91,7 @@ export default function OpusDecoder(options = {}) {
         this._decoder,
         this._input.ptr,
         opusFrame.length,
-        this._output.ptr
+        this._output.ptr,
       );
 
     let error;
@@ -111,7 +111,7 @@ export default function OpusDecoder(options = {}) {
       outputBuffer: this._common.getOutputChannels(
         this._output.buf,
         this._outputChannels,
-        samplesDecoded
+        samplesDecoded,
       ),
       samplesDecoded: samplesDecoded,
       error: error,
@@ -130,7 +130,7 @@ export default function OpusDecoder(options = {}) {
         opusFrame.length,
         this._frameNumber,
         this._inputBytes,
-        this._outputSamples
+        this._outputSamples,
       );
 
     this._frameNumber++;
@@ -142,7 +142,7 @@ export default function OpusDecoder(options = {}) {
       [decoded.outputBuffer],
       this._outputChannels,
       decoded.samplesDecoded,
-      this._sampleRate
+      this._sampleRate,
     );
   };
 
@@ -166,7 +166,7 @@ export default function OpusDecoder(options = {}) {
           opusFrame.length,
           this._frameNumber,
           this._inputBytes,
-          this._outputSamples
+          this._outputSamples,
         );
 
       this._frameNumber++;
@@ -179,7 +179,7 @@ export default function OpusDecoder(options = {}) {
       outputBuffers,
       this._outputChannels,
       samplesDecoded,
-      this._sampleRate
+      this._sampleRate,
     );
   };
 

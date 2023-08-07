@@ -13,7 +13,7 @@ export const getInterleaved = (channelData, samples) => {
   for (let offset = 0, interleavedOffset = 0; offset < samples; offset++) {
     for (let channel = 0; channel < channelData.length; channel++) {
       interleaved[interleavedOffset++] = floatToInt(
-        channelData[channel][offset]
+        channelData[channel][offset],
       );
     }
   }
@@ -67,7 +67,7 @@ const printStats = ({
       " MiB (" +
       (bytesWritten / decodeTime / 1024 ** 2).toFixed(2) +
       "MiB/s)" +
-      "\n"
+      "\n",
   );
 };
 
@@ -76,7 +76,7 @@ export const testDecoder_decodeFrame = async (
   fileName,
   frames,
   framesLength,
-  outputPath
+  outputPath,
 ) => {
   const output = await fs.open(outputPath, "w+");
   try {
@@ -85,7 +85,7 @@ export const testDecoder_decodeFrame = async (
 
     // print the initial stats header
     process.stderr.write(
-      "\n" + decoder.constructor.name + " " + fileName + "\n"
+      "\n" + decoder.constructor.name + " " + fileName + "\n",
     );
 
     const decodeStart = performance.now();
@@ -160,7 +160,7 @@ export const testDecoder_decodeFrames = async (
   fileName,
   frames,
   framesLength,
-  outputPath
+  outputPath,
 ) => {
   const output = await fs.open(outputPath, "w+");
   try {
@@ -169,7 +169,7 @@ export const testDecoder_decodeFrames = async (
 
     // print the initial stats header
     process.stderr.write(
-      "\n" + decoder.constructor.name + " " + fileName + "\n"
+      "\n" + decoder.constructor.name + " " + fileName + "\n",
     );
 
     const decodeStart = performance.now();
@@ -178,7 +178,7 @@ export const testDecoder_decodeFrames = async (
 
     const interleaved = getInterleaved(
       decoded.channelData,
-      decoded.samplesDecoded
+      decoded.samplesDecoded,
     );
 
     await output.writeFile(interleaved);
@@ -217,7 +217,7 @@ export const testDecoder_decode = async (
   method,
   fileName,
   inputPath,
-  outputPath
+  outputPath,
 ) => {
   const [input, output] = await Promise.all([
     fs.open(inputPath, "r+"),
@@ -241,7 +241,7 @@ export const testDecoder_decode = async (
 
     // print the initial stats header
     process.stderr.write(
-      "\n" + decoder.constructor.name + " " + fileName + "\n"
+      "\n" + decoder.constructor.name + " " + fileName + "\n",
     );
 
     while (true) {
@@ -249,7 +249,7 @@ export const testDecoder_decode = async (
       const { bytesRead, buffer } = await input.read(
         Buffer.allocUnsafe(2 ** 24),
         0,
-        2 ** 24
+        2 ** 24,
       );
       inEnd = performance.now();
 

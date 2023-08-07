@@ -34,7 +34,7 @@ export function Decoder() {
           this._outputBufferPtr.ptr,
           this._outputBufferLen.ptr,
           this._errorStringPtr.ptr,
-          this._stateStringPtr.ptr
+          this._stateStringPtr.ptr,
         );
       });
   };
@@ -59,13 +59,13 @@ export function Decoder() {
   this._decode = (data) => {
     if (!(data instanceof Uint8Array))
       throw Error(
-        "Data to decode must be Uint8Array. Instead got " + typeof data
+        "Data to decode must be Uint8Array. Instead got " + typeof data,
       );
 
     const input = this._common.allocateTypedArray(
       data.length,
       Uint8Array,
-      false
+      false,
     );
     input.buf.set(data);
 
@@ -75,25 +75,25 @@ export function Decoder() {
       error;
     if (this._errorStringPtr.buf[0])
       errorMessage.push(
-        "Error: " + this._common.codeToString(this._errorStringPtr.buf[0])
+        "Error: " + this._common.codeToString(this._errorStringPtr.buf[0]),
       );
 
     if (this._stateStringPtr.buf[0])
       errorMessage.push(
-        "State: " + this._common.codeToString(this._stateStringPtr.buf[0])
+        "State: " + this._common.codeToString(this._stateStringPtr.buf[0]),
       );
 
     if (errorMessage.length) {
       error = errorMessage.join("; ");
       console.error(
-        "@wasm-audio-decoders/flac: \n\t" + errorMessage.join("\n\t")
+        "@wasm-audio-decoders/flac: \n\t" + errorMessage.join("\n\t"),
       );
     }
 
     const output = new Float32Array(
       this._common.wasm.HEAP,
       this._outputBufferPtr.buf[0],
-      this._outputBufferLen.buf[0]
+      this._outputBufferLen.buf[0],
     );
 
     const decoded = {
@@ -101,7 +101,7 @@ export function Decoder() {
       outputBuffer: this._common.getOutputChannels(
         output,
         this._channels.buf[0],
-        this._samplesDecoded.buf[0]
+        this._samplesDecoded.buf[0],
       ),
       samplesDecoded: this._samplesDecoded.buf[0],
     };
@@ -138,7 +138,7 @@ export function Decoder() {
             data.length,
             this._frameNumber,
             this._inputBytes,
-            this._outputSamples
+            this._outputSamples,
           );
 
         this._inputBytes += data.length;
@@ -154,7 +154,7 @@ export function Decoder() {
       this._channels.buf[0],
       outputSamples,
       this._sampleRate.buf[0],
-      this._bitsPerSample.buf[0]
+      this._bitsPerSample.buf[0],
     );
   };
 
@@ -179,7 +179,7 @@ export default class FLACDecoder {
     this._onCodec = (codec) => {
       if (codec !== "flac")
         throw new Error(
-          "@wasm-audio-decoders/flac does not support this codec " + codec
+          "@wasm-audio-decoders/flac does not support this codec " + codec,
         );
     };
 
@@ -222,13 +222,13 @@ export default class FLACDecoder {
 
   async decode(flacData) {
     return this._decoder.decodeFrames(
-      [...this._codecParser.parseChunk(flacData)].map((f) => f[data])
+      [...this._codecParser.parseChunk(flacData)].map((f) => f[data]),
     );
   }
 
   async flush() {
     const decoded = this._decoder.decodeFrames(
-      [...this._codecParser.flush()].map((f) => f[data])
+      [...this._codecParser.flush()].map((f) => f[data]),
     );
 
     await this.reset();
@@ -237,7 +237,7 @@ export default class FLACDecoder {
 
   async decodeFile(flacData) {
     const decoded = this._decoder.decodeFrames(
-      [...this._codecParser.parseAll(flacData)].map((f) => f[data])
+      [...this._codecParser.parseAll(flacData)].map((f) => f[data]),
     );
 
     await this.reset();

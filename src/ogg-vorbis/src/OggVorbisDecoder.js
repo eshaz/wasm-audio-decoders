@@ -23,7 +23,7 @@ export function Decoder() {
 
         this._input = this._common.allocateTypedArray(
           this._inputSize,
-          Uint8Array
+          Uint8Array,
         );
 
         this._firstPage = true;
@@ -51,7 +51,7 @@ export function Decoder() {
           this._samplesDecoded.ptr,
           this._errors.ptr,
           this._errorsLength.ptr,
-          maxErrors
+          maxErrors,
         );
       });
   };
@@ -102,7 +102,7 @@ export function Decoder() {
       const outputBufferChannels = new Uint32Array(
         this._common.wasm.HEAP,
         this._outputBufferPtr.buf[0],
-        this._channels.buf[0]
+        this._channels.buf[0],
       );
       for (let channel = 0; channel < this._channels.buf[0]; channel++) {
         const output = new Float32Array(samplesDecoded);
@@ -110,8 +110,8 @@ export function Decoder() {
           new Float32Array(
             this._common.wasm.HEAP,
             outputBufferChannels[channel],
-            samplesDecoded
-          )
+            samplesDecoded,
+          ),
         );
 
         channels.push(output);
@@ -147,7 +147,7 @@ export function Decoder() {
       this._channels.buf[0],
       outputSamples,
       this._sampleRate.buf[0],
-      16
+      16,
     );
   };
 
@@ -172,7 +172,8 @@ export default class OggVorbisDecoder {
     this._onCodec = (codec) => {
       if (codec !== "vorbis")
         throw new Error(
-          "@wasm-audio-decoders/ogg-vorbis does not support this codec " + codec
+          "@wasm-audio-decoders/ogg-vorbis does not support this codec " +
+            codec,
         );
     };
 
@@ -258,7 +259,7 @@ export default class OggVorbisDecoder {
           for (let i = 0; i < decoded.channelData.length; i++)
             decoded.channelData[i] = decoded.channelData[i].subarray(
               0,
-              decoded.samplesDecoded - samplesToTrim
+              decoded.samplesDecoded - samplesToTrim,
             );
 
           decoded.samplesDecoded -= samplesToTrim;

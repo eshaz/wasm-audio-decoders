@@ -12,7 +12,7 @@ const searchFileSize = async (
   sourcePath,
   outputName,
   rollupOutput,
-  terserOutput
+  terserOutput,
 ) => {
   let bestLength = Infinity;
   let bestIteration = Infinity;
@@ -29,7 +29,7 @@ const searchFileSize = async (
       outputName,
       iteration,
       rollupOutput,
-      terserOutput
+      terserOutput,
     )
       .then((code) => {
         sizes.push({
@@ -44,7 +44,7 @@ const searchFileSize = async (
               "new best iteration",
               iteration,
               sourcePath,
-              code.length
+              code.length,
             );
           }
           bestLength = code.length;
@@ -69,7 +69,7 @@ const buildWasm = async (
   outputName,
   compressionIterations,
   rollupOutput,
-  terserOutput
+  terserOutput,
 ) => {
   const emscriptenInputPath = sourcePath + `src/${outputName}.tmp.js`;
   const emscriptenOutputPath = sourcePath + `src/${outputName}.js`;
@@ -94,7 +94,7 @@ this.getModule = () =>
 
 this.instantiate = () => {
   this.getModule().then((wasm) => WebAssembly.instantiate(wasm, imports)).then((instance) => {
-    var asm = instance.exports;`
+    var asm = instance.exports;`,
     );
 
     const wasmBase64ContentMatcher =
@@ -139,7 +139,7 @@ this.instantiate = () => {
         dynEncodedWasm.quote,
         `})`,
         decoder.substring(wasmEndIdx),
-      ].map(Buffer.from)
+      ].map(Buffer.from),
     );
 
     const banner =
@@ -157,7 +157,7 @@ this.instantiate = () => {
         decoder,
         "return this;\n",
         "}}",
-      ].map(Buffer.from)
+      ].map(Buffer.from),
     );
 
     fs.writeFileSync(emscriptenOutputPath, finalString, { encoding: "binary" });
@@ -179,11 +179,11 @@ this.instantiate = () => {
 
     // terser
     const terserConfig = JSON.parse(
-      fs.readFileSync(terserConfigPath).toString()
+      fs.readFileSync(terserConfigPath).toString(),
     );
     const minified = await minify(
       { [output.fileName]: output.code },
-      terserConfig
+      terserConfig,
     );
 
     // write output files
@@ -208,7 +208,7 @@ await buildWasm(
   outputName,
   compressionIterations,
   module,
-  moduleMin
+  moduleMin,
 );
 
 /*
