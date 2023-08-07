@@ -257,6 +257,7 @@ describe("wasm-audio-decoders", () => {
   const oggVorbisChained2TestFile = "ogg.vorbis.chained2.ogg";
   const oggVorbisPacketsTestFile = "ogg.vorbis.packets.ogg";
   const oggVorbisFisheadTestFile = "ogg.vorbis.fishead.ogg";
+  const oggVorbisInvalidModeCountTestFile = "ogg.vorbis.invalid.mode.count.ogg";
 
   const opusStereoTestFile = "ogg.opus";
   const opusStereoErrorsTestFile = "ogg.errors.opus";
@@ -2164,7 +2165,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(5760832);
+        expect(result.samplesDecoded).toEqual(5760449);
         expect(result.sampleRate).toEqual(96000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2185,7 +2186,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(106496);
+        expect(result.samplesDecoded).toEqual(106380);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2206,7 +2207,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(288064);
+        expect(result.samplesDecoded).toEqual(287688);
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2227,7 +2228,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(288064); // 287103 from codec parser
+        expect(result.samplesDecoded).toEqual(287688); // 287103 from codec parser
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2269,7 +2270,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(8785152); // 50560 from codec parser
+        expect(result.samplesDecoded).toEqual(8785152);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2290,7 +2291,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(229952);
+        expect(result.samplesDecoded).toEqual(229689);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2311,8 +2312,29 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(3497536);
+        expect(result.samplesDecoded).toEqual(3497472);
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode vorbis with invalid mode count", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode vorbis with invalid",
+          oggVorbisInvalidModeCountTestFile,
+          oggVorbisInvalidModeCountTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(343);
+        expect(result.sampleRate).toEqual(8000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
@@ -2355,7 +2377,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(5760832);
+        expect(result.samplesDecoded).toEqual(5760449);
         expect(result.sampleRate).toEqual(96000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2376,7 +2398,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(106496);
+        expect(result.samplesDecoded).toEqual(106380);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2397,7 +2419,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(288064);
+        expect(result.samplesDecoded).toEqual(287688);
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2418,7 +2440,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(288064); // 287103 from codec parser
+        expect(result.samplesDecoded).toEqual(287688); // 287103 from codec parser
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2481,7 +2503,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(229952);
+        expect(result.samplesDecoded).toEqual(229689);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2489,7 +2511,7 @@ describe("wasm-audio-decoders", () => {
 
       it("should decode vorbis with fishead metadata", async () => {
         const { paths, result } = await test_decode(
-          new OggVorbisDecoder(),
+          new OggVorbisDecoderWebWorker(),
           "decodeFile",
           "should decode vorbis with fishead metadata",
           oggVorbisFisheadTestFile,
@@ -2502,8 +2524,29 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(3497536);
+        expect(result.samplesDecoded).toEqual(3497472);
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode vorbis with invalid mode count", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode vorbis with invalid",
+          oggVorbisInvalidModeCountTestFile,
+          oggVorbisInvalidModeCountTestFile
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(343);
+        expect(result.sampleRate).toEqual(8000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });

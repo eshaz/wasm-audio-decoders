@@ -1,11 +1,13 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import CodecParser, {
-  pageSequenceNumber,
+  absoluteGranulePosition,
+  samples,
   data,
   codecFrames,
   header,
   vorbisComments,
   vorbisSetup,
+  isLastPage,
 } from "codec-parser";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
@@ -237,7 +239,34 @@ export default class OggVorbisDecoder {
       packets.push(...oggPage[codecFrames].map((f) => f[data]));
     }
 
-    return this._decoder.decodePackets(packets);
+    const decoded = await this._decoder.decodePackets(packets);
+
+    // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
+    const oggPage = oggPages[oggPages.length - 1];
+    if (oggPages.length && Number(oggPage[absoluteGranulePosition]) > -1) {
+      if (this._beginningSampleOffset === undefined) {
+        this._beginningSampleOffset =
+          oggPage[absoluteGranulePosition] - BigInt(oggPage[samples]);
+      }
+
+      if (oggPage[isLastPage]) {
+        // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+        const samplesToTrim =
+          decoded.samplesDecoded - Number(oggPage[absoluteGranulePosition]);
+
+        if (samplesToTrim > 0) {
+          for (let i = 0; i < decoded.channelData.length; i++)
+            decoded.channelData[i] = decoded.channelData[i].subarray(
+              0,
+              decoded.samplesDecoded - samplesToTrim
+            );
+
+          decoded.samplesDecoded -= samplesToTrim;
+        }
+      }
+    }
+
+    return decoded;
   }
 
   async decode(vorbisData) {
