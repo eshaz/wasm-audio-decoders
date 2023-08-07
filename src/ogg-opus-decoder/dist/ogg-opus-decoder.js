@@ -780,17 +780,17 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
           this._input = this._common.allocateTypedArray(
             this._inputSize,
-            Uint8Array
+            Uint8Array,
           );
 
           this._output = this._common.allocateTypedArray(
             this._outputChannels * this._outputChannelSize,
-            Float32Array
+            Float32Array,
           );
 
           const mapping = this._common.allocateTypedArray(
             this._channels,
-            Uint8Array
+            Uint8Array,
           );
 
           mapping.buf.set(this._channelMappingTable);
@@ -802,7 +802,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
             this._coupledStreamCount,
             mapping.ptr,
             this._preSkip,
-            this._forceStereo
+            this._forceStereo,
           );
         });
 
@@ -826,7 +826,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     this._decode = (opusFrame) => {
       if (!(opusFrame instanceof Uint8Array))
         throw Error(
-          "Data to decode must be Uint8Array. Instead got " + typeof opusFrame
+          "Data to decode must be Uint8Array. Instead got " + typeof opusFrame,
         );
 
       this._input.buf.set(opusFrame);
@@ -836,7 +836,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
           this._decoder,
           this._input.ptr,
           opusFrame.length,
-          this._output.ptr
+          this._output.ptr,
         );
 
       let error;
@@ -856,7 +856,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         outputBuffer: this._common.getOutputChannels(
           this._output.buf,
           this._outputChannels,
-          samplesDecoded
+          samplesDecoded,
         ),
         samplesDecoded: samplesDecoded,
         error: error,
@@ -875,7 +875,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
           opusFrame.length,
           this._frameNumber,
           this._inputBytes,
-          this._outputSamples
+          this._outputSamples,
         );
 
       this._frameNumber++;
@@ -887,7 +887,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         [decoded.outputBuffer],
         this._outputChannels,
         decoded.samplesDecoded,
-        this._sampleRate
+        this._sampleRate,
       );
     };
 
@@ -911,7 +911,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
             opusFrame.length,
             this._frameNumber,
             this._inputBytes,
-            this._outputSamples
+            this._outputSamples,
           );
 
         this._frameNumber++;
@@ -924,7 +924,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         outputBuffers,
         this._outputChannels,
         samplesDecoded,
-        this._sampleRate
+        this._sampleRate,
       );
     };
 
@@ -1053,7 +1053,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         [left, center, right],
         [center, left, right],
         [center],
-      ].flatMap((y) => y.map((z) => x + z).join(mappingJoin))
+      ].flatMap((y) => y.map((z) => x + z).join(mappingJoin)),
     );
   })();
 
@@ -1215,7 +1215,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
   const mapCodecFrameStats = symbol();
   const mapFrameStats = symbol();
   const logWarning = symbol();
-  const logError = symbol();
+  const logError$1 = symbol();
   const syncFrame = symbol();
   const fixedLengthFrameSync = symbol();
   const getHeader = symbol();
@@ -1271,14 +1271,14 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
   const crc8Table = getCrcTable(
     new uint8Array(256),
     (b) => b,
-    (crc) => (crc & 0x80 ? 0x07 ^ (crc << 1) : crc << 1)
+    (crc) => (crc & 0x80 ? 0x07 ^ (crc << 1) : crc << 1),
   );
 
   const flacCrc16Table = [
     getCrcTable(
       new Uint16Array(256),
       (b) => b << 8,
-      (crc) => (crc << 1) ^ (crc & (1 << 15) ? 0x8005 : 0)
+      (crc) => (crc << 1) ^ (crc & (1 << 15) ? 0x8005 : 0),
     ),
   ];
 
@@ -1286,7 +1286,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     getCrcTable(
       new Uint32Array(256),
       (b) => b,
-      (crc) => (crc >>> 1) ^ ((crc & 1) * 0xedb88320)
+      (crc) => (crc >>> 1) ^ ((crc & 1) * 0xedb88320),
     ),
   ];
 
@@ -1380,7 +1380,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
   const concatBuffers = (...buffers) => {
     const buffer = new uint8Array(
-      buffers.reduce((acc, buf) => acc + buf[length], 0)
+      buffers.reduce((acc, buf) => acc + buf[length], 0),
     );
 
     buffers.reduce((offset, buf) => {
@@ -1472,7 +1472,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
         // only update if codec data is available
         const codecData = this._codecUpdateData.get(
-          this._headerCache.get(this._currentHeader)
+          this._headerCache.get(this._currentHeader),
         );
 
         if (this._codecShouldUpdate && codecData) {
@@ -1481,7 +1481,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
               bitrate,
               ...codecData,
             },
-            totalDuration
+            totalDuration,
           );
         }
 
@@ -1559,7 +1559,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         frameData = yield* this.Frame[getFrame](
           this._codecParser,
           this._headerCache,
-          0
+          0,
         );
         if (frameData) return frameData;
         this._codecParser[incrementRawData](1); // increment to continue syncing
@@ -1582,7 +1582,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         (yield* this.Header[getHeader](
           this._codecParser,
           this._headerCache,
-          frameLength
+          frameLength,
         ))
       ) {
         this._headerCache[enable](); // start caching when synced
@@ -1594,7 +1594,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
       this._codecParser[logWarning](
         `Missing ${frame} at ${frameLength} bytes from current position.`,
-        `Dropping current ${frame} and trying again.`
+        `Dropping current ${frame} and trying again.`,
       );
       this._headerCache[reset](); // frame is invalid and must re-sync and clear cache
       this._codecParser[incrementRawData](1); // increment to invalidate the current frame
@@ -1655,7 +1655,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       const headerValue = yield* Header[getHeader](
         codecParser,
         headerCache,
-        readOffset
+        readOffset,
       );
 
       if (headerValue) {
@@ -1664,7 +1664,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
         const frame = (yield* codecParser[readRawData](
           frameLengthValue,
-          readOffset
+          readOffset,
         ))[subarray](0, frameLengthValue);
 
         return new Frame(headerValue, frame, samplesValue);
@@ -2003,7 +2003,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       const id3v2Header = yield* ID3v2.getID3v2Header(
         codecParser,
         headerCache,
-        readOffset
+        readOffset,
       );
 
       if (id3v2Header) {
@@ -2066,7 +2066,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
       header[frameLength] = Math.floor(
         (125 * header[bitrate] * header[samples$1]) / header[sampleRate] +
-          header[framePadding]
+          header[framePadding],
       );
       if (!header[frameLength]) return null;
 
@@ -2145,7 +2145,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         MPEGFrame,
         codecParser,
         headerCache,
-        readOffset
+        readOffset,
       );
     }
 
@@ -2449,7 +2449,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         AACFrame,
         codecParser,
         headerCache,
-        readOffset
+        readOffset,
       );
     }
 
@@ -2934,7 +2934,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         const header = yield* FLACHeader[getHeader](
           this._codecParser,
           this._headerCache,
-          0
+          0,
         );
 
         if (header) {
@@ -2949,12 +2949,12 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
               (yield* FLACHeader[getHeader](
                 this._codecParser,
                 this._headerCache,
-                nextHeaderOffset
+                nextHeaderOffset,
               ))
             ) {
               // found a valid next frame header
               let frameData = yield* this._codecParser[readRawData](
-                nextHeaderOffset
+                nextHeaderOffset,
               );
 
               if (!this._codecParser._flushing)
@@ -2974,18 +2974,18 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
             }
 
             nextHeaderOffset = yield* this._getNextFrameSyncOffset(
-              nextHeaderOffset + 1
+              nextHeaderOffset + 1,
             );
           }
 
           this._codecParser[logWarning](
-            `Unable to sync FLAC frame after searching ${nextHeaderOffset} bytes.`
+            `Unable to sync FLAC frame after searching ${nextHeaderOffset} bytes.`,
           );
           this._codecParser[incrementRawData](nextHeaderOffset);
         } else {
           // not synced, increment data to continue syncing
           this._codecParser[incrementRawData](
-            yield* this._getNextFrameSyncOffset(1)
+            yield* this._getNextFrameSyncOffset(1),
           );
         }
       } while (true);
@@ -3003,7 +3003,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
           [segments].map((segment) => {
             const header = FLACHeader[getHeaderFromUint8Array](
               segment,
-              this._headerCache
+              this._headerCache,
             );
 
             if (header) {
@@ -3011,7 +3011,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
             } else {
               this._codecParser[logWarning](
                 "Failed to parse Ogg FLAC frame",
-                "Skipping invalid FLAC frame"
+                "Skipping invalid FLAC frame",
               );
             }
           })
@@ -3114,7 +3114,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       header[frameLength] = 0;
       header[pageSegmentTable] = [];
       header[pageSegmentBytes] = uint8Array.from(
-        data[subarray](27, header[length])
+        data[subarray](27, header[length]),
       );
 
       for (let i = 0, segmentLength = 0; i < pageSegmentTableLength; i++) {
@@ -3174,7 +3174,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       const header = yield* OggPageHeader[getHeader](
         codecParser,
         headerCache,
-        readOffset
+        readOffset,
       );
 
       if (header) {
@@ -3237,7 +3237,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       super(
         header,
         data,
-        ((header[frameSize] * header[frameCount]) / 1000) * header[sampleRate]
+        ((header[frameSize] * header[frameCount]) / 1000) * header[sampleRate],
       );
     }
   }
@@ -3537,14 +3537,14 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
             const header = OpusHeader[getHeaderFromUint8Array](
               this._identificationHeader,
               segment,
-              this._headerCache
+              this._headerCache,
             );
 
             if (header) return new OpusFrame(segment, header);
 
-            this._codecParser[logError](
+            this._codecParser[logError$1](
               "Failed to parse Ogg Opus Header",
-              "Not a valid Ogg Opus file"
+              "Not a valid Ogg Opus file",
             );
           });
       }
@@ -3614,7 +3614,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       dataValue,
       headerCache,
       vorbisCommentsData,
-      vorbisSetupData
+      vorbisSetupData,
     ) {
       // Must be at least 30 bytes.
       if (dataValue[length] < 30)
@@ -3740,11 +3740,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       this._identificationHeader = null;
       this._setupComplete = false;
 
-      this._mode = {
-        count: 0,
-      };
-      this._prevBlockSize = 0;
-      this._currBlockSize = 0;
+      this._prevBlockSize = null;
     }
 
     get [codec]() {
@@ -3776,7 +3772,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
             this._identificationHeader,
             this._headerCache,
             this._vorbisComments,
-            this._vorbisSetup
+            this._vorbisSetup,
           );
 
           if (header) {
@@ -3784,13 +3780,13 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
               new VorbisFrame(
                 oggPageSegment,
                 header,
-                this._getSamples(oggPageSegment, header)
-              )
+                this._getSamples(oggPageSegment, header),
+              ),
             );
           } else {
             this._codecParser[logError](
               "Failed to parse Ogg Vorbis Header",
-              "Not a valid Ogg Vorbis file"
+              "Not a valid Ogg Vorbis file",
             );
           }
         }
@@ -3800,25 +3796,26 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     }
 
     _getSamples(segment, header) {
-      const byte = segment[0] >> 1;
+      const blockFlag =
+        this._mode.blockFlags[(segment[0] >> 1) & this._mode.mask];
 
-      const blockFlag = this._mode[byte & this._mode.mask];
+      const currentBlockSize = blockFlag
+        ? header[blocksize1]
+        : header[blocksize0];
 
-      // is this a large window
-      if (blockFlag) {
-        this._prevBlockSize =
-          byte & this._mode.prevMask ? header[blocksize1] : header[blocksize0];
-      }
+      // data is not returned on the first frame, but is used to prime the decoder
+      // https://xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-590004
+      const samplesValue =
+        this._prevBlockSize === null
+          ? 0
+          : (this._prevBlockSize + currentBlockSize) / 4;
 
-      this._currBlockSize = blockFlag ? header[blocksize1] : header[blocksize0];
-
-      const samplesValue = (this._prevBlockSize + this._currBlockSize) >> 2;
-      this._prevBlockSize = this._currBlockSize;
+      this._prevBlockSize = currentBlockSize;
 
       return samplesValue;
     }
 
-    // https://gitlab.xiph.org/xiph/liboggz/-/blob/master/src/liboggz/oggz_auto.c
+    // https://gitlab.xiph.org/xiph/liboggz/-/blob/master/src/liboggz/oggz_auto.c#L911
     // https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/vorbis_parser.c
     /*
      * This is the format of the mode data at the end of the packet for all
@@ -3847,7 +3844,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
      * 0 0 0 0 0 0 0 0 V
      * 0 0 0|0 0 0 0 0
      * 0 0 0 0 0 0 0 0
-     * 0 0 1|0 0 0 0 0
+     * 0 0|1 0 0 0 0 0
      *
      * The simplest way to approach this is to start at the end
      * and read backwards to determine the mode configuration.
@@ -3856,11 +3853,9 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
      */
     _parseSetupHeader(setup) {
       const bitReader = new BitReader(setup);
-      const failedToParseVorbisStream = "Failed to read " + vorbis + " stream";
-      const failedToParseVorbisModes = ", failed to parse " + vorbis + " modes";
-
-      let mode = {
+      const mode = {
         count: 0,
+        blockFlags: [],
       };
 
       // sync with the framing bit
@@ -3870,45 +3865,36 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       // search in reverse to parse out the mode entries
       // limit mode count to 63 so previous block flag will be in first packet byte
       while (mode.count < 64 && bitReader.position > 0) {
-        const mapping = reverse(bitReader.read(8));
-        if (
-          mapping in mode &&
-          !(mode.count === 1 && mapping === 0) // allows for the possibility of only one mode
-        ) {
-          this._codecParser[logError](
-            "received duplicate mode mapping" + failedToParseVorbisModes
-          );
-          throw new Error(failedToParseVorbisStream);
-        }
+        reverse(bitReader.read(8)); // read mapping
 
         // 16 bits transform type, 16 bits window type, all values must be zero
-        let i = 0;
-        while (bitReader.read(8) === 0x00 && i++ < 3) {} // a non-zero value may indicate the end of the mode entries, or invalid data
+        let currentByte = 0;
+        while (bitReader.read(8) === 0x00 && currentByte++ < 3) {} // a non-zero value may indicate the end of the mode entries, or invalid data
 
-        if (i === 4) {
+        if (currentByte === 4) {
           // transform type and window type were all zeros
           modeBits = bitReader.read(7); // modeBits may need to be used in the next iteration if this is the last mode entry
-          mode[mapping] = modeBits & 0x01; // read and store mode -> block flag mapping
+          mode.blockFlags.unshift(modeBits & 0x01); // read and store mode number -> block flag
           bitReader.position += 6; // go back 6 bits so next iteration starts right after the block flag
           mode.count++;
         } else {
           // transform type and window type were not all zeros
           // check for mode count using previous iteration modeBits
           if (((reverse(modeBits) & 0b01111110) >> 1) + 1 !== mode.count) {
-            this._codecParser[logError](
-              "mode count did not match actual modes" + failedToParseVorbisModes
+            this._codecParser[logWarning](
+              "vorbis derived mode count did not match actual mode count",
             );
-            throw new Error(failedToParseVorbisStream);
           }
 
           break;
         }
       }
 
-      // mode mask to read the mode from the first byte in the vorbis frame
+      // xxxxxxxa packet type
+      // xxxxxxbx mode count (number of mode count bits)
+      // xxxxxcxx previous window flag
+      // xxxxdxxx next window flag
       mode.mask = (1 << Math.log2(mode.count)) - 1;
-      // previous window flag is the next bit after the mode mask
-      mode.prevMask = (mode.mask | 0x1) + 1;
 
       return mode;
     }
@@ -3954,7 +3940,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         this._parser = new Parser(
           this._codecParser,
           this._headerCache,
-          this._onCodec
+          this._onCodec,
         );
         this._codec = codec;
       }
@@ -3990,7 +3976,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
           "Unexpected gap in Ogg Page Sequence Number.",
           `Expected: ${this._pageSequenceNumber + 1}, Got: ${
           oggPage[pageSequenceNumber]
-        }`
+        }`,
         );
       }
 
@@ -4010,14 +3996,14 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
       let offset = 0;
       oggPageStore[segments] = headerData[pageSegmentTable].map((segmentLength) =>
-        oggPage[data][subarray](offset, (offset += segmentLength))
+        oggPage[data][subarray](offset, (offset += segmentLength)),
       );
 
       // prepend any existing continued packet data
       if (this._continuedPacket[length]) {
         oggPageStore[segments][0] = concatBuffers(
           this._continuedPacket,
-          oggPageStore[segments][0]
+          oggPageStore[segments][0],
         );
 
         this._continuedPacket = new uint8Array();
@@ -4030,7 +4016,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       ) {
         this._continuedPacket = concatBuffers(
           this._continuedPacket,
-          oggPageStore[segments].pop()
+          oggPageStore[segments].pop(),
         );
       }
 
@@ -4072,7 +4058,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         oggStream = new OggStream(
           this._codecParser,
           this._headerCache,
-          this._onCodec
+          this._onCodec,
         );
         this._streams.set(this._currentSerialNumber, oggStream);
       }
@@ -4113,7 +4099,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         onCodecUpdate,
         enableLogging = false,
         enableFrameCRC32 = true,
-      } = {}
+      } = {},
     ) {
       this._inputMimeType = mimeType;
       this._onCodec = onCodec || noOp;
@@ -4122,8 +4108,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       this._enableLogging = enableLogging;
       this._crc32 = enableFrameCRC32 ? crc32Function : noOp;
 
-      this._generator = this._getGenerator();
-      this._generator.next();
+      this[reset]();
     }
 
     /**
@@ -4131,7 +4116,17 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
      * @returns The detected codec
      */
     get [codec]() {
-      return this._parser[codec];
+      return this._parser ? this._parser[codec] : "";
+    }
+
+    [reset]() {
+      this._headerCache = new HeaderCache(
+        this._onCodecHeader,
+        this._onCodecUpdate,
+      );
+
+      this._generator = this._getGenerator();
+      this._generator.next();
     }
 
     /**
@@ -4149,8 +4144,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
       this._flushing = false;
 
-      this._generator = this._getGenerator();
-      this._generator.next();
+      this[reset]();
     }
 
     /**
@@ -4184,11 +4178,6 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
      * @private
      */
     *_getGenerator() {
-      this._headerCache = new HeaderCache(
-        this._onCodecHeader,
-        this._onCodecUpdate
-      );
-
       if (this._inputMimeType.match(/aac/)) {
         this._parser = new AACParser(this, this._headerCache, this._onCodec);
       } else if (this._inputMimeType.match(/mpeg/)) {
@@ -4255,7 +4244,9 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       this._sampleRate = frame[header$1][sampleRate];
 
       frame[header$1][bitrate] =
-        Math.round(frame[data][length] / frame[duration]) * 8;
+        frame[duration] > 0
+          ? Math.round(frame[data][length] / frame[duration]) * 8
+          : 0;
       frame[frameNumber] = this._frameNumber++;
       frame[totalBytesOut] = this._totalBytesOut;
       frame[totalSamples] = this._totalSamples;
@@ -4264,7 +4255,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
       this._headerCache[checkCodecUpdate](
         frame[header$1][bitrate],
-        frame[totalDuration]
+        frame[totalDuration],
       );
 
       this._totalBytesOut += frame[data][length];
@@ -4310,12 +4301,12 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         messages.push(
           `--stats--${"-".repeat(width - 9)}`,
           ...stats,
-          "-".repeat(width)
+          "-".repeat(width),
         );
 
         logger(
           "codec-parser",
-          messages.reduce((acc, message) => acc + "\n  " + message, "")
+          messages.reduce((acc, message) => acc + "\n  " + message, ""),
         );
       }
     }
@@ -4330,7 +4321,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
     /**
      * @protected
      */
-    [logError](...messages) {
+    [logError$1](...messages) {
       this._log(console.error, messages);
     }
   }
@@ -4408,18 +4399,18 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
         const totalDecodedSamples =
           (this._totalSamples / this._sampleRate) * 48000;
         const totalOggSamples = Number(
-          oggPage[absoluteGranulePosition] - this._beginningSampleOffset
+          oggPage[absoluteGranulePosition] - this._beginningSampleOffset,
         );
 
         // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
         const samplesToTrim = Math.round(
-          ((totalDecodedSamples - totalOggSamples) / 48000) * this._sampleRate
+          ((totalDecodedSamples - totalOggSamples) / 48000) * this._sampleRate,
         );
 
         for (let i = 0; i < channelData.length; i++)
           channelData[i] = channelData[i].subarray(
             0,
-            samplesDecoded - samplesToTrim
+            samplesDecoded - samplesToTrim,
           );
 
         this._totalSamples -= samplesToTrim;
@@ -4453,7 +4444,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
       this._onCodec = (codec) => {
         if (codec !== "opus")
           throw new Error(
-            "ogg-opus-decoder does not support this codec " + codec
+            "ogg-opus-decoder does not support this codec " + codec,
           );
       };
 
@@ -4508,7 +4499,7 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
     async decode(oggOpusData) {
       return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        ...(await this._decode(oggOpusData, new DecoderState(this)))
+        ...(await this._decode(oggOpusData, new DecoderState(this))),
       );
     }
 
@@ -4517,14 +4508,14 @@ JÏ8ð{=M´E«¤1ÇJËìFN	ÈAÇ4ÉÀà¦Ð)<×mu@ÒÛ/
 
       return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
         ...(await this._decode(oggOpusData, decoderState).then(() =>
-          this._flush(decoderState)
-        ))
+          this._flush(decoderState),
+        )),
       );
     }
 
     async flush() {
       return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        ...(await this._flush(new DecoderState(this)))
+        ...(await this._flush(new DecoderState(this))),
       );
     }
   }
