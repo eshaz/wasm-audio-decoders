@@ -817,12 +817,12 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
 
           this._input = this._common.allocateTypedArray(
             this._inputSize,
-            Uint8Array
+            Uint8Array,
           );
 
           this._output = this._common.allocateTypedArray(
             this._outputChannels * this._outputChannelSize,
-            Float32Array
+            Float32Array,
           );
 
           this._inputPosition = this._common.allocateTypedArray(1, Uint32Array);
@@ -855,7 +855,7 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
     this._decode = (data, decodeInterval) => {
       if (!(data instanceof Uint8Array))
         throw Error(
-          "Data to decode must be Uint8Array. Instead got " + typeof data
+          "Data to decode must be Uint8Array. Instead got " + typeof data,
         );
 
       this._input.buf.set(data);
@@ -872,7 +872,7 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
         this._outputChannelSize,
         this._samplesDecoded.ptr,
         this._sampleRateBytes.ptr,
-        this._errorStringPtr.ptr
+        this._errorStringPtr.ptr,
       );
 
       const errors = [];
@@ -888,7 +888,7 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
           this._inputPosition.buf[0],
           this._frameNumber,
           this._inputBytes,
-          this._outputSamples
+          this._outputSamples,
         );
       }
 
@@ -904,11 +904,11 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
           this._output.buf.slice(0, samplesDecoded),
           this._output.buf.slice(
             this._outputChannelSize,
-            this._outputChannelSize + samplesDecoded
+            this._outputChannelSize + samplesDecoded,
           ),
         ],
         samplesDecoded,
-        this._sampleRate
+        this._sampleRate,
       );
     };
 
@@ -921,7 +921,7 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
       for (; offset < data.length; offset += this._inputPosition.buf[0]) {
         const decoded = this._decode(
           data.subarray(offset, offset + this._input.len),
-          48
+          48,
         );
 
         output.push(decoded.channelData);
@@ -934,7 +934,7 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
         output,
         2,
         samples,
-        this._sampleRate
+        this._sampleRate,
       );
     };
 
@@ -963,7 +963,7 @@ D¹6 î/ü ¯ê»{«x»¹ôÞ£ÀÔ@Úïz¨~wØéýè«¤1Õ"PãH
         output,
         2,
         samples,
-        this._sampleRate
+        this._sampleRate,
       );
     };
 

@@ -1,11 +1,13 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import CodecParser, {
-  pageSequenceNumber,
+  absoluteGranulePosition,
+  samples,
   data,
   codecFrames,
   header,
   vorbisComments,
   vorbisSetup,
+  isLastPage,
 } from "codec-parser";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
@@ -21,7 +23,7 @@ export function Decoder() {
 
         this._input = this._common.allocateTypedArray(
           this._inputSize,
-          Uint8Array
+          Uint8Array,
         );
 
         this._firstPage = true;
@@ -49,7 +51,7 @@ export function Decoder() {
           this._samplesDecoded.ptr,
           this._errors.ptr,
           this._errorsLength.ptr,
-          maxErrors
+          maxErrors,
         );
       });
   };
@@ -100,7 +102,7 @@ export function Decoder() {
       const outputBufferChannels = new Uint32Array(
         this._common.wasm.HEAP,
         this._outputBufferPtr.buf[0],
-        this._channels.buf[0]
+        this._channels.buf[0],
       );
       for (let channel = 0; channel < this._channels.buf[0]; channel++) {
         const output = new Float32Array(samplesDecoded);
@@ -108,8 +110,8 @@ export function Decoder() {
           new Float32Array(
             this._common.wasm.HEAP,
             outputBufferChannels[channel],
-            samplesDecoded
-          )
+            samplesDecoded,
+          ),
         );
 
         channels.push(output);
@@ -145,7 +147,7 @@ export function Decoder() {
       this._channels.buf[0],
       outputSamples,
       this._sampleRate.buf[0],
-      16
+      16,
     );
   };
 
@@ -170,7 +172,8 @@ export default class OggVorbisDecoder {
     this._onCodec = (codec) => {
       if (codec !== "vorbis")
         throw new Error(
-          "@wasm-audio-decoders/ogg-vorbis does not support this codec " + codec
+          "@wasm-audio-decoders/ogg-vorbis does not support this codec " +
+            codec,
         );
     };
 
@@ -237,7 +240,34 @@ export default class OggVorbisDecoder {
       packets.push(...oggPage[codecFrames].map((f) => f[data]));
     }
 
-    return this._decoder.decodePackets(packets);
+    const decoded = await this._decoder.decodePackets(packets);
+
+    // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
+    const oggPage = oggPages[oggPages.length - 1];
+    if (oggPages.length && Number(oggPage[absoluteGranulePosition]) > -1) {
+      if (this._beginningSampleOffset === undefined) {
+        this._beginningSampleOffset =
+          oggPage[absoluteGranulePosition] - BigInt(oggPage[samples]);
+      }
+
+      if (oggPage[isLastPage]) {
+        // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+        const samplesToTrim =
+          decoded.samplesDecoded - Number(oggPage[absoluteGranulePosition]);
+
+        if (samplesToTrim > 0) {
+          for (let i = 0; i < decoded.channelData.length; i++)
+            decoded.channelData[i] = decoded.channelData[i].subarray(
+              0,
+              decoded.samplesDecoded - samplesToTrim,
+            );
+
+          decoded.samplesDecoded -= samplesToTrim;
+        }
+      }
+    }
+
+    return decoded;
   }
 
   async decode(vorbisData) {

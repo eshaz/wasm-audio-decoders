@@ -56,8 +56,8 @@ export default class WASMAudioDecoderWorker extends getWorker() {
                     // detach buffers
                     Array.isArray(data)
                       ? data.map((data) => new Uint8Array(data))
-                      : new Uint8Array(data)
-                  )
+                      : new Uint8Array(data),
+                  ),
                 );
                 // The "transferList" parameter transfers ownership of channel data to main thread,
                 // which avoids copying memory.
@@ -67,7 +67,7 @@ export default class WASMAudioDecoderWorker extends getWorker() {
               }
 
               messagePromise.then(() =>
-                self.postMessage(messagePayload, transferList)
+                self.postMessage(messagePayload, transferList),
               );
             };
           }).toString()})(${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
@@ -78,7 +78,7 @@ export default class WASMAudioDecoderWorker extends getWorker() {
 
       source = isNode
         ? `data:${type};base64,${Buffer.from(webworkerSourceCode).toString(
-            "base64"
+            "base64",
           )}`
         : URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
 

@@ -23,11 +23,11 @@ export default function WASMAudioDecoderCommon() {
             if (!wasmString) {
               wasmString = Ref.wasm;
               module = WASMAudioDecoderCommon.inflateDynEncodeString(
-                wasmString
+                wasmString,
               ).then((data) => WebAssembly.compile(data));
             } else {
               module = WebAssembly.compile(
-                WASMAudioDecoderCommon.decodeDynString(wasmString)
+                WASMAudioDecoderCommon.decodeDynString(wasmString),
               );
             }
 
@@ -70,7 +70,7 @@ export default function WASMAudioDecoderCommon() {
           channelsDecoded,
           samplesDecoded,
           sampleRate,
-          bitDepth
+          bitDepth,
         ) {
           let channelData = [],
             i,
@@ -80,7 +80,7 @@ export default function WASMAudioDecoderCommon() {
             const channel = [];
             for (j = 0; j < input.length; ) channel.push(input[j++][i] || []);
             channelData.push(
-              WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded)
+              WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded),
             );
           }
 
@@ -89,7 +89,7 @@ export default function WASMAudioDecoderCommon() {
             channelData,
             samplesDecoded,
             sampleRate,
-            bitDepth
+            bitDepth,
           );
         },
       },
@@ -204,7 +204,7 @@ export default function WASMAudioDecoderCommon() {
                 heapView.setInt32(
                   destLengthPtr,
                   dataArray.byteLength - heapPos,
-                  true
+                  true,
                 );
 
                 // destination data fills in the rest of the heap
@@ -213,8 +213,8 @@ export default function WASMAudioDecoderCommon() {
                 resolve(
                   dataArray.slice(
                     heapPos,
-                    heapPos + heapView.getInt32(destLengthPtr, true)
-                  )
+                    heapPos + heapView.getInt32(destLengthPtr, true),
+                  ),
                 );
               });
           });
@@ -236,8 +236,8 @@ export default function WASMAudioDecoderCommon() {
       output.push(
         outputData.slice(
           i * samplesDecoded,
-          i++ * samplesDecoded + samplesDecoded
-        )
+          i++ * samplesDecoded + samplesDecoded,
+        ),
       );
 
     return output;
@@ -276,7 +276,7 @@ export default function WASMAudioDecoderCommon() {
     frameLength,
     frameNumber,
     inputBytes,
-    outputSamples
+    outputSamples,
   ) => {
     errors.push({
       message: message,

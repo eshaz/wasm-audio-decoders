@@ -30,7 +30,7 @@ const getTestPaths = (
   fileName,
   outputFileName,
   expectedPathModifiers = [],
-  actualPathModifiers = []
+  actualPathModifiers = [],
 ) => ({
   fileName,
   inputPath: path.join(TEST_DATA_PATH, fileName),
@@ -38,13 +38,13 @@ const getTestPaths = (
     ACTUAL_PATH,
     (outputFileName || fileName) +
       ["", ...actualPathModifiers].join(".") +
-      ".wav"
+      ".wav",
   ),
   expectedPath: path.join(
     EXPECTED_PATH,
     (outputFileName || fileName) +
       ["", ...expectedPathModifiers].join(".") +
-      ".wav"
+      ".wav",
   ),
 });
 
@@ -55,7 +55,7 @@ const test_decode = async (
   fileName,
   outputFileName,
   expectedPathModifiers = [],
-  actualPathModifiers = []
+  actualPathModifiers = [],
 ) => {
   try {
     if (decoder.constructor.name.match(/WebWorker/))
@@ -64,7 +64,7 @@ const test_decode = async (
       fileName,
       outputFileName,
       expectedPathModifiers,
-      actualPathModifiers
+      actualPathModifiers,
     );
 
     const result = await decoder.ready.then(() =>
@@ -73,8 +73,8 @@ const test_decode = async (
         method,
         testName,
         paths.inputPath,
-        paths.actualPath
-      )
+        paths.actualPath,
+      ),
     );
 
     return { paths, result };
@@ -87,7 +87,7 @@ const test_decode_multipleFiles = async (DecoderClass, testParams) => {
   const pathsArray = testParams.map(({ fileName }) => getTestPaths(fileName));
 
   const inputFiles = await Promise.all(
-    pathsArray.map(({ inputPath }) => fs.readFile(inputPath))
+    pathsArray.map(({ inputPath }) => fs.readFile(inputPath)),
   );
 
   const decoder = new DecoderClass();
@@ -127,7 +127,7 @@ const test_decode_multipleFiles = async (DecoderClass, testParams) => {
         paths,
         result: { samplesDecoded, sampleRate },
       };
-    })
+    }),
   );
 };
 
@@ -139,7 +139,7 @@ const test_decodeFrame = async (
   frames,
   framesLength,
   expectedPathModifiers = [],
-  actualPathModifiers = []
+  actualPathModifiers = [],
 ) => {
   if (decoder.constructor.name.match(/WebWorker/))
     actualPathModifiers.push("worker");
@@ -147,7 +147,7 @@ const test_decodeFrame = async (
     fileName,
     outputFileName,
     expectedPathModifiers,
-    actualPathModifiers
+    actualPathModifiers,
   );
 
   const result = await decoder.ready.then(() =>
@@ -156,8 +156,8 @@ const test_decodeFrame = async (
       testName,
       frames,
       framesLength,
-      paths.actualPath
-    )
+      paths.actualPath,
+    ),
   );
 
   decoder.free();
@@ -173,7 +173,7 @@ const test_decodeFrames = async (
   frames,
   framesLength,
   expectedPathModifiers = [],
-  actualPathModifiers = []
+  actualPathModifiers = [],
 ) => {
   if (decoder.constructor.name.match(/WebWorker/))
     actualPathModifiers.push("worker");
@@ -181,7 +181,7 @@ const test_decodeFrames = async (
     fileName,
     outputFileName,
     expectedPathModifiers,
-    actualPathModifiers
+    actualPathModifiers,
   );
 
   const result = await decoder.ready.then(() =>
@@ -190,8 +190,8 @@ const test_decodeFrames = async (
       testName,
       frames,
       framesLength,
-      paths.actualPath
-    )
+      paths.actualPath,
+    ),
   );
 
   decoder.free();
@@ -222,7 +222,7 @@ const decompressExpectedFiles = async () => {
             } else {
               fs.writeFile(
                 path.join(EXPECTED_PATH, file.slice(0, -3)),
-                uncompressed
+                uncompressed,
               ).then(() => {
                 res();
               });
@@ -232,14 +232,14 @@ const decompressExpectedFiles = async () => {
       }).catch((e) => {
         console.warn("failed to decompress", file);
         throw e;
-      })
+      }),
     );
   }
 
   await Promise.all(decompressPromises).catch((e) => {
     console.error(e);
     throw new Error(
-      "Failed to decompress one or more expected test files. Check that the test files are valid gzip."
+      "Failed to decompress one or more expected test files. Check that the test files are valid gzip.",
     );
   });
 };
@@ -257,6 +257,7 @@ describe("wasm-audio-decoders", () => {
   const oggVorbisChained2TestFile = "ogg.vorbis.chained2.ogg";
   const oggVorbisPacketsTestFile = "ogg.vorbis.packets.ogg";
   const oggVorbisFisheadTestFile = "ogg.vorbis.fishead.ogg";
+  const oggVorbisInvalidModeCountTestFile = "ogg.vorbis.invalid.mode.count.ogg";
 
   const opusStereoTestFile = "ogg.opus";
   const opusStereoErrorsTestFile = "ogg.errors.opus";
@@ -280,7 +281,7 @@ describe("wasm-audio-decoders", () => {
       await nestedWorker(
         mpegTestFile,
         "mpg123-decoder",
-        "MPEGDecoderWebWorker"
+        "MPEGDecoderWebWorker",
       );
     });
   });
@@ -309,7 +310,7 @@ describe("wasm-audio-decoders", () => {
         new MPEGDecoder(),
         "decode",
         "should decode mpeg",
-        "mpeg.cbr.mp3"
+        "mpeg.cbr.mp3",
       );
 
       const [actual, expected] = await Promise.all([
@@ -328,7 +329,7 @@ describe("wasm-audio-decoders", () => {
         new MPEGDecoder(),
         "decode",
         "should decode mpeg with errors",
-        "mpeg.cbr.errors.mp3"
+        "mpeg.cbr.errors.mp3",
       );
 
       const [actual, expected] = await Promise.all([
@@ -363,7 +364,7 @@ describe("wasm-audio-decoders", () => {
         new MPEGDecoderWebWorker(),
         "decode",
         "should decode mpeg in a web worker",
-        "mpeg.cbr.mp3"
+        "mpeg.cbr.mp3",
       );
 
       const [actual, expected] = await Promise.all([
@@ -417,7 +418,7 @@ describe("wasm-audio-decoders", () => {
           "frames.mpeg.cbr.mp3",
           null,
           frames,
-          framesLength
+          framesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -438,7 +439,7 @@ describe("wasm-audio-decoders", () => {
           "frames.mpeg.cbr.mp3",
           null,
           frames,
-          framesLength
+          framesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -526,25 +527,25 @@ describe("wasm-audio-decoders", () => {
             new MPEGDecoderWebWorker(),
             "decode",
             "should decode parallel.1.mp3 in it's own thread",
-            "parallel.1.mp3"
+            "parallel.1.mp3",
           ),
           test_decode(
             new MPEGDecoderWebWorker(),
             "decode",
             "should decode parallel.2.mp3 in it's own thread",
-            "parallel.2.mp3"
+            "parallel.2.mp3",
           ),
           test_decode(
             new MPEGDecoderWebWorker(),
             "decode",
             "should decode parallel.3.mp3 in it's own thread",
-            "parallel.3.mp3"
+            "parallel.3.mp3",
           ),
           test_decode(
             new MPEGDecoderWebWorker(),
             "decode",
             "should decode parallel.4.mp3 in it's own thread",
-            "parallel.4.mp3"
+            "parallel.4.mp3",
           ),
         ]);
 
@@ -641,8 +642,8 @@ describe("wasm-audio-decoders", () => {
         opusStereoSampleCount,
       ] = getFrames(
         parser.parseAll(
-          await fs.readFile(getTestPaths(opusStereoTestFile).inputPath)
-        )
+          await fs.readFile(getTestPaths(opusStereoTestFile).inputPath),
+        ),
       );
 
       [
@@ -652,29 +653,29 @@ describe("wasm-audio-decoders", () => {
         opusSurroundSampleCount,
       ] = getFrames(
         parser.parseAll(
-          await fs.readFile(getTestPaths(opusSurroundTestFile).inputPath)
-        )
+          await fs.readFile(getTestPaths(opusSurroundTestFile).inputPath),
+        ),
       );
 
       [opus32Frames, opus32Header, opus32FramesLength, opus32SampleCount] =
         getFrames(
           parser.parseAll(
-            await fs.readFile(getTestPaths(opus32TestFile).inputPath)
-          )
+            await fs.readFile(getTestPaths(opus32TestFile).inputPath),
+          ),
         );
 
       [opus64Frames, opus64Header, opus64FramesLength, opus64SampleCount] =
         getFrames(
           parser.parseAll(
-            await fs.readFile(getTestPaths(opus64TestFile).inputPath)
-          )
+            await fs.readFile(getTestPaths(opus64TestFile).inputPath),
+          ),
         );
 
       [opus255Frames, opus255Header, opus255FramesLength, opus255SampleCount] =
         getFrames(
           parser.parseAll(
-            await fs.readFile(getTestPaths(opus255TestFile).inputPath)
-          )
+            await fs.readFile(getTestPaths(opus255TestFile).inputPath),
+          ),
         );
     });
 
@@ -708,7 +709,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusStereoFrames,
-          opusStereoFramesLength
+          opusStereoFramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -731,7 +732,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusStereoFrames,
-          opusStereoFramesLength
+          opusStereoFramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -793,7 +794,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusStereoFramesWithErrors,
-          opusStereoFramesLengthWithErrors
+          opusStereoFramesLengthWithErrors,
         );
 
         const [actual, expected] = await Promise.all([
@@ -817,7 +818,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusStereoFramesWithErrors,
-          opusStereoFramesLengthWithErrors
+          opusStereoFramesLengthWithErrors,
         );
 
         const [actual, expected] = await Promise.all([
@@ -844,7 +845,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusStereoFrames,
-          opusStereoFramesLength
+          opusStereoFramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -867,7 +868,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusStereoFrames,
-          opusStereoFramesLength
+          opusStereoFramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -897,7 +898,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoFrames,
           opusStereoFramesLength,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -925,7 +926,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoFrames,
           opusStereoFramesLength,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -953,7 +954,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoFrames,
           opusStereoFramesLength,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -981,7 +982,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoFrames,
           opusStereoFramesLength,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -1009,7 +1010,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoFrames,
           opusStereoFramesLength,
           [],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -1071,7 +1072,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusStereoFramesWithErrors,
-          opusStereoFramesLengthWithErrors
+          opusStereoFramesLengthWithErrors,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1095,7 +1096,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusStereoFramesWithErrors,
-          opusStereoFramesLengthWithErrors
+          opusStereoFramesLengthWithErrors,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1132,7 +1133,7 @@ describe("wasm-audio-decoders", () => {
           opusSurroundTestFile,
           opusSurroundTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusSurroundFrames,
-          opusSurroundFramesLength
+          opusSurroundFramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1165,7 +1166,7 @@ describe("wasm-audio-decoders", () => {
           opusSurroundTestFile,
           opusSurroundTestFile.replace("ogg.", "").replace(".ogg", ""),
           opusSurroundFrames,
-          opusSurroundFramesLength
+          opusSurroundFramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1200,7 +1201,7 @@ describe("wasm-audio-decoders", () => {
           opus32TestFile,
           opus32TestFile.replace("ogg.", "").replace(".ogg", ""),
           opus32Frames,
-          opus32FramesLength
+          opus32FramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1233,7 +1234,7 @@ describe("wasm-audio-decoders", () => {
           opus32TestFile,
           opus32TestFile.replace("ogg.", "").replace(".ogg", ""),
           opus32Frames,
-          opus32FramesLength
+          opus32FramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1268,7 +1269,7 @@ describe("wasm-audio-decoders", () => {
           opus64TestFile,
           opus64TestFile.replace("ogg.", "").replace(".ogg", ""),
           opus64Frames,
-          opus64FramesLength
+          opus64FramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1301,7 +1302,7 @@ describe("wasm-audio-decoders", () => {
           opus64TestFile,
           opus64TestFile.replace("ogg.", "").replace(".ogg", ""),
           opus64Frames,
-          opus64FramesLength
+          opus64FramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1336,7 +1337,7 @@ describe("wasm-audio-decoders", () => {
           opus255TestFile,
           opus255TestFile.replace("ogg.", "").replace(".ogg", ""),
           opus255Frames,
-          opus255FramesLength
+          opus255FramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1369,7 +1370,7 @@ describe("wasm-audio-decoders", () => {
           opus255TestFile,
           opus255TestFile.replace("ogg.", "").replace(".ogg", ""),
           opus255Frames,
-          opus255FramesLength
+          opus255FramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1408,7 +1409,7 @@ describe("wasm-audio-decoders", () => {
         new OggOpusDecoder(),
         "decodeFile",
         "should decode ogg opus",
-        opusStereoTestFile
+        opusStereoTestFile,
       );
 
       const [actual, expected] = await Promise.all([
@@ -1427,7 +1428,7 @@ describe("wasm-audio-decoders", () => {
         new OggOpusDecoder(),
         "decodeFile",
         "should decode ogg opus with errors",
-        opusStereoErrorsTestFile
+        opusStereoErrorsTestFile,
       );
 
       const [actual, expected] = await Promise.all([
@@ -1464,7 +1465,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -1489,7 +1490,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -1514,7 +1515,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -1539,7 +1540,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -1564,7 +1565,7 @@ describe("wasm-audio-decoders", () => {
           opusStereoTestFile,
           opusStereoTestFile,
           [sampleRate],
-          [sampleRate]
+          [sampleRate],
         );
 
         const [actual, expected] = await Promise.all([
@@ -1584,7 +1585,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoder(),
           "decodeFile",
           "should decode multi channel ogg opus",
-          opusSurroundTestFile
+          opusSurroundTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1607,7 +1608,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode multi channel ogg opus",
           opusSurroundTestFile,
-          opusSurroundTestFile + ".downmix"
+          opusSurroundTestFile + ".downmix",
         );
 
         const [actual, expected] = await Promise.all([
@@ -1627,7 +1628,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoderWebWorker(),
           "decodeFile",
           "should decode ogg opus in a web worker",
-          opusStereoTestFile
+          opusStereoTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1646,7 +1647,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoderWebWorker(),
           "decodeFile",
           "should decode multi channel ogg opus in a web worker",
-          opusSurroundTestFile
+          opusSurroundTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1669,7 +1670,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode multi channel ogg opus as stereo when force stereo is enabled in a web worker",
           opusSurroundTestFile,
-          opusSurroundTestFile + ".downmix"
+          opusSurroundTestFile + ".downmix",
         );
 
         const [actual, expected] = await Promise.all([
@@ -1691,7 +1692,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoder(),
           "decodeFile",
           "should decode 32 channel ogg opus frames",
-          opus32TestFile
+          opus32TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1709,7 +1710,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoderWebWorker(),
           "decodeFile",
           "should decode 32 channel ogg opus frames",
-          opus32TestFile
+          opus32TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1729,7 +1730,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoder(),
           "decodeFile",
           "should decode 64 channel ogg opus frames",
-          opus64TestFile
+          opus64TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1747,7 +1748,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoderWebWorker(),
           "decodeFile",
           "should decode 64 channel ogg opus frames",
-          opus64TestFile
+          opus64TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1767,7 +1768,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoder(),
           "decodeFile",
           "should decode 255 channel ogg opus frames",
-          opus255TestFile
+          opus255TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1785,7 +1786,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoderWebWorker(),
           "decodeFile",
           "should decode 255 channel ogg opus frames",
-          opus255TestFile
+          opus255TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1805,7 +1806,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoder(),
           "decodeFile",
           "should decode opus frames if they are only returned on flush() 1",
-          "ogg.opus.flush.1.opus"
+          "ogg.opus.flush.1.opus",
         );
 
         const [actual, expected] = await Promise.all([
@@ -1823,7 +1824,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoder(),
           "decodeFile",
           "should decode opus frames if they are only returned on flush() 2",
-          "ogg.opus.flush.2.opus"
+          "ogg.opus.flush.2.opus",
         );
 
         const [actual, expected] = await Promise.all([
@@ -1841,7 +1842,7 @@ describe("wasm-audio-decoders", () => {
           new OggOpusDecoder(),
           "decodeFile",
           "should decode opus frames if they are only returned on flush() 3",
-          "ogg.opus.flush.3.opus"
+          "ogg.opus.flush.3.opus",
         );
 
         const [actual, expected] = await Promise.all([
@@ -1876,8 +1877,8 @@ describe("wasm-audio-decoders", () => {
 
       [flacStereoFrames, flacStereoFramesLength] = getFrames(
         parser.parseAll(
-          await fs.readFile(getTestPaths(flacStereoTestFile).inputPath)
-        )
+          await fs.readFile(getTestPaths(flacStereoTestFile).inputPath),
+        ),
       );
     });
 
@@ -1906,7 +1907,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode flac",
           flacStereoTestFile,
-          flacStereoTestFile
+          flacStereoTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1927,7 +1928,7 @@ describe("wasm-audio-decoders", () => {
           flacStereoTestFile,
           null,
           flacStereoFrames,
-          flacStereoFramesLength
+          flacStereoFramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1956,7 +1957,7 @@ describe("wasm-audio-decoders", () => {
           flacStereoTestFile,
           null,
           flacStereoFramesWithErrors,
-          flacStereoFramesLengthWithErrors
+          flacStereoFramesLengthWithErrors,
         );
 
         const [actual, expected] = await Promise.all([
@@ -1986,7 +1987,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode multichannel flac",
           flacMultichannelTestFile,
-          flacMultichannelTestFile
+          flacMultichannelTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2007,7 +2008,7 @@ describe("wasm-audio-decoders", () => {
           "decode",
           "should decode high sample rate flac",
           flac96000kTestFile,
-          flac96000kTestFile
+          flac96000kTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2030,7 +2031,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode flac in a web worker",
           flacStereoTestFile,
-          flacStereoTestFile
+          flacStereoTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2050,7 +2051,7 @@ describe("wasm-audio-decoders", () => {
           flacStereoTestFile,
           null,
           flacStereoFrames,
-          flacStereoFramesLength
+          flacStereoFramesLength,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2070,7 +2071,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode multichannel flac in a web worker",
           flacMultichannelTestFile,
-          flacMultichannelTestFile
+          flacMultichannelTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2091,7 +2092,7 @@ describe("wasm-audio-decoders", () => {
           "decode",
           "should decode high sample rate flac in a web worker",
           flac96000kTestFile,
-          flac96000kTestFile
+          flac96000kTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2134,7 +2135,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode vorbis",
           oggVorbisStereoTestFile,
-          oggVorbisStereoTestFile
+          oggVorbisStereoTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2155,7 +2156,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode high sample rate vorbis",
           oggVorbis96000kTestFile,
-          oggVorbis96000kTestFile
+          oggVorbis96000kTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2164,7 +2165,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(5760832);
+        expect(result.samplesDecoded).toEqual(5760449);
         expect(result.sampleRate).toEqual(96000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2176,7 +2177,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode multichannel vorbis",
           oggVorbisMultichannelTestFile,
-          oggVorbisMultichannelTestFile
+          oggVorbisMultichannelTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2185,7 +2186,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(106496);
+        expect(result.samplesDecoded).toEqual(106380);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2197,7 +2198,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode 32 channel vorbis",
           oggVorbis32TestFile,
-          oggVorbis32TestFile
+          oggVorbis32TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2206,7 +2207,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(288064);
+        expect(result.samplesDecoded).toEqual(287688);
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2218,7 +2219,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode 64 channel vorbis",
           oggVorbis64TestFile,
-          oggVorbis64TestFile
+          oggVorbis64TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2227,7 +2228,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(288064); // 287103 from codec parser
+        expect(result.samplesDecoded).toEqual(287688); // 287103 from codec parser
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2239,7 +2240,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode 255 channel vorbis",
           oggVorbis255TestFile,
-          oggVorbis255TestFile
+          oggVorbis255TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2260,7 +2261,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode chained vorbis",
           oggVorbisChained2TestFile,
-          oggVorbisChained2TestFile
+          oggVorbisChained2TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2269,7 +2270,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(8785152); // 50560 from codec parser
+        expect(result.samplesDecoded).toEqual(8785152);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2281,7 +2282,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode vorbis with unusual packet structures",
           oggVorbisPacketsTestFile,
-          oggVorbisPacketsTestFile
+          oggVorbisPacketsTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2290,7 +2291,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(229952);
+        expect(result.samplesDecoded).toEqual(229689);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2302,7 +2303,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode vorbis with fishead metadata",
           oggVorbisFisheadTestFile,
-          oggVorbisFisheadTestFile
+          oggVorbisFisheadTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2311,8 +2312,29 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(3497536);
+        expect(result.samplesDecoded).toEqual(3497472);
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode vorbis with invalid mode count", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoder(),
+          "decodeFile",
+          "should decode vorbis with invalid",
+          oggVorbisInvalidModeCountTestFile,
+          oggVorbisInvalidModeCountTestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(343);
+        expect(result.sampleRate).toEqual(8000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
@@ -2325,7 +2347,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode vorbis web worker",
           oggVorbisStereoTestFile,
-          oggVorbisStereoTestFile
+          oggVorbisStereoTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2346,7 +2368,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode high sample rate vorbis web worker",
           oggVorbis96000kTestFile,
-          oggVorbis96000kTestFile
+          oggVorbis96000kTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2355,7 +2377,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(5760832);
+        expect(result.samplesDecoded).toEqual(5760449);
         expect(result.sampleRate).toEqual(96000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2367,7 +2389,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode multichannel vorbis web worker",
           oggVorbisMultichannelTestFile,
-          oggVorbisMultichannelTestFile
+          oggVorbisMultichannelTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2376,7 +2398,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(106496);
+        expect(result.samplesDecoded).toEqual(106380);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2388,7 +2410,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode 32 channel vorbis web worker",
           oggVorbis32TestFile,
-          oggVorbis32TestFile
+          oggVorbis32TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2397,7 +2419,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(288064);
+        expect(result.samplesDecoded).toEqual(287688);
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2409,7 +2431,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode 64 channel vorbis web worker",
           oggVorbis64TestFile,
-          oggVorbis64TestFile
+          oggVorbis64TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2418,7 +2440,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(288064); // 287103 from codec parser
+        expect(result.samplesDecoded).toEqual(287688); // 287103 from codec parser
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2430,7 +2452,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode 255 channel vorbis web worker",
           oggVorbis255TestFile,
-          oggVorbis255TestFile
+          oggVorbis255TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2451,7 +2473,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode chained vorbis",
           oggVorbisChained2TestFile,
-          oggVorbisChained2TestFile
+          oggVorbisChained2TestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2472,7 +2494,7 @@ describe("wasm-audio-decoders", () => {
           "decodeFile",
           "should decode vorbis with unusual packet structures",
           oggVorbisPacketsTestFile,
-          oggVorbisPacketsTestFile
+          oggVorbisPacketsTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2481,7 +2503,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(229952);
+        expect(result.samplesDecoded).toEqual(229689);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2489,11 +2511,11 @@ describe("wasm-audio-decoders", () => {
 
       it("should decode vorbis with fishead metadata", async () => {
         const { paths, result } = await test_decode(
-          new OggVorbisDecoder(),
+          new OggVorbisDecoderWebWorker(),
           "decodeFile",
           "should decode vorbis with fishead metadata",
           oggVorbisFisheadTestFile,
-          oggVorbisFisheadTestFile
+          oggVorbisFisheadTestFile,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2502,8 +2524,29 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(3497536);
+        expect(result.samplesDecoded).toEqual(3497472);
         expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode vorbis with invalid mode count", async () => {
+        const { paths, result } = await test_decode(
+          new OggVorbisDecoderWebWorker(),
+          "decodeFile",
+          "should decode vorbis with invalid",
+          oggVorbisInvalidModeCountTestFile,
+          oggVorbisInvalidModeCountTestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(343);
+        expect(result.sampleRate).toEqual(8000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });

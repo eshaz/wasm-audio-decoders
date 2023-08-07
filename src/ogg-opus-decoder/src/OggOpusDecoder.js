@@ -75,18 +75,18 @@ class DecoderState {
       const totalDecodedSamples =
         (this._totalSamples / this._sampleRate) * 48000;
       const totalOggSamples = Number(
-        oggPage[absoluteGranulePosition] - this._beginningSampleOffset
+        oggPage[absoluteGranulePosition] - this._beginningSampleOffset,
       );
 
       // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
       const samplesToTrim = Math.round(
-        ((totalDecodedSamples - totalOggSamples) / 48000) * this._sampleRate
+        ((totalDecodedSamples - totalOggSamples) / 48000) * this._sampleRate,
       );
 
       for (let i = 0; i < channelData.length; i++)
         channelData[i] = channelData[i].subarray(
           0,
-          samplesDecoded - samplesToTrim
+          samplesDecoded - samplesToTrim,
         );
 
       this._totalSamples -= samplesToTrim;
@@ -120,7 +120,7 @@ export default class OggOpusDecoder {
     this._onCodec = (codec) => {
       if (codec !== "opus")
         throw new Error(
-          "ogg-opus-decoder does not support this codec " + codec
+          "ogg-opus-decoder does not support this codec " + codec,
         );
     };
 
@@ -175,7 +175,7 @@ export default class OggOpusDecoder {
 
   async decode(oggOpusData) {
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._decode(oggOpusData, new DecoderState(this)))
+      ...(await this._decode(oggOpusData, new DecoderState(this))),
     );
   }
 
@@ -184,14 +184,14 @@ export default class OggOpusDecoder {
 
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
       ...(await this._decode(oggOpusData, decoderState).then(() =>
-        this._flush(decoderState)
-      ))
+        this._flush(decoderState),
+      )),
     );
   }
 
   async flush() {
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-      ...(await this._flush(new DecoderState(this)))
+      ...(await this._flush(new DecoderState(this))),
     );
   }
 }
