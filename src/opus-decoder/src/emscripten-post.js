@@ -1,7 +1,7 @@
 this.ready = new Promise((resolve) => {
   ready = resolve;
 }).then(() => {
-  this.HEAP = buffer;
+  this.HEAP = wasmMemory.buffer;
   this.malloc = _malloc;
   this.free = _free;
   this.opus_frame_decoder_create = _opus_frame_decoder_create;
