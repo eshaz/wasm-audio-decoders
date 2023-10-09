@@ -94,7 +94,7 @@ this.getModule = () =>
 
 this.instantiate = () => {
   this.getModule().then((wasm) => WebAssembly.instantiate(wasm, imports)).then((instance) => {
-    var asm = instance.exports;`,
+    const wasmExports = instance.exports;`,
     );
 
     const wasmBase64ContentMatcher =

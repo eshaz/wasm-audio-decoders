@@ -106,13 +106,16 @@ export function Decoder() {
       );
       for (let channel = 0; channel < this._channels.buf[0]; channel++) {
         const output = new Float32Array(samplesDecoded);
-        output.set(
-          new Float32Array(
-            this._common.wasm.HEAP,
-            outputBufferChannels[channel],
-            samplesDecoded,
-          ),
-        );
+
+        if (samplesDecoded) {
+          output.set(
+            new Float32Array(
+              this._common.wasm.HEAP,
+              outputBufferChannels[channel],
+              samplesDecoded,
+            ),
+          );
+        }
 
         channels.push(output);
       }

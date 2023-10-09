@@ -39,7 +39,8 @@
         "frameLength",
         "frameNumber",
         "inputBytes",
-        "outputSamples"
+        "outputSamples",
+        "h"
       ]
     }
   },
