@@ -17,7 +17,7 @@
     "module": true,
     "properties": {
       "keep_quoted": true,
-      "debug": false,
+      "debug": true,
       "reserved": [
         "OggVorbisDecoder",
         "OggVorbisDecoderWebWorker",
@@ -39,7 +39,8 @@
         "frameLength",
         "frameNumber",
         "inputBytes",
-        "outputSamples"
+        "outputSamples",
+        "h"
       ]
     }
   },
