@@ -153,7 +153,6 @@ define EMCC_OPTS
 -s NO_FILESYSTEM=1 \
 -s ENVIRONMENT=web,worker \
 -s STRICT=1 \
--s LLD_REPORT_UNDEFINED \
 -s INCOMING_MODULE_JS_API="[]"
 endef
 
