@@ -2322,7 +2322,7 @@ describe("wasm-audio-decoders", () => {
         const { paths, result } = await test_decode(
           new OggVorbisDecoder(),
           "decodeFile",
-          "should decode vorbis with invalid",
+          "should decode vorbis with invalid mode count",
           oggVorbisInvalidModeCountTestFile,
           oggVorbisInvalidModeCountTestFile,
         );
@@ -2534,7 +2534,7 @@ describe("wasm-audio-decoders", () => {
         const { paths, result } = await test_decode(
           new OggVorbisDecoderWebWorker(),
           "decodeFile",
-          "should decode vorbis with invalid",
+          "should decode vorbis with invalid mode count",
           oggVorbisInvalidModeCountTestFile,
           oggVorbisInvalidModeCountTestFile,
         );
