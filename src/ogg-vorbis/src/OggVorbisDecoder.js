@@ -189,6 +189,7 @@ export default class OggVorbisDecoder {
 
   _init() {
     this._vorbisSetupInProgress = true;
+    this._beginningSampleOffset = undefined;
     this._codecParser = new CodecParser("audio/ogg", {
       onCodec: this._onCodec,
       enableFrameCRC32: false,

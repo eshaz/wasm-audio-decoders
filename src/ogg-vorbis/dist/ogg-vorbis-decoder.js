@@ -4253,6 +4253,7 @@ Vìókgk$¯q¡1L(&dÿ¾Ã¤zÑB´ä±Jß)|3\_È-4xò�
 
     _init() {
       this._vorbisSetupInProgress = true;
+      this._beginningSampleOffset = undefined;
       this._codecParser = new CodecParser("audio/ogg", {
         onCodec: this._onCodec,
         enableFrameCRC32: false,

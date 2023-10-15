@@ -21,8 +21,8 @@ Decodes MPEG Layer I/II/III into PCM
   * Install using [NPM](https://www.npmjs.com/package/mpg123-decoder)
 
 ### [`@wasm-audio-decoders/flac`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac)
-Decodes FLAC data into PCM
-  * 64.6 KiB minified bundle size
+Decodes FLAC and Ogg FLAC data into PCM
+  * 65.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)

@@ -225,6 +225,8 @@ export const testDecoder_decode = async (
   ]);
 
   try {
+    const maxReadSize = 2 ** 24 * 2;
+
     let decodeStart, decodeEnd, inStart, inEnd, outStart, outEnd;
 
     let bytesWritten = 0,
@@ -247,9 +249,9 @@ export const testDecoder_decode = async (
     while (true) {
       inStart = performance.now();
       const { bytesRead, buffer } = await input.read(
-        Buffer.allocUnsafe(2 ** 24),
+        Buffer.allocUnsafe(maxReadSize),
         0,
-        2 ** 24,
+        maxReadSize,
       );
       inEnd = performance.now();
 

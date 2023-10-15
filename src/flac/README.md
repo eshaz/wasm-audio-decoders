@@ -1,6 +1,6 @@
 # `@wasm-audio-decoders/flac`
 
-`@wasm-audio-decoders/flac` is a Web Assembly FLAC audio decoder.
+`@wasm-audio-decoders/flac` is a Web Assembly FLAC / Ogg FLAC audio decoder.
   * 64.6 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
@@ -55,7 +55,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
    await decoder.ready;
    ```
 
-1. Begin decoding FLAC data.
+1. Begin decoding FLAC or Ogg FLAC data.
 
    ```javascript  
    // Decode an individual Opus frame
@@ -119,7 +119,7 @@ See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
 
 ## `FLACDecoder`
 
-Class that decodes FLAC data synchronously on the main thread.
+Class that decodes FLAC synchronously on the main thread.
 
 ### Options
 ```javascript
@@ -133,14 +133,14 @@ const decoder = new FLACDecoder();
 ### Methods
 
 * `decoder.decode(flacData)` *async*
-  * `flacData` Uint8Array containing FLAC data.
+  * `flacData` Uint8Array containing FLAC or Ogg FLAC data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when streaming audio into the decoder.
 * `decoder.flush()` *async*
   * Returns a promise that resolves with any remaining data in the buffer.
   * Use this when you are finished piping audio in through the `decode` method to retrieve any remaining data in the buffer.
 * `decoder.decodeFile(flacData)` *async*
-  * `flacData` Uint8Array containing FLAC data.
+  * `flacData` Uint8Array containing FLAC or Ogg FLAC data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when decoding an entire file.
 * `decoder.decodeFrames(flacFrames)` *async*
@@ -155,7 +155,7 @@ const decoder = new FLACDecoder();
 
 ## `FLACDecoderWebWorker`
 
-Class that decodes FLAC data asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
+Class that decodes FLAC asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
 
 ### Options
 ```javascript
@@ -169,14 +169,14 @@ const decoder = new FLACDecoderWebWorker();
 ### Methods
 
 * `decoder.decode(flacData)` *async*
-  * `flacData` Uint8Array containing FLAC data.
+  * `flacData` Uint8Array containing FLAC or Ogg FLAC data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when streaming audio into the decoder.
 * `decoder.flush()` *async*
   * Returns a promise that resolves with any remaining data in the buffer.
   * Use this when you are finished piping audio in through the `decode` method to retrieve any remaining data in the buffer.
 * `decoder.decodeFile(flacData)` *async*
-  * `flacData` Uint8Array containing FLAC data.
+  * `flacData` Uint8Array containing FLAC or Ogg FLAC data.
   * Returns a promise that resolves with the decoded audio.
   * Use this when decoding an entire file.
 * `decoder.decodeFrames(flacFrames)` *async*
