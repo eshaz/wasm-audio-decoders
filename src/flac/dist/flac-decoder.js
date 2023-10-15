@@ -539,7 +539,7 @@
   const rate7350 = 7350;
 
   // header key constants
-  const absoluteGranulePosition = "absoluteGranulePosition";
+  const absoluteGranulePosition$1 = "absoluteGranulePosition";
   const bandwidth = "bandwidth";
   const bitDepth = "bitDepth";
   const bitrate = "bitrate";
@@ -549,7 +549,7 @@
   const buffer = "buffer";
   const bufferFullness = buffer + "Fullness";
   const codec = "codec";
-  const codecFrames = codec + "Frames";
+  const codecFrames$1 = codec + "Frames";
   const coupledStreamCount = "coupledStreamCount";
   const crc = "crc";
   const crc16 = crc + "16";
@@ -564,7 +564,7 @@
   const isCopyrighted = "isCopyrighted";
   const isFirstPage = "isFirstPage";
   const isHome = "isHome";
-  const isLastPage = "isLastPage";
+  const isLastPage$1 = "isLastPage";
   const isOriginal = "isOriginal";
   const isPrivate = "isPrivate";
   const isVbr = "isVbr";
@@ -629,7 +629,7 @@
   const sampleNumber = sample + Number$1;
   const sampleRate = sample + Rate;
   const sampleRateBits = symbol();
-  const samples = sample + "s";
+  const samples$1 = sample + "s";
 
   const stream = "stream";
   const streamCount = stream + "Count";
@@ -1093,7 +1093,7 @@
 
       if (headerValue) {
         const frameLengthValue = headerStore.get(headerValue)[frameLength];
-        const samplesValue = headerStore.get(headerValue)[samples];
+        const samplesValue = headerStore.get(headerValue)[samples$1];
 
         const frame = (yield* codecParser[readRawData](
           frameLengthValue,
@@ -1110,7 +1110,7 @@
       super(headerValue, dataValue);
 
       this[header] = headerValue;
-      this[samples] = samplesValue;
+      this[samples$1] = samplesValue;
       this[duration] = (samplesValue / headerValue[sampleRate]) * 1000;
       this[frameNumber] = null;
       this[totalBytesOut] = null;
@@ -1339,18 +1339,18 @@
       [modeExtension]: layer3ModeExtensions,
       [v1]: {
         [bitrateIndex]: v1Layer3,
-        [samples]: 1152,
+        [samples$1]: 1152,
       },
       [v2]: {
         [bitrateIndex]: v2Layer23,
-        [samples]: 576,
+        [samples$1]: 576,
       },
     },
     0b00000100: {
       [description]: "Layer II",
       [framePadding]: 1,
       [modeExtension]: layer12ModeExtensions,
-      [samples]: 1152,
+      [samples$1]: 1152,
       [v1]: {
         [bitrateIndex]: v1Layer2,
       },
@@ -1362,7 +1362,7 @@
       [description]: "Layer I",
       [framePadding]: 4,
       [modeExtension]: layer12ModeExtensions,
-      [samples]: 384,
+      [samples$1]: 384,
       [v1]: {
         [bitrateIndex]: v1Layer1,
       },
@@ -1476,7 +1476,7 @@
 
       header[mpegVersion] = mpegVersionValues[description];
       header[layer] = layerValues[description];
-      header[samples] = layerValues[samples];
+      header[samples$1] = layerValues[samples$1];
       header[protection] = protectionValues$1[data[1] & 0b00000001];
 
       header[length] = 4;
@@ -1498,7 +1498,7 @@
       header[isPrivate] = !!(data[2] & 0b00000001);
 
       header[frameLength] = Math.floor(
-        (125 * header[bitrate] * header[samples]) / header[sampleRate] +
+        (125 * header[bitrate] * header[samples$1]) / header[sampleRate] +
           header[framePadding],
       );
       if (!header[frameLength]) return null;
@@ -1775,7 +1775,7 @@
         header[copyrightId] = !!(data[3] & 0b00001000);
         header[copyrightIdStart] = !!(data[3] & 0b00000100);
         header[bitDepth] = 16;
-        header[samples] = 1024;
+        header[samples$1] = 1024;
 
         // Byte (7 of 7)
         // * `......PP` Number of AAC frames (RDBs) in ADTS frame minus 1, for maximum compatibility always use 1 AAC frame per ADTS frame
@@ -1965,7 +1965,7 @@
       header[streamInfo] = streamInfoValue;
       header[crc16] = FLACFrame._getFrameFooterCrc16(data);
 
-      super(header, data, headerStore.get(header)[samples]);
+      super(header, data, headerStore.get(header)[samples$1]);
     }
   }
 
@@ -2233,7 +2233,7 @@
         header[length] += 2;
       }
 
-      header[samples] = header[blockSize];
+      header[samples$1] = header[blockSize];
 
       // Byte (...)
       // * `KKKKKKKK|(KKKKKKKK)`: Sample rate (8/16bit custom value)
@@ -2431,7 +2431,7 @@
         this._headerCache[enable]();
         this._streamInfo = oggPage[data$1][subarray](13);
       } else if (oggPage[pageSequenceNumber] === 1) ; else {
-        oggPage[codecFrames] = frameStore
+        oggPage[codecFrames$1] = frameStore
           .get(oggPage)
           [segments].map((segment) => {
             const header = FLACHeader[getHeaderFromUint8Array](
@@ -2505,7 +2505,7 @@
       const zeros = data[5] & 0b11111000;
       if (zeros) return null;
 
-      header[isLastPage] = !!(data[5] & 0b00000100);
+      header[isLastPage$1] = !!(data[5] & 0b00000100);
       header[isFirstPage] = !!(data[5] & 0b00000010);
       header[isContinuedPacket] = !!(data[5] & 0b00000001);
 
@@ -2519,7 +2519,7 @@
        * @todo Safari does not support getBigInt64, but it also doesn't support Ogg
        */
       try {
-        header[absoluteGranulePosition] = view.getBigInt64(6, true);
+        header[absoluteGranulePosition$1] = view.getBigInt64(6, true);
       } catch {}
 
       // Byte (15-18 of 28)
@@ -2572,10 +2572,10 @@
     constructor(header) {
       headerStore.set(this, header);
 
-      this[absoluteGranulePosition] = header[absoluteGranulePosition];
+      this[absoluteGranulePosition$1] = header[absoluteGranulePosition$1];
       this[isContinuedPacket] = header[isContinuedPacket];
       this[isFirstPage] = header[isFirstPage];
-      this[isLastPage] = header[isLastPage];
+      this[isLastPage$1] = header[isLastPage$1];
       this[pageSegmentTable] = header[pageSegmentTable];
       this[pageSequenceNumber] = header[pageSequenceNumber];
       this[pageChecksum] = header[pageChecksum];
@@ -2632,16 +2632,16 @@
 
       frameStore.get(this)[length] = rawDataValue[length];
 
-      this[codecFrames] = [];
+      this[codecFrames$1] = [];
       this[rawData] = rawDataValue;
-      this[absoluteGranulePosition] = header[absoluteGranulePosition];
+      this[absoluteGranulePosition$1] = header[absoluteGranulePosition$1];
       this[crc32] = header[pageChecksum];
       this[duration] = 0;
       this[isContinuedPacket] = header[isContinuedPacket];
       this[isFirstPage] = header[isFirstPage];
-      this[isLastPage] = header[isLastPage];
+      this[isLastPage$1] = header[isLastPage$1];
       this[pageSequenceNumber] = header[pageSequenceNumber];
-      this[samples] = 0;
+      this[samples$1] = 0;
       this[streamSerialNumber] = header[streamSerialNumber];
     }
   }
@@ -2964,7 +2964,7 @@
         this._headerCache[enable]();
         this._identificationHeader = oggPage[data$1];
       } else if (oggPage[pageSequenceNumber] === 1) ; else {
-        oggPage[codecFrames] = frameStore
+        oggPage[codecFrames$1] = frameStore
           .get(oggPage)
           [segments].map((segment) => {
             const header = OpusHeader[getHeaderFromUint8Array](
@@ -3181,7 +3181,7 @@
     }
 
     [parseOggPage](oggPage) {
-      oggPage[codecFrames] = [];
+      oggPage[codecFrames$1] = [];
 
       for (const oggPageSegment of frameStore.get(oggPage)[segments]) {
         if (oggPageSegment[0] === 1) {
@@ -3209,7 +3209,7 @@
           );
 
           if (header) {
-            oggPage[codecFrames].push(
+            oggPage[codecFrames$1].push(
               new VorbisFrame(
                 oggPageSegment,
                 header,
@@ -3496,7 +3496,7 @@
         this._streams.set(this._currentSerialNumber, oggStream);
       }
 
-      if (oggPage[isLastPage]) this._streams.delete(this._currentSerialNumber);
+      if (oggPage[isLastPage$1]) this._streams.delete(this._currentSerialNumber);
 
       return oggStream._parsePage(oggPage);
     }
@@ -3692,18 +3692,18 @@
       );
 
       this._totalBytesOut += frame[data$1][length];
-      this._totalSamples += frame[samples];
+      this._totalSamples += frame[samples$1];
     }
 
     /**
      * @protected
      */
     [mapFrameStats](frame) {
-      if (frame[codecFrames]) {
+      if (frame[codecFrames$1]) {
         // Ogg container
-        frame[codecFrames].forEach((codecFrame) => {
+        frame[codecFrames$1].forEach((codecFrame) => {
           frame[duration] += codecFrame[duration];
-          frame[samples] += codecFrame[samples];
+          frame[samples$1] += codecFrame[samples$1];
           this[mapCodecFrameStats](codecFrame);
         });
 
@@ -3759,7 +3759,11 @@
     }
   }
 
+  const absoluteGranulePosition = absoluteGranulePosition$1;
+  const codecFrames = codecFrames$1;
   const data = data$1;
+  const isLastPage = isLastPage$1;
+  const samples = samples$1;
 
   /* **************************************************
    * This file is auto-generated during the build process.
@@ -4170,6 +4174,13 @@ d,ýô¸¢Ï Ú)ØÔÓð¢#jðVXYªL©Ö/Ï3;$SÕ û6î¦v²r
 
   const setDecoderClass = Symbol();
 
+  const determineDecodeMethod = Symbol();
+  const decodeFlac = Symbol();
+  const decodeOggFlac = Symbol();
+  const placeholderDecodeMethod = Symbol();
+  const decodeMethod = Symbol();
+  const init = Symbol();
+
   class FLACDecoder {
     constructor() {
       this._onCodec = (codec) => {
@@ -4182,15 +4193,38 @@ d,ýô¸¢Ï Ú)ØÔÓð¢#jðVXYªL©Ö/Ï3;$SÕ û6î¦v²r
       // instantiate to create static properties
       new WASMAudioDecoderCommon();
 
-      this._init();
+      this[init]();
       this[setDecoderClass](Decoder);
     }
 
-    _init() {
-      this._codecParser = new CodecParser("audio/flac", {
-        onCodec: this._onCodec,
-        enableFrameCRC32: false,
-      });
+    [init]() {
+      this[decodeMethod] = placeholderDecodeMethod;
+      this._codecParser = null;
+      this._beginningSampleOffset = undefined;
+    }
+
+    [determineDecodeMethod](data) {
+      if (!this._codecParser && data.length >= 4) {
+        let codec = "audio/";
+
+        if (
+          data[0] !== 0x4f || // O
+          data[1] !== 0x67 || // g
+          data[2] !== 0x67 || // g
+          data[3] !== 0x53 //    S
+        ) {
+          codec += "flac";
+          this[decodeMethod] = decodeFlac;
+        } else {
+          codec += "ogg";
+          this[decodeMethod] = decodeOggFlac;
+        }
+
+        this._codecParser = new CodecParser(codec, {
+          onCodec: this._onCodec,
+          enableFrameCRC32: false,
+        });
+      }
     }
 
     [setDecoderClass](decoderClass) {
@@ -4203,12 +4237,54 @@ d,ýô¸¢Ï Ú)ØÔÓð¢#jðVXYªL©Ö/Ï3;$SÕ û6î¦v²r
       this._ready = this._decoder.ready;
     }
 
+    [decodeFlac](flacFrames) {
+      return this._decoder.decodeFrames(flacFrames.map((f) => f[data] || f));
+    }
+
+    [decodeOggFlac](oggPages) {
+      const frames = oggPages
+        .map((page) => page[codecFrames].map((f) => f[data]))
+        .flat();
+
+      const decoded = this._decoder.decodeFrames(frames);
+
+      const oggPage = oggPages[oggPages.length - 1];
+      if (oggPages.length && Number(oggPage[absoluteGranulePosition]) > -1) {
+        if (this._beginningSampleOffset === undefined) {
+          this._beginningSampleOffset =
+            oggPage[absoluteGranulePosition] - BigInt(oggPage[samples]);
+        }
+
+        if (oggPage[isLastPage]) {
+          // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+          const samplesToTrim =
+            decoded.samplesDecoded - Number(oggPage[absoluteGranulePosition]);
+
+          if (samplesToTrim > 0) {
+            for (let i = 0; i < decoded.channelData.length; i++)
+              decoded.channelData[i] = decoded.channelData[i].subarray(
+                0,
+                decoded.samplesDecoded - samplesToTrim,
+              );
+
+            decoded.samplesDecoded -= samplesToTrim;
+          }
+        }
+      }
+
+      return decoded;
+    }
+
+    [placeholderDecodeMethod]() {
+      return WASMAudioDecoderCommon.getDecodedAudio([], [], 0, 0, 0);
+    }
+
     get ready() {
       return this._ready;
     }
 
     async reset() {
-      this._init();
+      this[init]();
       return this._decoder.reset();
     }
 
@@ -4217,31 +4293,34 @@ d,ýô¸¢Ï Ú)ØÔÓð¢#jðVXYªL©Ö/Ï3;$SÕ û6î¦v²r
     }
 
     async decode(flacData) {
-      return this._decoder.decodeFrames(
-        [...this._codecParser.parseChunk(flacData)].map((f) => f[data]),
-      );
+      if (this[decodeMethod] === placeholderDecodeMethod)
+        this[determineDecodeMethod](flacData);
+
+      return this[this[decodeMethod]]([
+        ...this._codecParser.parseChunk(flacData),
+      ]);
     }
 
     async flush() {
-      const decoded = this._decoder.decodeFrames(
-        [...this._codecParser.flush()].map((f) => f[data]),
-      );
+      const decoded = this[this[decodeMethod]]([...this._codecParser.flush()]);
 
       await this.reset();
       return decoded;
     }
 
     async decodeFile(flacData) {
-      const decoded = this._decoder.decodeFrames(
-        [...this._codecParser.parseAll(flacData)].map((f) => f[data]),
-      );
+      this[determineDecodeMethod](flacData);
+
+      const decoded = this[this[decodeMethod]]([
+        ...this._codecParser.parseAll(flacData),
+      ]);
 
       await this.reset();
       return decoded;
     }
 
     async decodeFrames(flacFrames) {
-      return this._decoder.decodeFrames(flacFrames);
+      return this[decodeFlac](flacFrames);
     }
   }
 
