@@ -2093,9 +2093,9 @@ describe("wasm-audio-decoders", () => {
     describe("web worker", () => {
       it("should decode flac in a web worker", async () => {
         const { paths, result } = await test_decode(
-          new FLACDecoder(),
+          new FLACDecoderWebWorker(),
           "decodeFile",
-          "should decode flac in a  web worker",
+          "should decode flac in a web worker",
           flacStereoTestFile,
           flacStereoTestFile,
         );
@@ -2114,7 +2114,7 @@ describe("wasm-audio-decoders", () => {
       it("should decode ogg flac in a web worker", async () => {
         // flac flac.flac -8 --ogg -o flac.flac.ogg
         const { paths, result } = await test_decode(
-          new FLACDecoder(),
+          new FLACDecoderWebWorker(),
           "decodeFile",
           "should decode flac in a web worker",
           oggFlacStereoTestFile,
@@ -2134,7 +2134,7 @@ describe("wasm-audio-decoders", () => {
 
       it("should decode flac frames in a web worker", async () => {
         const { paths, result } = await test_decodeFrames(
-          new FLACDecoder(),
+          new FLACDecoderWebWorker(),
           "should decode flac frames in a web worker",
           flacStereoTestFile,
           null,
@@ -2154,9 +2154,8 @@ describe("wasm-audio-decoders", () => {
       });
 
       it("should decode multichannel flac in a web worker", async () => {
-        // ffmpeg -i flac.short.wav -filter_complex "[0:a][0:a][0:a][0:a][0:a][0:a][0:a][0:a]join=inputs=8:channel_layout=7.1[a]" -map "[a]" flac.8.flac
         const { paths, result } = await test_decode(
-          new FLACDecoder(),
+          new FLACDecoderWebWorker(),
           "decodeFile",
           "should decode multichannel flac in a web worker",
           flacMultichannelTestFile,
@@ -2177,7 +2176,7 @@ describe("wasm-audio-decoders", () => {
 
       it("should decode multichannel ogg flac in a web worker", async () => {
         const { paths, result } = await test_decode(
-          new FLACDecoder(),
+          new FLACDecoderWebWorker(),
           "decodeFile",
           "should decode multichannel flac in a web worker",
           oggFlacMultichannelTestFile,
@@ -2198,7 +2197,7 @@ describe("wasm-audio-decoders", () => {
 
       it("should decode high sample rate flac in a web worker", async () => {
         const { paths, result } = await test_decode(
-          new FLACDecoder(),
+          new FLACDecoderWebWorker(),
           "decodeFile",
           "should decode high sample rate flac in a web worker",
           flac96000kTestFile,
@@ -2219,7 +2218,7 @@ describe("wasm-audio-decoders", () => {
 
       it("should decode high sample rate ogg flac in a web worker", async () => {
         const { paths, result } = await test_decode(
-          new FLACDecoder(),
+          new FLACDecoderWebWorker(),
           "decodeFile",
           "should decode high sample rate flac in a web worker",
           oggFlac96000kTestFile,
