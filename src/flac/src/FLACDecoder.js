@@ -1,5 +1,11 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
-import CodecParser, { data } from "codec-parser";
+import CodecParser, {
+  data,
+  absoluteGranulePosition,
+  samples,
+  codecFrames,
+  isLastPage,
+} from "codec-parser";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
@@ -174,6 +180,13 @@ export function Decoder() {
 
 export const setDecoderClass = Symbol();
 
+const determineDecodeMethod = Symbol();
+const decodeFlac = Symbol();
+const decodeOggFlac = Symbol();
+const placeholderDecodeMethod = Symbol();
+const decodeMethod = Symbol();
+const init = Symbol();
+
 export default class FLACDecoder {
   constructor() {
     this._onCodec = (codec) => {
@@ -186,15 +199,38 @@ export default class FLACDecoder {
     // instantiate to create static properties
     new WASMAudioDecoderCommon();
 
-    this._init();
+    this[init]();
     this[setDecoderClass](Decoder);
   }
 
-  _init() {
-    this._codecParser = new CodecParser("audio/flac", {
-      onCodec: this._onCodec,
-      enableFrameCRC32: false,
-    });
+  [init]() {
+    this[decodeMethod] = placeholderDecodeMethod;
+    this._codecParser = null;
+    this._beginningSampleOffset = undefined;
+  }
+
+  [determineDecodeMethod](data) {
+    if (!this._codecParser && data.length >= 4) {
+      let codec = "audio/";
+
+      if (
+        data[0] !== 0x4f || // O
+        data[1] !== 0x67 || // g
+        data[2] !== 0x67 || // g
+        data[3] !== 0x53 //    S
+      ) {
+        codec += "flac";
+        this[decodeMethod] = decodeFlac;
+      } else {
+        codec += "ogg";
+        this[decodeMethod] = decodeOggFlac;
+      }
+
+      this._codecParser = new CodecParser(codec, {
+        onCodec: this._onCodec,
+        enableFrameCRC32: false,
+      });
+    }
   }
 
   [setDecoderClass](decoderClass) {
@@ -207,12 +243,54 @@ export default class FLACDecoder {
     this._ready = this._decoder.ready;
   }
 
+  [decodeFlac](flacFrames) {
+    return this._decoder.decodeFrames(flacFrames.map((f) => f[data] || f));
+  }
+
+  [decodeOggFlac](oggPages) {
+    const frames = oggPages
+      .map((page) => page[codecFrames].map((f) => f[data]))
+      .flat();
+
+    const decoded = this._decoder.decodeFrames(frames);
+
+    const oggPage = oggPages[oggPages.length - 1];
+    if (oggPages.length && Number(oggPage[absoluteGranulePosition]) > -1) {
+      if (this._beginningSampleOffset === undefined) {
+        this._beginningSampleOffset =
+          oggPage[absoluteGranulePosition] - BigInt(oggPage[samples]);
+      }
+
+      if (oggPage[isLastPage]) {
+        // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+        const samplesToTrim =
+          decoded.samplesDecoded - Number(oggPage[absoluteGranulePosition]);
+
+        if (samplesToTrim > 0) {
+          for (let i = 0; i < decoded.channelData.length; i++)
+            decoded.channelData[i] = decoded.channelData[i].subarray(
+              0,
+              decoded.samplesDecoded - samplesToTrim,
+            );
+
+          decoded.samplesDecoded -= samplesToTrim;
+        }
+      }
+    }
+
+    return decoded;
+  }
+
+  [placeholderDecodeMethod]() {
+    return WASMAudioDecoderCommon.getDecodedAudio([], [], 0, 0, 0);
+  }
+
   get ready() {
     return this._ready;
   }
 
   async reset() {
-    this._init();
+    this[init]();
     return this._decoder.reset();
   }
 
@@ -221,30 +299,33 @@ export default class FLACDecoder {
   }
 
   async decode(flacData) {
-    return this._decoder.decodeFrames(
-      [...this._codecParser.parseChunk(flacData)].map((f) => f[data]),
-    );
+    if (this[decodeMethod] === placeholderDecodeMethod)
+      this[determineDecodeMethod](flacData);
+
+    return this[this[decodeMethod]]([
+      ...this._codecParser.parseChunk(flacData),
+    ]);
   }
 
   async flush() {
-    const decoded = this._decoder.decodeFrames(
-      [...this._codecParser.flush()].map((f) => f[data]),
-    );
+    const decoded = this[this[decodeMethod]]([...this._codecParser.flush()]);
 
     await this.reset();
     return decoded;
   }
 
   async decodeFile(flacData) {
-    const decoded = this._decoder.decodeFrames(
-      [...this._codecParser.parseAll(flacData)].map((f) => f[data]),
-    );
+    this[determineDecodeMethod](flacData);
+
+    const decoded = this[this[decodeMethod]]([
+      ...this._codecParser.parseAll(flacData),
+    ]);
 
     await this.reset();
     return decoded;
   }
 
   async decodeFrames(flacFrames) {
-    return this._decoder.decodeFrames(flacFrames);
+    return this[decodeFlac](flacFrames);
   }
 }
