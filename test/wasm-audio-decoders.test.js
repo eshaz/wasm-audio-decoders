@@ -94,18 +94,18 @@ const test_decodeChunks = async (
   actualPathModifiers = [],
   chunkSize,
 ) => {
-  try {
-    if (decoder.constructor.name.match(/WebWorker/))
-      actualPathModifiers.push("worker");
+  if (decoder.constructor.name.match(/WebWorker/))
+    actualPathModifiers.push("worker");
 
-    const paths = getTestPaths(
-      fileName,
-      outputFileName,
-      expectedPathModifiers,
-      actualPathModifiers,
-    );
+  const paths = getTestPaths(
+    fileName,
+    outputFileName,
+    expectedPathModifiers,
+    actualPathModifiers,
+  );
 
-    const result = await decoder.ready.then(() =>
+  const result = await decoder.ready
+    .then(() =>
       testDecoder_decodeAndFlush(
         decoder,
         method,
@@ -114,12 +114,12 @@ const test_decodeChunks = async (
         paths.actualPath,
         chunkSize,
       ),
-    );
+    )
+    .finally(() => {
+      decoder.free();
+    });
 
-    return { paths, result };
-  } finally {
-    decoder.free();
-  }
+  return { paths, result };
 };
 
 const test_decode_multipleFiles = async (DecoderClass, testParams) => {
@@ -439,6 +439,29 @@ describe("wasm-audio-decoders", () => {
     //  expect(samplesDecoded).toEqual(751564800);
     //  expect(sampleRate).toEqual(44100);
     //}, 100000);
+
+    it("should decode mpeg while reading small chunks", async () => {
+      const { paths, result } = await test_decodeChunks(
+        new MPEGDecoder(),
+        "decode",
+        "should decode mpeg while reading small chunks",
+        "mpeg.cbr.mp3",
+        "mpeg.cbr.mp3",
+        [],
+        [],
+        123,
+      );
+
+      const [actual, expected] = await Promise.all([
+        fs.readFile(paths.actualPath),
+        fs.readFile(paths.expectedPath),
+      ]);
+
+      expect(result.samplesDecoded).toEqual(3499776);
+      expect(result.sampleRate).toEqual(44100);
+      expect(actual.length).toEqual(expected.length);
+      expect(Buffer.compare(actual, expected)).toEqual(0);
+    });
 
     describe("frame decoding", () => {
       let fileName, frames, framesLength;
@@ -2026,6 +2049,29 @@ describe("wasm-audio-decoders", () => {
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
+      it("should decode flac while reading small chunks", async () => {
+        const { paths, result } = await test_decodeChunks(
+          new FLACDecoder(),
+          "decode",
+          "should decode flac while reading small chunks",
+          flacStereoTestFile,
+          flacStereoTestFile,
+          [],
+          [],
+          123,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3497536); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
       it("should decode ogg flac", async () => {
         // flac flac.flac -8 --ogg -o flac.flac.ogg
         const { paths, result } = await test_decode(
@@ -2034,6 +2080,29 @@ describe("wasm-audio-decoders", () => {
           "should decode flac",
           oggFlacStereoTestFile,
           oggFlacStereoTestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.samplesDecoded).toEqual(3487621); //3807154, 204
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(24);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode ogg flac while reading small chunks", async () => {
+        const { paths, result } = await test_decodeChunks(
+          new FLACDecoder(),
+          "decode",
+          "should decode ogg flac while reading small chunks",
+          oggFlacStereoTestFile,
+          oggFlacStereoTestFile,
+          [],
+          [],
+          123,
         );
 
         const [actual, expected] = await Promise.all([
@@ -2370,6 +2439,29 @@ describe("wasm-audio-decoders", () => {
           oggVorbisStereoTestFile,
         );
 
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3496960);
+        expect(result.sampleRate).toEqual(44100);
+        expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode vorbis while reading small chunks", async () => {
+        const { paths, result } = await test_decodeChunks(
+          new OggVorbisDecoder(),
+          "decode",
+          "should decode vorbis while reading small chunks",
+          oggVorbisStereoTestFile,
+          oggVorbisStereoTestFile,
+          [],
+          [],
+          123,
+        );
         const [actual, expected] = await Promise.all([
           fs.readFile(paths.actualPath),
           fs.readFile(paths.expectedPath),

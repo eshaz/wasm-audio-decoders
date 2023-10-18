@@ -391,7 +391,10 @@ export const testDecoder_decodeAndFlush = async (
       const continueDecoding = await decodeOrFlushChunk(method);
 
       if (!continueDecoding) {
-        await decodeOrFlushChunk("flush");
+        if (decoder["flush"]) {
+          // only flush if decoder implements this
+          await decodeOrFlushChunk("flush");
+        }
         break;
       }
     }
