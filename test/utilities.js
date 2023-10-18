@@ -320,3 +320,114 @@ export const testDecoder_decode = async (
     await output.close();
   }
 };
+
+export const testDecoder_decodeAndFlush = async (
+  decoder,
+  method = "decode",
+  fileName,
+  inputPath,
+  outputPath,
+  chunkSize,
+) => {
+  const [input, output] = await Promise.all([
+    fs.open(inputPath, "r+"),
+    fs.open(outputPath, "w+"),
+  ]);
+
+  try {
+    let decodeStart, decodeEnd;
+
+    let totalBytesWritten = 0,
+      totalBytesRead = 0,
+      sampleRate,
+      channelsDecoded,
+      bitDepth,
+      totalSamplesDecoded = 0,
+      allErrors = [];
+
+    // allocate space for the wave header
+    await output.writeFile(Buffer.alloc(44));
+
+    // print the initial stats header
+    process.stderr.write(
+      "\n" + decoder.constructor.name + " " + fileName + "\n",
+    );
+
+    const decodeOrFlushChunk = async (decodeOrFlush) => {
+      const { bytesRead, buffer } = await input.read(
+        Buffer.allocUnsafe(chunkSize),
+        0,
+        chunkSize,
+      );
+
+      if (bytesRead === 0 && decodeOrFlush !== "flush") return false;
+
+      const {
+        channelData,
+        samplesDecoded,
+        sampleRate: rate,
+        bitDepth: depth,
+        errors,
+      } = await decoder[decodeOrFlush](buffer.subarray(0, bytesRead));
+
+      allErrors.push(...errors);
+
+      const interleaved = getInterleaved(channelData, samplesDecoded);
+      await output.write(interleaved);
+
+      sampleRate = rate;
+      bitDepth = depth;
+      channelsDecoded = channelData.length;
+      totalBytesWritten += interleaved.length;
+      totalSamplesDecoded += samplesDecoded;
+      totalBytesRead += bytesRead;
+
+      return true;
+    };
+
+    decodeStart = performance.now();
+    // read chunks and then flush any remaining results
+    while (true) {
+      const continueDecoding = await decodeOrFlushChunk(method);
+
+      if (!continueDecoding) {
+        await decodeOrFlushChunk("flush");
+        break;
+      }
+    }
+    decodeEnd = performance.now();
+
+    const decodeTime = (decodeEnd - decodeStart) / 1000;
+
+    printStats({
+      decodeTime,
+      samplesDecoded: totalSamplesDecoded,
+      sampleRate,
+      totalSamplesDecoded,
+      bytesRead: totalBytesRead,
+      totalBytesRead,
+      bytesWritten: totalBytesWritten,
+      totalBytesWritten,
+    });
+
+    const header = getWaveFileHeader({
+      bitDepth: 16,
+      sampleRate,
+      length: totalBytesWritten,
+      channels: channelsDecoded,
+    });
+
+    await output.write(header, 0, header.length, 0);
+
+    return {
+      channelsDecoded,
+      samplesDecoded: totalSamplesDecoded,
+      sampleRate,
+      bitDepth,
+      errors: allErrors,
+    };
+  } finally {
+    await input.close();
+    await output.close();
+  }
+};
