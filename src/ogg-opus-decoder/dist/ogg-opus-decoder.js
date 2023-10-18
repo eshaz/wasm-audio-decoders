@@ -1126,7 +1126,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
   const crc = "crc";
   const crc16 = crc + "16";
   const crc32 = crc + "32";
-  const data = "data";
+  const data$1 = "data";
   const description = "description";
   const duration = "duration";
   const emphasis = "emphasis";
@@ -1632,7 +1632,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
     constructor(headerValue, dataValue) {
       frameStore.set(this, { [header$1]: headerValue });
 
-      this[data] = dataValue;
+      this[data$1] = dataValue;
     }
   }
 
@@ -3001,7 +3001,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
         // Identification header
 
         this._headerCache[enable]();
-        this._streamInfo = oggPage[data][subarray](13);
+        this._streamInfo = oggPage[data$1][subarray](13);
       } else if (oggPage[pageSequenceNumber] === 1) ; else {
         oggPage[codecFrames$1] = frameStore
           .get(oggPage)
@@ -3379,9 +3379,9 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
       // * `00000001`: Version number
       if (dataValue[8] !== 1) return null;
 
-      header[data] = uint8Array.from(dataValue[subarray](0, header[length]));
+      header[data$1] = uint8Array.from(dataValue[subarray](0, header[length]));
 
-      const view = new dataView(header[data][buffer]);
+      const view = new dataView(header[data$1][buffer]);
 
       header[bitDepth] = 16;
 
@@ -3476,7 +3476,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
     constructor(header) {
       super(header);
 
-      this[data] = header[data];
+      this[data$1] = header[data$1];
       this[bandwidth] = header[bandwidth];
       this[channelMappingFamily] = header[channelMappingFamily];
       this[channelMappingTable$1] = header[channelMappingTable$1];
@@ -3534,7 +3534,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
         // Identification header
 
         this._headerCache[enable]();
-        this._identificationHeader = oggPage[data];
+        this._identificationHeader = oggPage[data$1];
       } else if (oggPage[pageSequenceNumber] === 1) ; else {
         oggPage[codecFrames$1] = frameStore
           .get(oggPage)
@@ -3637,8 +3637,8 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
         return null;
       }
 
-      header[data] = uint8Array.from(dataValue[subarray](0, 30));
-      const view = new dataView(header[data][buffer]);
+      header[data$1] = uint8Array.from(dataValue[subarray](0, 30));
+      const view = new dataView(header[data$1][buffer]);
 
       // Byte (8-11 of 30)
       // * `CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC`: Version number
@@ -3710,7 +3710,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
       this[bitrateNominal] = header[bitrateNominal];
       this[blocksize0] = header[blocksize0];
       this[blocksize1] = header[blocksize1];
-      this[data] = header[data];
+      this[data$1] = header[data$1];
       this[vorbisComments] = header[vorbisComments];
       this[vorbisSetup] = header[vorbisSetup];
     }
@@ -3760,7 +3760,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
           // Identification header
 
           this._headerCache[enable]();
-          this._identificationHeader = oggPage[data];
+          this._identificationHeader = oggPage[data$1];
           this._setupComplete = false;
         } else if (oggPageSegment[0] === 3) {
           // comment header
@@ -4001,7 +4001,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
 
       let offset = 0;
       oggPageStore[segments] = headerData[pageSegmentTable].map((segmentLength) =>
-        oggPage[data][subarray](offset, (offset += segmentLength)),
+        oggPage[data$1][subarray](offset, (offset += segmentLength)),
       );
 
       // prepend any existing continued packet data
@@ -4250,20 +4250,20 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
 
       frame[header$1][bitrate] =
         frame[duration] > 0
-          ? Math.round(frame[data][length] / frame[duration]) * 8
+          ? Math.round(frame[data$1][length] / frame[duration]) * 8
           : 0;
       frame[frameNumber] = this._frameNumber++;
       frame[totalBytesOut] = this._totalBytesOut;
       frame[totalSamples] = this._totalSamples;
       frame[totalDuration] = (this._totalSamples / this._sampleRate) * 1000;
-      frame[crc32] = this._crc32(frame[data]);
+      frame[crc32] = this._crc32(frame[data$1]);
 
       this._headerCache[checkCodecUpdate](
         frame[header$1][bitrate],
         frame[totalDuration],
       );
 
-      this._totalBytesOut += frame[data][length];
+      this._totalBytesOut += frame[data$1][length];
       this._totalSamples += frame[samples$1];
     }
 
@@ -4334,6 +4334,7 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
   const absoluteGranulePosition = absoluteGranulePosition$1;
   const codecFrames = codecFrames$1;
   const coupledStreamCount = coupledStreamCount$1;
+  const data = data$1;
   const header = header$1;
   const isLastPage = isLastPage$1;
   const preSkip = preSkip$1;
@@ -4341,104 +4342,6 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
   const channels = channels$1;
   const samples = samples$1;
   const streamCount = streamCount$1;
-
-  class DecoderState {
-    constructor(instance) {
-      this._instance = instance;
-
-      this._sampleRate = this._instance._sampleRate;
-      this._decoderOperations = [];
-      this._errors = [];
-      this._decoded = [];
-      this._channelsDecoded = 0;
-      this._totalSamples = 0;
-    }
-
-    get decoded() {
-      return this._instance.ready
-        .then(() => Promise.all(this._decoderOperations))
-        .then(() => [
-          this._errors,
-          this._decoded,
-          this._channelsDecoded,
-          this._totalSamples,
-          this._sampleRate,
-        ]);
-    }
-
-    async _instantiateDecoder(header) {
-      this._preSkip = header[preSkip];
-
-      this._instance._decoder = new this._instance._decoderClass({
-        channels: header[channels],
-        streamCount: header[streamCount],
-        coupledStreamCount: header[coupledStreamCount],
-        channelMappingTable: header[channelMappingTable],
-        preSkip: Math.round((this._preSkip / 48000) * this._sampleRate),
-        sampleRate: this._sampleRate,
-        forceStereo: this._instance._forceStereo,
-      });
-      this._instance._ready = this._instance._decoder.ready;
-    }
-
-    async _sendToDecoder(oggPage) {
-      const dataFrames = oggPage[codecFrames].map((f) => f.data);
-
-      const { channelData, samplesDecoded, errors } =
-        await this._instance._decoder.decodeFrames(dataFrames);
-
-      this._totalSamples += samplesDecoded;
-
-      if (
-        this._beginningSampleOffset === undefined &&
-        Number(oggPage[absoluteGranulePosition]) > -1
-      ) {
-        this._beginningSampleOffset =
-          oggPage[absoluteGranulePosition] -
-          BigInt(oggPage[samples]) +
-          BigInt(this._preSkip);
-      }
-
-      // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
-      if (oggPage[isLastPage] && oggPage[absoluteGranulePosition] !== undefined) {
-        const totalDecodedSamples =
-          (this._totalSamples / this._sampleRate) * 48000;
-        const totalOggSamples = Number(
-          oggPage[absoluteGranulePosition] - this._beginningSampleOffset,
-        );
-
-        // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
-        const samplesToTrim = Math.round(
-          ((totalDecodedSamples - totalOggSamples) / 48000) * this._sampleRate,
-        );
-
-        for (let i = 0; i < channelData.length; i++)
-          channelData[i] = channelData[i].subarray(
-            0,
-            samplesDecoded - samplesToTrim,
-          );
-
-        this._totalSamples -= samplesToTrim;
-      }
-
-      this._decoded.push(channelData);
-      this._errors = this._errors.concat(errors);
-      this._channelsDecoded = channelData.length;
-    }
-
-    async _decode(oggPage) {
-      const frames = oggPage[codecFrames];
-
-      if (frames.length) {
-        if (!this._instance._decoder && frames[0][header])
-          this._instantiateDecoder(frames[0][header]);
-
-        await this._instance.ready;
-
-        this._decoderOperations.push(this._sendToDecoder(oggPage));
-      }
-    }
-  }
 
   class OggOpusDecoder {
     constructor(options = {}) {
@@ -4471,6 +4374,24 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
       });
     }
 
+    async _instantiateDecoder(header) {
+      this._totalSamplesDecoded = 0;
+      this._preSkip = header[preSkip];
+      this._channels = this._forceStereo ? 2 : header[channels];
+      this._beginningSampleOffset = null;
+
+      this._decoder = new this._decoderClass({
+        channels: header[channels],
+        streamCount: header[streamCount],
+        coupledStreamCount: header[coupledStreamCount],
+        channelMappingTable: header[channelMappingTable],
+        preSkip: Math.round((this._preSkip / 48000) * this._sampleRate),
+        sampleRate: this._sampleRate,
+        forceStereo: this._forceStereo,
+      });
+      await this._decoder.ready;
+    }
+
     get ready() {
       return this._ready;
     }
@@ -4483,45 +4404,109 @@ FæJÎntr´r®r$Ïü;æÊ$U|àÈxpt¢¬M\_î=MßÚß[
       this._init();
     }
 
-    async _flush(decoderState) {
-      for (const oggPage of this._codecParser.flush()) {
-        decoderState._decode(oggPage);
+    async _decode(oggPages) {
+      let allErrors = [],
+        allChannelData = [],
+        samplesThisDecode = 0;
+
+      for await (const oggPage of oggPages) {
+        // only decode Ogg pages that have codec frames
+        const frames = oggPage[codecFrames].map((f) => f[data]);
+
+        if (frames.length) {
+          // wait until there is an Opus header before instantiating
+          if (!this._decoder)
+            await this._instantiateDecoder(oggPage[codecFrames][0][header]);
+
+          const { channelData, samplesDecoded, errors } =
+            await this._decoder.decodeFrames(frames);
+
+          this._totalSamplesDecoded += samplesDecoded;
+
+          // record beginning sample offset for absoluteGranulePosition logic
+          if (
+            this._beginningSampleOffset === null &&
+            Number(oggPage[absoluteGranulePosition]) > -1
+          ) {
+            this._beginningSampleOffset =
+              oggPage[absoluteGranulePosition] -
+              BigInt(oggPage[samples]) +
+              BigInt(this._preSkip);
+          }
+
+          if (oggPage[isLastPage]) {
+            // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
+            if (oggPage[absoluteGranulePosition] !== undefined) {
+              const totalDecodedSamples_48000 =
+                (this._totalSamplesDecoded / this._sampleRate) * 48000;
+              const totalOggSamples_48000 = Number(
+                oggPage[absoluteGranulePosition] - this._beginningSampleOffset,
+              );
+
+              // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+              const samplesToTrim = Math.round(
+                ((totalDecodedSamples_48000 - totalOggSamples_48000) / 48000) *
+                  this._sampleRate,
+              );
+
+              for (let i = 0; i < channelData.length; i++) {
+                channelData[i] = channelData[i].subarray(
+                  0,
+                  samplesDecoded - samplesToTrim,
+                );
+              }
+
+              samplesThisDecode -= samplesToTrim;
+            }
+            // reached the end of an ogg stream, reset the decoder
+            this._init();
+          }
+
+          allErrors.push(...errors);
+          allChannelData.push(channelData);
+          samplesThisDecode += samplesDecoded;
+        }
       }
 
-      const decoded = await decoderState.decoded;
-      this._init();
-
-      return decoded;
+      return [
+        allErrors,
+        allChannelData,
+        this._channels,
+        samplesThisDecode,
+        this._sampleRate,
+        16,
+      ];
     }
 
-    async _decode(oggOpusData, decoderState) {
-      for (const oggPage of this._codecParser.parseChunk(oggOpusData)) {
-        decoderState._decode(oggPage);
-      }
+    _parse(oggOpusData) {
+      return [...this._codecParser.parseChunk(oggOpusData)];
+    }
 
-      return decoderState.decoded;
+    _flush() {
+      return [...this._codecParser.flush()];
     }
 
     async decode(oggOpusData) {
-      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        ...(await this._decode(oggOpusData, new DecoderState(this))),
-      );
+      const decoded = await this._decode(this._parse(oggOpusData));
+
+      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(...decoded);
     }
 
     async decodeFile(oggOpusData) {
-      const decoderState = new DecoderState(this);
+      const decoded = await this._decode([
+        ...this._parse(oggOpusData),
+        ...this._flush(),
+      ]);
+      this._init();
 
-      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        ...(await this._decode(oggOpusData, decoderState).then(() =>
-          this._flush(decoderState),
-        )),
-      );
+      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(...decoded);
     }
 
     async flush() {
-      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(
-        ...(await this._flush(new DecoderState(this))),
-      );
+      const decoded = await this._decode(this._flush());
+      this._init();
+
+      return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(...decoded);
     }
   }
 
