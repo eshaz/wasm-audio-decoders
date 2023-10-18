@@ -49,6 +49,7 @@ export default class OggOpusDecoder {
     this._totalSamplesDecoded = 0;
     this._preSkip = header[preSkip];
     this._channels = this._forceStereo ? 2 : header[channels];
+    this._beginningSampleOffset = null;
 
     this._decoder = new this._decoderClass({
       channels: header[channels],
@@ -95,7 +96,7 @@ export default class OggOpusDecoder {
 
         // record beginning sample offset for absoluteGranulePosition logic
         if (
-          this._beginningSampleOffset === undefined &&
+          this._beginningSampleOffset === null &&
           Number(oggPage[absoluteGranulePosition]) > -1
         ) {
           this._beginningSampleOffset =
