@@ -130,12 +130,28 @@ export default function WASMAudioDecoderCommon() {
             expectedCrc,
             resultCrc = 0xffffffff;
 
-          while (i < source.length) {
-            byte = source.charCodeAt(i++);
+          for (; i < source.length; i++) {
+            byte = source.charCodeAt(i);
 
             if (byte === 61 && !escaped) {
               escaped = true;
               continue;
+            }
+
+            // work around for encoded strings that are UTF escaped
+            if (
+              byte === 92 && // /
+              i < source.length - 5
+            ) {
+              const secondCharacter = source.charCodeAt(i + 1);
+
+              if (
+                secondCharacter === 117 || // u
+                secondCharacter === 85 //     U
+              ) {
+                byte = parseInt(source.substring(i + 2, i + 6), 16);
+                i += 5;
+              }
             }
 
             if (escaped) {
