@@ -4,7 +4,12 @@
   "description": "Web Assembly streaming MPEG Layer I/II/III decoder",
   "type": "module",
   "main": "./index.js",
-  "exports": "./index.js",
+  "exports": {
+    ".": {
+      "default": "./index.js",
+      "types":"./types.d.ts"
+    }
+  },
   "sideEffects": false,
   "types": "types.d.ts",
   "files": [
