@@ -29,11 +29,11 @@
               if (!wasmString) {
                 wasmString = Ref.wasm;
                 module = WASMAudioDecoderCommon.inflateDynEncodeString(
-                  wasmString
+                  wasmString,
                 ).then((data) => WebAssembly.compile(data));
               } else {
                 module = WebAssembly.compile(
-                  WASMAudioDecoderCommon.decodeDynString(wasmString)
+                  WASMAudioDecoderCommon.decodeDynString(wasmString),
                 );
               }
 
@@ -76,7 +76,7 @@
             channelsDecoded,
             samplesDecoded,
             sampleRate,
-            bitDepth
+            bitDepth,
           ) {
             let channelData = [],
               i,
@@ -86,7 +86,7 @@
               const channel = [];
               for (j = 0; j < input.length; ) channel.push(input[j++][i] || []);
               channelData.push(
-                WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded)
+                WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded),
               );
             }
 
@@ -95,7 +95,7 @@
               channelData,
               samplesDecoded,
               sampleRate,
-              bitDepth
+              bitDepth,
             );
           },
         },
@@ -136,12 +136,28 @@
               expectedCrc,
               resultCrc = 0xffffffff;
 
-            while (i < source.length) {
-              byte = source.charCodeAt(i++);
+            for (; i < source.length; i++) {
+              byte = source.charCodeAt(i);
 
               if (byte === 61 && !escaped) {
                 escaped = true;
                 continue;
+              }
+
+              // work around for encoded strings that are UTF escaped
+              if (
+                byte === 92 && // /
+                i < source.length - 5
+              ) {
+                const secondCharacter = source.charCodeAt(i + 1);
+
+                if (
+                  secondCharacter === 117 || // u
+                  secondCharacter === 85 //     U
+                ) {
+                  byte = parseInt(source.substring(i + 2, i + 6), 16);
+                  i += 5;
+                }
               }
 
               if (escaped) {
@@ -210,7 +226,7 @@
                   heapView.setInt32(
                     destLengthPtr,
                     dataArray.byteLength - heapPos,
-                    true
+                    true,
                   );
 
                   // destination data fills in the rest of the heap
@@ -219,8 +235,8 @@
                   resolve(
                     dataArray.slice(
                       heapPos,
-                      heapPos + heapView.getInt32(destLengthPtr, true)
-                    )
+                      heapPos + heapView.getInt32(destLengthPtr, true),
+                    ),
                   );
                 });
             });
@@ -242,8 +258,8 @@
         output.push(
           outputData.slice(
             i * samplesDecoded,
-            i++ * samplesDecoded + samplesDecoded
-          )
+            i++ * samplesDecoded + samplesDecoded,
+          ),
         );
 
       return output;
@@ -282,7 +298,7 @@
       frameLength,
       frameNumber,
       inputBytes,
-      outputSamples
+      outputSamples,
     ) => {
       errors.push({
         message: message,
@@ -357,8 +373,8 @@
                     // detach buffers
                     Array.isArray(data)
                       ? data.map((data) => new Uint8Array(data))
-                      : new Uint8Array(data)
-                  )
+                      : new Uint8Array(data),
+                  ),
                 );
                 // The "transferList" parameter transfers ownership of channel data to main thread,
                 // which avoids copying memory.
@@ -368,7 +384,7 @@
               }
 
               messagePromise.then(() =>
-                self.postMessage(messagePayload, transferList)
+                self.postMessage(messagePayload, transferList),
               );
             };
           }).toString()})(${Decoder}, ${WASMAudioDecoderCommon}, ${EmscriptenWASM})`;
@@ -379,7 +395,7 @@
 
         source = isNode
           ? `data:${type};base64,${Buffer.from(webworkerSourceCode).toString(
-            "base64"
+            "base64",
           )}`
           : URL.createObjectURL(new Blob([webworkerSourceCode], { type }));
 
