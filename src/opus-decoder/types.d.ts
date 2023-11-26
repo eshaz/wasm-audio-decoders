@@ -39,4 +39,6 @@ declare module "opus-decoder" {
     decodeFrame: (opusFrame: Uint8Array) => Promise<OpusDecodedAudio>;
     decodeFrames: (opusFrames: Uint8Array[]) => Promise<OpusDecodedAudio>;
   }
+
+  export { DecodeError }
 }

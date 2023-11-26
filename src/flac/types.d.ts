@@ -28,4 +28,6 @@ declare module "flac-decoder" {
     decodeFile: (flacData: Uint8Array) => Promise<FLACDecodedAudio>;
     decodeFrames: (flacFrames: Uint8Array[]) => Promise<FLACDecodedAudio>;
   }
+
+  export { DecodeError }
 }
