@@ -25,4 +25,6 @@ declare module "mpg123-decoder" {
     decodeFrame: (mpegFrame: Uint8Array) => Promise<MPEGDecodedAudio>;
     decodeFrames: (mpegFrames: Uint8Array[]) => Promise<MPEGDecodedAudio>;
   }
+
+  export { DecodeError }
 }

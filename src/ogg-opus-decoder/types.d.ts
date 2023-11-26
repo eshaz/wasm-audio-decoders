@@ -27,4 +27,6 @@ declare module "ogg-opus-decoder" {
     decodeFile: (data: Uint8Array) => Promise<OpusDecodedAudio>;
     flush: () => Promise<OpusDecodedAudio>;
   }
+
+  export { DecodeError }
 }

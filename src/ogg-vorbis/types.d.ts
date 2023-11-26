@@ -29,4 +29,6 @@ declare module "ogg-vorbis-decoder" {
     decodeFile: (vorbisData: Uint8Array) => Promise<OggVorbisDecodedAudio>;
     decodeOggPages: (oggPages: OggPage[]) => Promise<OggVorbisDecodedAudio>;
   }
+
+  export { DecodeError }
 }
