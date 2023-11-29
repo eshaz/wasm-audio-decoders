@@ -1,13 +1,14 @@
 {
   "name": "@wasm-audio-decoders/common",
-  "version": "9.0.3",
+  "version": "9.0.4",
   "description": "Web Assembly Audio Decoders Common",
   "module": "index.js",
   "main": "index.js",
   "exports": {
-    "types":"./types.d.ts",
+    "types": "./types.d.ts",
     "default": "./index.js"
   },
+  "types": "types.d.ts",
   "sideEffects": false,
   "files": [
     "index.js",
