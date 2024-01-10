@@ -10,6 +10,7 @@ MPEGFrameDecoder *mpeg_frame_decoder_create() {
       MPG123_NO_PEEK_END |
       MPG123_NO_READAHEAD |
       MPG123_FORCE_STEREO |
+      MPG123_GAPLESS |
       MPG123_QUIET, 0);
     mpg123_open_feed(decoder.mh);
 

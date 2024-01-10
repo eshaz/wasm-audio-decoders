@@ -42,7 +42,7 @@
 /* #undef FRAME_INDEX */
 
 /* Define if gapless is enabled. */
-/* #undef GAPLESS */
+#define GAPLESS 1
 
 /* Define to 1 if you have the <alc.h> header file. */
 /* #undef HAVE_ALC_H */
