@@ -3,7 +3,7 @@
     "url": "mpg123-decoder.min.js.map"
   },
   "output": {
-    "preamble": "/* Copyright 2021-2023 Ethan Halsall. This file is part of wasm-audio-decoders. https://github.com/eshaz/wasm-audio-decoders */"
+    "preamble": "/* Copyright 2021-2024 Ethan Halsall. This file is part of wasm-audio-decoders. https://github.com/eshaz/wasm-audio-decoders */"
   },
   "compress": {
     "ecma": 2021,
@@ -35,7 +35,8 @@
         "frameLength",
         "frameNumber",
         "inputBytes",
-        "outputSamples"
+        "outputSamples",
+        "enableGapless"
       ]
     }
   },

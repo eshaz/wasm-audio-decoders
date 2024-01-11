@@ -11,7 +11,9 @@ typedef struct {
     struct mpg123_frameinfo fr;
 } MPEGFrameDecoder;
 
-MPEGFrameDecoder *mpeg_frame_decoder_create();
+MPEGFrameDecoder *mpeg_frame_decoder_create(
+    int enable_gapless // enable gapless decoding
+);
 
 int mpeg_decode_interleaved(
     MPEGFrameDecoder *decoder, // mpg123 decoder handle

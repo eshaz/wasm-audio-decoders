@@ -108,6 +108,15 @@ Decoding will proceed through any errors. Any errors encountered may result in g
 
 Class that decodes MPEG data or frames synchronously on the main thread.
 
+### Options
+```javascript
+const decoder = new MPEGDecoder({ enableGapless: true });
+```
+
+* `enableGapless` *optional, defaults to `false`*
+  * Set to `true` to enable gapless decoding.
+  * This may help to remove gaps introduced from padding and delay.
+
 ### Getters
 * `decoder.ready` *async*
   * Returns a promise that is resolved when the WASM is compiled and ready to use.
@@ -129,6 +138,15 @@ Class that decodes MPEG data or frames synchronously on the main thread.
 ## `MPEGDecoderWebWorker`
 
 Class that decodes MPEG data or frames asynchronously within a WebWorker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
+
+### Options
+```javascript
+const decoder = new MPEGDecoderWebWorker({ enableGapless: true });
+```
+
+* `enableGapless` *optional, defaults to `false`*
+  * Set to `true` to enable gapless decoding.
+  * This may help to remove gaps introduced from padding and delay.
 
 ### Getters
 * `decoder.ready` *async*

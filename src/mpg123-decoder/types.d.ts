@@ -8,6 +8,9 @@ export interface MPEGDecodedAudio {
 }
 
 export class MPEGDecoder {
+  constructor(options?: {
+    enableGapless?: boolean;
+  });
   ready: Promise<void>;
   reset: () => Promise<void>;
   free: () => void;
@@ -17,6 +20,9 @@ export class MPEGDecoder {
 }
 
 export class MPEGDecoderWebWorker {
+  constructor(options?: {
+    enableGapless?: boolean;
+  });
   ready: Promise<void>;
   reset: () => Promise<void>;
   free: () => Promise<void>;

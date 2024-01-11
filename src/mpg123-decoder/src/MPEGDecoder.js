@@ -32,7 +32,9 @@ export default function MPEGDecoder(options = {}) {
         this._sampleRateBytes = this._common.allocateTypedArray(1, Uint32Array);
         this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
 
-        this._decoder = this._common.wasm.mpeg_frame_decoder_create();
+        this._decoder = this._common.wasm.mpeg_frame_decoder_create(
+          options.enableGapless,
+        );
       });
   };
 

@@ -1,17 +1,19 @@
 // #include <stdio.h>
 #include "mpeg_frame_decoder.h"
 
-MPEGFrameDecoder *mpeg_frame_decoder_create() {
-    MPEGFrameDecoder decoder;
-    decoder.mh = mpg123_new(NULL, NULL);
-    mpg123_param(decoder.mh, MPG123_FLAGS,
-      MPG123_SKIP_ID3V2 |
+MPEGFrameDecoder *mpeg_frame_decoder_create(int enable_gapless) {
+    long flags = MPG123_SKIP_ID3V2 |
       MPG123_PLAIN_ID3TEXT |
       MPG123_NO_PEEK_END |
       MPG123_NO_READAHEAD |
       MPG123_FORCE_STEREO |
-      MPG123_GAPLESS |
-      MPG123_QUIET, 0);
+      MPG123_QUIET;
+
+    if (enable_gapless) flags |= MPG123_GAPLESS;
+
+    MPEGFrameDecoder decoder;
+    decoder.mh = mpg123_new(NULL, NULL);
+    mpg123_param(decoder.mh, MPG123_FLAGS, flags, 0);
     mpg123_open_feed(decoder.mh);
 
     MPEGFrameDecoder *ptr = malloc(sizeof(decoder));
