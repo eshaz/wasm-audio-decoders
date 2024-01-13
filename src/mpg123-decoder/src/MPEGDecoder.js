@@ -35,7 +35,7 @@ export default function MPEGDecoder(options = {}) {
 
         const error = this._common.wasm.mpeg_frame_decoder_create(
           decoderPtr.ptr,
-          options.enableGapless,
+          options.enableGapless ? 1 : 0,
         );
 
         if (error) {

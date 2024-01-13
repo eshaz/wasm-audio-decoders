@@ -814,7 +814,7 @@ lÌ1X¤ÈV(s5©10§#îrPZ¹ý¨c$M¹Ï'9©%OÉt¿èZhpmPöÇ«Rî·h�
 
           const error = this._common.wasm.mpeg_frame_decoder_create(
             decoderPtr.ptr,
-            options.enableGapless,
+            options.enableGapless ? 1 : 0,
           );
 
           if (error) {
