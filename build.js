@@ -139,7 +139,7 @@ this.instantiate = () => {
         dynEncodedWasm.quote,
         `})`,
         decoder.substring(wasmEndIdx),
-      ].map(Buffer.from),
+      ].map((string) => Buffer.from(string, { encoding: "binary" })),
     );
 
     const banner =
