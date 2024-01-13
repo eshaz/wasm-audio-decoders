@@ -872,7 +872,9 @@ lÌ1X¤ÈV(s5©10§#îrPZ¹ý¨c$M¹Ï'9©%OÉt¿èZhpmPöÇ«Rî·h�
       const errors = [];
 
       if (error) {
-        console.error("mpg123-decoder: " + this._getErrorMessage(error));
+        const message = this._getErrorMessage(error);
+        console.error("mpg123-decoder: " + message);
+
         this._common.addError(
           errors,
           message,

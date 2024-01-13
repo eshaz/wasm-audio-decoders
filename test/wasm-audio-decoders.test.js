@@ -868,7 +868,7 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-  /*
+
   describe("opus-decoder", () => {
     let opusStereoFrames,
       opusStereoHeader,
@@ -3090,5 +3090,4 @@ describe("wasm-audio-decoders", () => {
       });
     });
   });
-*/
 });
