@@ -1,17 +1,21 @@
 #include <stdlib.h>
 #include <mpg123.h>
 
+// https://lists.mars.org/hyperkitty/list/mad-dev@lists.mars.org/message/23ACZCLN3DMTR62GDAQNBGNUUMXORWYR/
+#define MPEG_PCM_OUT_SIZE 2889*2*2*sizeof(float) //max_mpeg_frame_size*bit_reservoir*channels*sizeof(float)
+
 typedef struct {
     // stores the interleaved PCM result of one MPEG frame
     union {
-        float floats[1152*2];
-        unsigned char bytes[1152*2*sizeof(float)]; //max_mpeg_frame_size*bit_reservoir*channels*sizeof(float)
+        float floats[MPEG_PCM_OUT_SIZE / sizeof(float)];
+        unsigned char bytes[MPEG_PCM_OUT_SIZE];
     } pcm;
     mpg123_handle *mh;
     struct mpg123_frameinfo fr;
 } MPEGFrameDecoder;
 
-MPEGFrameDecoder *mpeg_frame_decoder_create(
+int mpeg_frame_decoder_create(
+    MPEGFrameDecoder **ptr, // pointer to store new handle
     int enable_gapless // enable gapless decoding
 );
 
@@ -28,7 +32,7 @@ int mpeg_decode_interleaved(
     char **error_string_ptr // error string
 );
 
-static char* error_messages[] = {
+static const char* error_messages[] = {
     "MPG123_ERR",
     "", //"MPG123_OK",
     "MPG123_BAD_OUTFORMAT",

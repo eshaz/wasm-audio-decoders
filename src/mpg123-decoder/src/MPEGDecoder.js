@@ -27,14 +27,22 @@ export default function MPEGDecoder(options = {}) {
           Float32Array,
         );
 
+        const decoderPtr = this._common.allocateTypedArray(1, Uint32Array);
         this._inputPosition = this._common.allocateTypedArray(1, Uint32Array);
         this._samplesDecoded = this._common.allocateTypedArray(1, Uint32Array);
         this._sampleRateBytes = this._common.allocateTypedArray(1, Uint32Array);
         this._errorStringPtr = this._common.allocateTypedArray(1, Uint32Array);
 
-        this._decoder = this._common.wasm.mpeg_frame_decoder_create(
+        const error = this._common.wasm.mpeg_frame_decoder_create(
+          decoderPtr.ptr,
           options.enableGapless,
         );
+
+        if (error) {
+          throw Error(this._getErrorMessage(error));
+        }
+
+        this._decoder = decoderPtr.buf[0];
       });
   };
 
@@ -42,6 +50,9 @@ export default function MPEGDecoder(options = {}) {
     enumerable: true,
     get: () => this._ready,
   });
+
+  this._getErrorMessage = (error) =>
+    error + " " + this._common.codeToString(this._errorStringPtr.buf[0]);
 
   // async
   this.reset = () => {
@@ -82,10 +93,9 @@ export default function MPEGDecoder(options = {}) {
     const errors = [];
 
     if (error) {
-      const message =
-        error + " " + this._common.codeToString(this._errorStringPtr.buf[0]);
-
+      const message = this._getErrorMessage(error);
       console.error("mpg123-decoder: " + message);
+
       this._common.addError(
         errors,
         message,
