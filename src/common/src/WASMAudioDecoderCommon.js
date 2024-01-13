@@ -1,3 +1,5 @@
+import { decode } from "simple-yenc";
+
 export default function WASMAudioDecoderCommon() {
   // setup static methods
   const uint8Array = Uint8Array;
@@ -26,9 +28,7 @@ export default function WASMAudioDecoderCommon() {
                 wasmString,
               ).then((data) => WebAssembly.compile(data));
             } else {
-              module = WebAssembly.compile(
-                WASMAudioDecoderCommon.decodeDynString(wasmString),
-              );
+              module = WebAssembly.compile(decode(wasmString));
             }
 
             WASMAudioDecoderCommon.modules.set(Ref, module);
@@ -100,91 +100,9 @@ export default function WASMAudioDecoderCommon() {
        ******************
        */
 
-      crc32Table: {
-        value: (() => {
-          let crc32Table = new Int32Array(256),
-            i,
-            j,
-            c;
-
-          for (i = 0; i < 256; i++) {
-            for (c = i << 24, j = 8; j > 0; --j)
-              c = c & 0x80000000 ? (c << 1) ^ 0x04c11db7 : c << 1;
-            crc32Table[i] = c;
-          }
-          return crc32Table;
-        })(),
-      },
-
-      decodeDynString: {
-        value(source) {
-          let output = new uint8Array(source.length);
-          let offset = parseInt(source.substring(11, 13), 16);
-          let offsetReverse = 256 - offset;
-
-          let crcIdx,
-            escaped = false,
-            byteIndex = 0,
-            byte,
-            i = 21,
-            expectedCrc,
-            resultCrc = 0xffffffff;
-
-          for (; i < source.length; i++) {
-            byte = source.charCodeAt(i);
-
-            if (byte === 61 && !escaped) {
-              escaped = true;
-              continue;
-            }
-
-            // work around for encoded strings that are UTF escaped
-            if (
-              byte === 92 && // /
-              i < source.length - 5
-            ) {
-              const secondCharacter = source.charCodeAt(i + 1);
-
-              if (
-                secondCharacter === 117 || // u
-                secondCharacter === 85 //     U
-              ) {
-                byte = parseInt(source.substring(i + 2, i + 6), 16);
-                i += 5;
-              }
-            }
-
-            if (escaped) {
-              escaped = false;
-              byte -= 64;
-            }
-
-            output[byteIndex] =
-              byte < offset && byte > 0 ? byte + offsetReverse : byte - offset;
-
-            resultCrc =
-              (resultCrc << 8) ^
-              WASMAudioDecoderCommon.crc32Table[
-                ((resultCrc >> 24) ^ output[byteIndex++]) & 255
-              ];
-          }
-
-          // expected crc
-          for (crcIdx = 0; crcIdx <= 8; crcIdx += 2)
-            expectedCrc |=
-              parseInt(source.substring(13 + crcIdx, 15 + crcIdx), 16) <<
-              (crcIdx * 4);
-
-          if (expectedCrc !== resultCrc)
-            throw new Error("WASM string decode failed crc32 validation");
-
-          return output.subarray(0, byteIndex);
-        },
-      },
-
       inflateDynEncodeString: {
         value(source) {
-          source = WASMAudioDecoderCommon.decodeDynString(source);
+          source = decode(source);
 
           return new Promise((resolve) => {
             // prettier-ignore

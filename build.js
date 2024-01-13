@@ -137,7 +137,7 @@ this.instantiate = () => {
         dynEncodedWasm.quote,
         dynEncodedWasm.wasm,
         dynEncodedWasm.quote,
-        `})`,
+        "})",
         decoder.substring(wasmEndIdx),
       ].map((string) => Buffer.from(string, { encoding: "binary" })),
     );
@@ -157,7 +157,7 @@ this.instantiate = () => {
         decoder,
         "return this;\n",
         "}}",
-      ].map(Buffer.from),
+      ].map((string) => Buffer.from(string, { encoding: "binary" })),
     );
 
     fs.writeFileSync(emscriptenOutputPath, finalString, { encoding: "binary" });
