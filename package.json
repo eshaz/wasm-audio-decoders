@@ -1,6 +1,7 @@
 {
   "scripts": {
     "du": "find src -iname \"*.min.js\" -exec du -b {} \\;",
+    "configure": "make configure -j16",
     "build": "make clean && make -j16",
     "build-puff": "node src/common/src/puff/build_puff.js",
     "minify": "UV_THREADPOOL_SIZE=1024 node build.js $SOURCE_PATH $OUTPUT_NAME $COMPRESSION_ITERATIONS $MODULE $MODULE_MIN",
