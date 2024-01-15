@@ -375,7 +375,7 @@ describe("wasm-audio-decoders", () => {
           "decode",
           "should decode mpeg with gaps when enableGapless is false",
           "44100.mono.cbr.mp3",
-          "44100.nogaps.mono.cbr.mp3",
+          "44100.gaps.mono.cbr.mp3",
         );
 
         const [actual, expected] = await Promise.all([
@@ -419,7 +419,7 @@ describe("wasm-audio-decoders", () => {
           "decode",
           "should decode mpeg without gaps when enableGapless is true",
           "44100.mono.cbr.mp3",
-          "44100.gaps.mono.cbr.mp3",
+          "44100.nogaps.mono.cbr.mp3",
         );
 
         const [actual, expected] = await Promise.all([
@@ -427,7 +427,7 @@ describe("wasm-audio-decoders", () => {
           fs.readFile(paths.expectedPath),
         ]);
 
-        expect(result.samplesDecoded).toEqual(46080);
+        expect(result.samplesDecoded).toEqual(44100);
         expect(result.sampleRate).toEqual(44100);
         expect(actual.length).toEqual(expected.length);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -449,7 +449,7 @@ describe("wasm-audio-decoders", () => {
           fs.readFile(paths.expectedPath),
         ]);
 
-        expect(result.samplesDecoded).toEqual(46080);
+        expect(result.samplesDecoded).toEqual(44100);
         expect(result.sampleRate).toEqual(44100);
         expect(actual.length).toEqual(expected.length);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -702,7 +702,7 @@ describe("wasm-audio-decoders", () => {
             fs.readFile(paths.expectedPath),
           ]);
 
-          expect(result.samplesDecoded).toEqual(46080); // TODO: Find a sample that decodes without gaps
+          expect(result.samplesDecoded).toEqual(44100);
           expect(result.sampleRate).toEqual(44100);
           expect(actual.length).toEqual(expected.length);
           expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -725,7 +725,7 @@ describe("wasm-audio-decoders", () => {
             fs.readFile(paths.expectedPath),
           ]);
 
-          expect(result.samplesDecoded).toEqual(46080); // TODO: Find a sample that decodes without gaps
+          expect(result.samplesDecoded).toEqual(44100);
           expect(result.sampleRate).toEqual(44100);
           expect(actual.length).toEqual(expected.length);
           expect(Buffer.compare(actual, expected)).toEqual(0);
