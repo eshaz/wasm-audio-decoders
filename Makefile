@@ -409,10 +409,12 @@ libopus-configure:
 # -----------
 define MPG123_EMCC_OPTS
 -s EXPORTED_FUNCTIONS="[ \
-    '_free', '_malloc' \
+    '_free' \
+  , '_malloc' \
+  , '_mpeg_decoder_feed' \
+  , '_mpeg_decoder_read' \
   ,	'_mpeg_frame_decoder_create' \
   ,	'_mpeg_frame_decoder_destroy' \
-  ,	'_mpeg_decode_interleaved' \
 ]" \
 -s ERROR_ON_UNDEFINED_SYMBOLS=0 \
 --pre-js '$(MPG123_DECODER_PATH)src/emscripten-pre.js' \

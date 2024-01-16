@@ -472,17 +472,17 @@ describe("wasm-audio-decoders", () => {
       expect(Buffer.compare(actual, expected)).toEqual(0);
       expect(result.errors).toEqual([
         {
-          message: "-1 MPG123_ERR",
-          frameLength: 2160,
+          frameLength: 0,
           frameNumber: 0,
-          inputBytes: 0,
-          outputSamples: 0,
+          inputBytes: 65536,
+          message: "-1 MPG123_ERR",
+          outputSamples: 623,
         },
         {
-          message: "-1 MPG123_ERR",
-          frameLength: 1008,
+          frameLength: 0,
           frameNumber: 0,
-          inputBytes: 2160,
+          inputBytes: 65536,
+          message: "-1 MPG123_ERR",
           outputSamples: 623,
         },
       ]);

@@ -1,84 +1,91 @@
-// #include <stdio.h>
+//#include <stdio.h>
 #include "mpeg_frame_decoder.h"
 
-int mpeg_frame_decoder_create(MPEGFrameDecoder **ptr, int enable_gapless) {
-    int error_code = 0;
-    MPEGFrameDecoder decoder;
+#define MIN(a, b) a < b ? a : b
 
-    decoder.mh = mpg123_new(NULL, &error_code);
+int mpeg_frame_decoder_create(MPEGFrameDecoder **ptr, int enable_gapless) {
+    MPEGFrameDecoder *decoder = malloc(sizeof(MPEGFrameDecoder));
+    *ptr = decoder;
+
+    int error_code = 0;
+
+    decoder->mh = mpg123_new(NULL, &error_code);
     if (error_code) return error_code;
 
-    mpg123_param(decoder.mh, MPG123_FLAGS, 
+    error_code = mpg123_param(decoder->mh, MPG123_FLAGS, 
         MPG123_SKIP_ID3V2 |
         MPG123_PLAIN_ID3TEXT |
         MPG123_NO_PEEK_END |
         MPG123_NO_READAHEAD |
         MPG123_FORCE_STEREO |
         MPG123_QUIET, 0);
-    if (enable_gapless) mpg123_param(decoder.mh, MPG123_ADD_FLAGS, MPG123_GAPLESS, 0);
-
-    error_code = mpg123_open_feed(decoder.mh);
     if (error_code) return error_code;
 
-    *ptr = malloc(sizeof(decoder));
-    **ptr = decoder;
+    if (enable_gapless) {
+        error_code = mpg123_param(decoder->mh, MPG123_ADD_FLAGS, MPG123_GAPLESS, 0);
+        if (error_code) return error_code;
+    }
+
+    error_code = mpg123_open_feed(decoder->mh);
+    if (error_code) return error_code;
+
     return error_code;
 }
 
-int mpeg_decode_interleaved(
-    MPEGFrameDecoder *decoder, // mpg123 decoder handle
-    unsigned char *in, // input data
-    size_t in_size, // input data size
-    unsigned int *in_read_pos, // pointer to save the total bytes read from input buffer
-    size_t in_read_chunk_size, // interval of bytes to read from input data
-    float *out, // pointer to save the output
-    size_t decode_buffer_size, // output audio buffer size
-    unsigned int *samples_decoded, // pointer to save samples decoded
-    unsigned int *sample_rate, // pointer to save the sample rate
-    char **error_string_ptr // error string
+int mpeg_decoder_feed(
+    MPEGFrameDecoder *decoder,
+    const unsigned char *in,
+    size_t in_size
 ) {
-    in_read_chunk_size = in_size > in_read_chunk_size ? in_read_chunk_size : in_size;
-    int error_code;
+    return mpg123_feed(
+        decoder->mh,
+        in,
+        in_size
+    );
+}
 
-    while (*in_read_pos + in_read_chunk_size <= in_size && *samples_decoded < decode_buffer_size) {
-        size_t bytes_decoded = 0;
+int mpeg_decoder_read(
+    MPEGFrameDecoder *decoder,
+    float *out,
+    size_t out_size,
+    size_t *samples_decoded,
+    unsigned int *sample_rate,
+    char **error_string_ptr
+) {
+    size_t bytes_decoded = 0;
+    int error = mpg123_read(
+        decoder->mh,
+        (unsigned char *) decoder->pcm,
+        MPEG_PCM_OUT_SIZE,
+        &bytes_decoded
+    );
 
-        error_code = mpg123_decode(
-            decoder->mh,
-            in + *in_read_pos,
-            in_read_chunk_size,
-            decoder->pcm.bytes,
-            MPEG_PCM_OUT_SIZE,
-            &bytes_decoded
-        );
+    *samples_decoded = bytes_decoded / sizeof(float) / 2;
+
+    // deinterleave
+    int output_channels = 2; // TODO: remove force stereo
+    for (int in_idx=(*samples_decoded * output_channels) -1; in_idx >= 0; in_idx--) {
+      int sample = in_idx / output_channels;
+      int channel = (in_idx % output_channels) * *samples_decoded;
+      out[sample+channel] = decoder->pcm[in_idx];
+    }
     
-        int current_samples_decoded = bytes_decoded / sizeof(float) / 2;
-    
-        // deinterleave pcm
-        for (int i=current_samples_decoded-1; i>=0; i--) {
-            out[i+*samples_decoded] = decoder->pcm.floats[i*2];
-            out[i+*samples_decoded+decode_buffer_size] = decoder->pcm.floats[i*2+1];
-        }
-
-        *samples_decoded += current_samples_decoded;
-        *in_read_pos += in_read_chunk_size;
-
-        if (error_code != MPG123_OK && error_code >= MPG123_ERR) {
-            *error_string_ptr = error_messages[error_code + 1];
-            break;
-        } else {
-            error_code = 0;
-        }
+    if (error != MPG123_OK && error >= MPG123_ERR) {
+        *error_string_ptr = error_messages[error + 1];
+    } else if (error < -1) {
+        // -12 MPG123_DONE
+        // -11 MPG123_NEW_FORMAT
+        // -10 MPG123_NEED_MORE
+        // needed by MPEGDecoder.js
+    } else {
+        error = 0;
     }
 
-    // shows decoding stats for each iteration
-    // printf("in_read_pos %u, in_size %zu, total_bytes_decoded %u, decode_buffer_size %zu\n", 
-    //        *in_read_pos,    in_size,     samples_decoded * 8,    decode_buffer_size * 8);
-
+    // MPG123_NEW_FORMAT, usually the start of a new stream, so read the sample rate
     mpg123_info(decoder->mh, &decoder->fr);
     *sample_rate = (int) decoder->fr.rate;
 
-    return error_code;
+    return error;
 }
 
 void mpeg_frame_decoder_destroy(MPEGFrameDecoder *decoder) {
