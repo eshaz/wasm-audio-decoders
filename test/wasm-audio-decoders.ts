@@ -51,31 +51,46 @@ const oggVorbisDecoderWebWorker: OggVorbisDecoderWebWorker =
 
 // test decoded audio types
 const mpegDecoderDecode: MPEGDecodedAudio = mpegDecoder.decode(fakeData);
-const mpegDecoderDecodeChannelData: Float32Array[] = mpegDecoderDecode.channelData;
-const mpegDecoderDecodeSamplesDecoded: number = mpegDecoderDecode.samplesDecoded;
+const mpegDecoderDecodeChannelData: Float32Array[] =
+  mpegDecoderDecode.channelData;
+const mpegDecoderDecodeSamplesDecoded: number =
+  mpegDecoderDecode.samplesDecoded;
 const mpegDecoderDecodeSampleRate: number = mpegDecoderDecode.sampleRate;
 const mpegDecoderDecodeErrors: MPEGDecodeError[] = mpegDecoderDecode.errors;
 
 const opusDecoderDecode: OpusDecodedAudio = opusDecoder.decodeFrame(fakeData);
-const opusDecoderDecodeChannelData: Float32Array[] = opusDecoderDecode.channelData;
-const opusDecoderDecodeSamplesDecoded: number = opusDecoderDecode.samplesDecoded;
+const opusDecoderDecodeChannelData: Float32Array[] =
+  opusDecoderDecode.channelData;
+const opusDecoderDecodeSamplesDecoded: number =
+  opusDecoderDecode.samplesDecoded;
 const opusDecoderDecodeSampleRate: number = opusDecoderDecode.sampleRate;
 const opusDecoderDecodeErrors: OpusDecodeError[] = opusDecoderDecode.errors;
 
-const oggOpusDecoderDecode: OggOpusDecodedAudio = oggOpusDecoder.decode(fakeData);
-const oggOpusDecoderDecodeChannelData: Float32Array[] = oggOpusDecoderDecode.channelData;
-const oggOpusDecoderDecodeSamplesDecoded: number = oggOpusDecoderDecode.samplesDecoded;
+const oggOpusDecoderDecode: OggOpusDecodedAudio =
+  oggOpusDecoder.decode(fakeData);
+const oggOpusDecoderDecodeChannelData: Float32Array[] =
+  oggOpusDecoderDecode.channelData;
+const oggOpusDecoderDecodeSamplesDecoded: number =
+  oggOpusDecoderDecode.samplesDecoded;
 const oggOpusDecoderDecodeSampleRate: number = oggOpusDecoderDecode.sampleRate;
-const oggOpusDecoderDecodeErrors: OggOpusDecodeError[] = oggOpusDecoderDecode.errors;
+const oggOpusDecoderDecodeErrors: OggOpusDecodeError[] =
+  oggOpusDecoderDecode.errors;
 
 const flacDecoderDecode: FLACDecodedAudio = await flacDecoder.decode(fakeData);
-const flacDecoderDecodeChannelData: Float32Array[] = flacDecoderDecode.channelData;
-const flacDecoderDecodeSamplesDecoded: number = flacDecoderDecode.samplesDecoded;
+const flacDecoderDecodeChannelData: Float32Array[] =
+  flacDecoderDecode.channelData;
+const flacDecoderDecodeSamplesDecoded: number =
+  flacDecoderDecode.samplesDecoded;
 const flacDecoderDecodeSampleRate: number = flacDecoderDecode.sampleRate;
 const flacDecoderDecodeErrors: FLACDecodeError[] = flacDecoderDecode.errors;
 
-const oggVorbisDecoderDecode: OggVorbisDecodedAudio = await oggVorbisDecoder.decode(fakeData);
-const oggVorbisDecoderDecodeChannelData: Float32Array[] = oggVorbisDecoderDecode.channelData;
-const oggVorbisDecoderDecodeSamplesDecoded: number = oggVorbisDecoderDecode.samplesDecoded;
-const oggVorbisDecoderDecodeSampleRate: number = oggVorbisDecoderDecode.sampleRate;
-const oggVorbisDecoderDecodeErrors: OggVorbisDecodeError[] = oggVorbisDecoderDecode.errors;
+const oggVorbisDecoderDecode: OggVorbisDecodedAudio =
+  await oggVorbisDecoder.decode(fakeData);
+const oggVorbisDecoderDecodeChannelData: Float32Array[] =
+  oggVorbisDecoderDecode.channelData;
+const oggVorbisDecoderDecodeSamplesDecoded: number =
+  oggVorbisDecoderDecode.samplesDecoded;
+const oggVorbisDecoderDecodeSampleRate: number =
+  oggVorbisDecoderDecode.sampleRate;
+const oggVorbisDecoderDecodeErrors: OggVorbisDecodeError[] =
+  oggVorbisDecoderDecode.errors;

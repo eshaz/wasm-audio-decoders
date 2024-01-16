@@ -1,8 +1,6 @@
 #include "opus_frame_decoder.h"
 // #include "stdio.h"
 
-static const int MAX_FORCE_STEREO_CHANNELS = 8;
-
 /*
   *** Opus stereo downmix code copied from opusfile. ***
   See: https://github.com/xiph/opusfile/blob/cf218fb54929a1f54e30e2cb208a22d08b08c889/src/opusfile.c#L2982
@@ -41,6 +39,9 @@ static const int MAX_FORCE_STEREO_CHANNELS = 8;
   since most mixes sound too quiet if normalized to 1.0 (as there is generally
   little volume in the side/rear channels).
 */
+
+#define MAX_FORCE_STEREO_CHANNELS 8
+
 static const float OP_STEREO_DOWNMIX[MAX_FORCE_STEREO_CHANNELS-2][MAX_FORCE_STEREO_CHANNELS][2]={
   /*3.0*/
   {
@@ -139,14 +140,16 @@ OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int s
 
 // out should be able to store frame_size*channels*sizeof(float) 
 // frame_size should be the maximum packet duration (120ms; 5760 for 48kHz)
+#define MAX_PACKET_DURATION_MS 5760
+
 int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned char *in, opus_int32 in_len, float *out) {
     int samples_decoded = opus_multistream_decode_float(
       decoder->st, 
       in, 
       in_len, 
       decoder->pcm, 
-      5760, 
-      0
+      MAX_PACKET_DURATION_MS, 
+      0 // disable forward error correction
     );
 
     if (samples_decoded <= 0) return samples_decoded;

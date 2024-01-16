@@ -1,29 +1,33 @@
 #include <stdlib.h>
 #include <mpg123.h>
 
+// https://lists.mars.org/hyperkitty/list/mad-dev@lists.mars.org/message/23ACZCLN3DMTR62GDAQNBGNUUMXORWYR/
+#define MPEG_PCM_OUT_SIZE 2889*16*2 // max_mpeg_frame_size * bit_reservoir * channels
+
 typedef struct {
-    // stores the interleaved PCM result of one MPEG frame
-    union {
-        float floats[1152*2];
-        unsigned char bytes[1152*2*sizeof(float)]; //max_mpeg_frame_size*bit_reservoir*channels*sizeof(float)
-    } pcm;
+    float pcm[MPEG_PCM_OUT_SIZE];
     mpg123_handle *mh;
     struct mpg123_frameinfo fr;
 } MPEGFrameDecoder;
 
-MPEGFrameDecoder *mpeg_frame_decoder_create();
+int mpeg_frame_decoder_create(
+    MPEGFrameDecoder **ptr, // pointer to store new handle
+    int enable_gapless // enable gapless decoding
+);
 
-int mpeg_decode_interleaved(
-    MPEGFrameDecoder *decoder, // mpg123 decoder handle
-    unsigned char *in, // input data
-    size_t in_size, // input data size
-    unsigned int *in_read_pos, // total bytes read from input buffer
-    size_t in_read_chunk_size, // interval of bytes to read from input data
-    float *out, // output audio
-    size_t out_size, // output audio buffer size
-    unsigned int *samples_decoded, // pointer to save samples decoded
-    unsigned int *sample_rate, // pointer to save the sample rate
-    char **error_string_ptr // error string
+int mpeg_decoder_feed(
+    MPEGFrameDecoder *decoder,
+    const unsigned char *in,
+    size_t in_size
+);
+
+int mpeg_decoder_read(
+    MPEGFrameDecoder *decoder,
+    float *out,
+    size_t out_size,
+    size_t *samples_decoded,
+    unsigned int *sample_rate,
+    char **error_string_ptr
 );
 
 static char* error_messages[] = {

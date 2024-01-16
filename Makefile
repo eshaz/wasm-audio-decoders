@@ -409,10 +409,12 @@ libopus-configure:
 # -----------
 define MPG123_EMCC_OPTS
 -s EXPORTED_FUNCTIONS="[ \
-    '_free', '_malloc' \
+    '_free' \
+  , '_malloc' \
+  , '_mpeg_decoder_feed' \
+  , '_mpeg_decoder_read' \
   ,	'_mpeg_frame_decoder_create' \
   ,	'_mpeg_frame_decoder_destroy' \
-  ,	'_mpeg_decode_interleaved' \
 ]" \
 -s ERROR_ON_UNDEFINED_SYMBOLS=0 \
 --pre-js '$(MPG123_DECODER_PATH)src/emscripten-pre.js' \
@@ -436,52 +438,47 @@ ${MPG123_EMSCRIPTEN_BUILD}: $(MPG123_WASM_LIB)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-# Uncomment to reconfigure and compile mpg123
-#
-# mpg123-configure:
-# 	cd $(MPG123_SRC); autoreconf -iv
-# 	cd $(MPG123_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
-# 	  --host=wasm32-unknown-emscripten \
-# 	  --with-cpu=generic_dither \
-# 	  --with-seektable=0 \
-# 	  --disable-lfs-alias \
-# 	  --disable-debug \
-# 	  --disable-xdebug \
-# 	  --disable-gapless \
-# 	  --disable-fifo \
-# 	  --disable-ipv6 \
-# 	  --disable-network \
-# 	  --disable-id3v2 \
-# 	  --disable-string \
-# 	  --disable-icy \
-# 	  --disable-ntom \
-# 	  --disable-downsample \
-# 	  --enable-feeder \
-# 	  --disable-moreinfo \
-# 	  --disable-messages \
-# 	  --disable-new-huffman \
-# 	  --enable-int-quality \
-# 	  --disable-16bit \
-# 	  --disable-8bit \
-# 	  --disable-32bit \
-# 	  --enable-real \
-# 	  --disable-equalizer \
-# 	  --disable-yasm \
-# 	  --disable-cases \
-# 	  --disable-buffer \
-# 	  --disable-newoldwritesample \
-# 	  --enable-layer1 \
-# 	  --enable-layer2 \
-# 	  --enable-layer3 \
-# 	  --disable-largefile \
-# 	  --disable-feature-report \
-# 	  --enable-runtime-tables
-# 	cd $(MPG123_SRC); rm a.wasm 
-
+# "#define NOQUIET 0" is manually appended to `config.h` to allow unused debugging code to be stripped from the compilation
 mpg123-configure:
-	cp $(MPG123_DECODER_PATH)src/mpg123/mpg123.h \
-	  $(MPG123_DECODER_PATH)src/mpg123/config.h \
-	  $(MPG123_SRC)src/
+	cd $(MPG123_SRC); autoreconf -iv
+	cd $(MPG123_SRC); CFLAGS="-Os -flto" emconfigure ./configure \
+	  --host=wasm32-unknown-emscripten \
+	  --with-cpu=generic_dither \
+	  --with-seektable=0 \
+	  --disable-lfs-alias \
+	  --disable-debug \
+	  --disable-xdebug \
+	  --enable-gapless \
+	  --disable-fifo \
+	  --disable-ipv6 \
+	  --disable-network \
+	  --disable-id3v2 \
+	  --disable-string \
+	  --disable-icy \
+	  --disable-ntom \
+	  --disable-downsample \
+	  --enable-feeder \
+	  --disable-moreinfo \
+	  --disable-messages \
+	  --disable-new-huffman \
+	  --enable-int-quality \
+	  --disable-16bit \
+	  --disable-8bit \
+	  --disable-32bit \
+	  --enable-real \
+	  --disable-equalizer \
+	  --disable-yasm \
+	  --disable-cases \
+	  --disable-buffer \
+	  --disable-newoldwritesample \
+	  --enable-layer1 \
+	  --enable-layer2 \
+	  --enable-layer3 \
+	  --disable-largefile \
+	  --disable-feature-report \
+	  --enable-runtime-tables
+	cd $(MPG123_SRC); rm a.wasm
+	printf "\n#define NOQUIET 0" >> $(MPG123_SRC)src/config.h
 
 #$(MPG123_WASM_LIB): 
 #	@ mkdir -p tmp
@@ -510,7 +507,6 @@ $(MPG123_WASM_LIB):
 	  -I "$(MPG123_SRC)src" \
 	  -I "$(MPG123_SRC)src/libmpg123" \
 	  -I "$(MPG123_SRC)src/compat" \
-	  -I "$(MPG123_DECODER_PATH)src/mpg123" \
 	  $(MPG123_SRC)src/libmpg123/parse.c \
 	  $(MPG123_SRC)src/libmpg123/frame.c \
 	  $(MPG123_SRC)src/libmpg123/format.c \

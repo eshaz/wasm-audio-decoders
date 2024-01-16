@@ -1,6 +1,6 @@
 {
   "name": "mpg123-decoder",
-  "version": "0.4.12",
+  "version": "1.0.0",
   "description": "Web Assembly streaming MPEG Layer I/II/III decoder",
   "type": "module",
   "main": "./index.js",
@@ -53,6 +53,6 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "@wasm-audio-decoders/common": "9.0.4"
+    "@wasm-audio-decoders/common": "9.0.5"
   }
 }
