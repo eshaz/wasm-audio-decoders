@@ -113,9 +113,9 @@ Class that decodes MPEG data or frames synchronously on the main thread.
 const decoder = new MPEGDecoder({ enableGapless: true });
 ```
 
-* `enableGapless` *optional, defaults to `false`*
-  * Set to `true` to enable gapless decoding.
-  * This may help to remove gaps introduced from padding and delay.
+* `enableGapless` *optional, defaults to `true`*
+  * Set to `false` to disable gapless decoding.
+  * Gapless decoding reads the XING / Lame header to determine delay (start) and padding (end) samples and trims the output accordingly.
 
 ### Getters
 * `decoder.ready` *async*
@@ -144,9 +144,9 @@ Class that decodes MPEG data or frames asynchronously within a WebWorker. Decodi
 const decoder = new MPEGDecoderWebWorker({ enableGapless: true });
 ```
 
-* `enableGapless` *optional, defaults to `false`*
-  * Set to `true` to enable gapless decoding.
-  * This may help to remove gaps introduced from padding and delay.
+* `enableGapless` *optional, defaults to `true`*
+  * Set to `false` to disable gapless decoding.
+  * Gapless decoding reads the XING / Lame header to determine delay (start) and padding (end) samples and trims the output accordingly.
 
 ### Getters
 * `decoder.ready` *async*

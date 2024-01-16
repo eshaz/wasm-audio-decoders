@@ -12,7 +12,6 @@ export default function MPEGDecoder(options = {}) {
         this._common = common;
 
         this._sampleRate = 0;
-
         this._inputBytes = 0;
         this._outputSamples = 0;
         this._frameNumber = 0;
@@ -35,7 +34,7 @@ export default function MPEGDecoder(options = {}) {
 
         const error = this._common.wasm.mpeg_frame_decoder_create(
           decoderPtr.ptr,
-          options.enableGapless ? 1 : 0,
+          options.enableGapless === false ? 0 : 1, // default to enabled
         );
 
         if (error) {

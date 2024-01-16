@@ -61,6 +61,7 @@ const test_decode = async (
   try {
     if (decoder.constructor.name.match(/WebWorker/))
       actualPathModifiers.push("worker");
+
     const paths = getTestPaths(
       fileName,
       outputFileName,
@@ -360,7 +361,7 @@ describe("wasm-audio-decoders", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(3499776);
+      expect(result.samplesDecoded).toEqual(3497536);
       expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -411,13 +412,11 @@ describe("wasm-audio-decoders", () => {
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
-      it("should decode mono mpeg without gaps when enableGapless is true", async () => {
+      it("should decode mono mpeg without gaps when enableGapless is true (default)", async () => {
         const { paths, result } = await test_decode(
-          new MPEGDecoder({
-            enableGapless: true,
-          }),
+          new MPEGDecoder(),
           "decode",
-          "should decode mpeg without gaps when enableGapless is true",
+          "should decode mpeg without gaps when enableGapless is true (default)",
           "44100.mono.cbr.mp3",
           "44100.nogaps.mono.cbr.mp3",
         );
@@ -433,13 +432,11 @@ describe("wasm-audio-decoders", () => {
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
 
-      it("should decode stereo mpeg without gaps when enableGapless is true", async () => {
+      it("should decode stereo mpeg without gaps when enableGapless is true (default)", async () => {
         const { paths, result } = await test_decode(
-          new MPEGDecoder({
-            enableGapless: true,
-          }),
+          new MPEGDecoder(),
           "decode",
-          "should decode mpeg without gaps when enableGapless is true",
+          "should decode mpeg without gaps when enableGapless is true (default)",
           "44100.stereo.cbr.mp3",
           "44100.nogaps.stereo.cbr.mp3",
         );
@@ -469,7 +466,7 @@ describe("wasm-audio-decoders", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(3489408);
+      expect(result.samplesDecoded).toEqual(3488879);
       expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -486,7 +483,7 @@ describe("wasm-audio-decoders", () => {
           frameLength: 1008,
           frameNumber: 0,
           inputBytes: 2160,
-          outputSamples: 1152,
+          outputSamples: 623,
         },
       ]);
     });
@@ -504,7 +501,7 @@ describe("wasm-audio-decoders", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(3499776);
+      expect(result.samplesDecoded).toEqual(3497536);
       expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -547,7 +544,7 @@ describe("wasm-audio-decoders", () => {
         fs.readFile(paths.expectedPath),
       ]);
 
-      expect(result.samplesDecoded).toEqual(3499776);
+      expect(result.samplesDecoded).toEqual(3497536);
       expect(result.sampleRate).toEqual(44100);
       expect(actual.length).toEqual(expected.length);
       expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -611,7 +608,7 @@ describe("wasm-audio-decoders", () => {
           fs.readFile(paths.expectedPath),
         ]);
 
-        expect(result.samplesDecoded).toEqual(3499776);
+        expect(result.samplesDecoded).toEqual(3497536);
         expect(result.sampleRate).toEqual(44100);
         expect(actual.length).toEqual(expected.length);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -632,7 +629,7 @@ describe("wasm-audio-decoders", () => {
           fs.readFile(paths.expectedPath),
         ]);
 
-        expect(result.samplesDecoded).toEqual(3499776);
+        expect(result.samplesDecoded).toEqual(3497536);
         expect(result.sampleRate).toEqual(44100);
         expect(actual.length).toEqual(expected.length);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -644,7 +641,7 @@ describe("wasm-audio-decoders", () => {
             new MPEGDecoder({
               enableGapless: false,
             }),
-            "should decode mpeg frames without gaps when enableGapless is true",
+            "should decode mono mpeg frames with gaps when enableGapless is false",
             "44100.mono.cbr.mp3",
             "44100.gaps.mono.cbr.mp3",
             oneSecondMonoFrames,
@@ -662,12 +659,12 @@ describe("wasm-audio-decoders", () => {
           expect(Buffer.compare(actual, expected)).toEqual(0);
         });
 
-        it("should decode mono mpeg frames with gaps when enableGapless is false", async () => {
+        it("should decode stereo mpeg frames with gaps when enableGapless is false", async () => {
           const { paths, result } = await test_decodeFrames(
             new MPEGDecoder({
               enableGapless: false,
             }),
-            "should decode mpeg frames without gaps when enableGapless is true",
+            "should decode stereo mpeg frames with gaps when enableGapless is false",
             "44100.stereo.cbr.mp3",
             "44100.gaps.stereo.cbr.mp3",
             oneSecondStereoFrames,
@@ -685,12 +682,10 @@ describe("wasm-audio-decoders", () => {
           expect(Buffer.compare(actual, expected)).toEqual(0);
         });
 
-        it("should decode mono mpeg frames without gaps when enableGapless is true", async () => {
+        it("should decode mono mpeg frames without gaps when enableGapless is true (default)", async () => {
           const { paths, result } = await test_decodeFrames(
-            new MPEGDecoder({
-              enableGapless: true,
-            }),
-            "should decode mpeg frames without gaps when enableGapless is true",
+            new MPEGDecoder(),
+            "should decode mono mpeg frames without gaps when enableGapless is true (default)",
             "44100.mono.cbr.mp3",
             "44100.nogaps.mono.cbr.mp3",
             oneSecondMonoFrames,
@@ -708,12 +703,10 @@ describe("wasm-audio-decoders", () => {
           expect(Buffer.compare(actual, expected)).toEqual(0);
         });
 
-        it("should decode stereo mpeg frames without gaps when enableGapless is true", async () => {
+        it("should decode stereo mpeg frames without gaps when enableGapless is true (default)", async () => {
           const { paths, result } = await test_decodeFrames(
-            new MPEGDecoder({
-              enableGapless: true,
-            }),
-            "should decode mpeg frames without gaps when enableGapless is true",
+            new MPEGDecoder(),
+            "should decode stereo mpeg frames without gaps when enableGapless is true (default)",
             "44100.stereo.cbr.mp3",
             "44100.nogaps.stereo.cbr.mp3",
             oneSecondStereoFrames,
@@ -775,13 +768,13 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(results[0].result.sampleRate).toEqual(44100);
-        expect(results[0].result.samplesDecoded).toEqual(21888);
+        expect(results[0].result.samplesDecoded).toEqual(19764);
         expect(results[1].result.sampleRate).toEqual(44100);
-        expect(results[1].result.samplesDecoded).toEqual(21888);
+        expect(results[1].result.samplesDecoded).toEqual(19764);
         expect(results[2].result.sampleRate).toEqual(44100);
-        expect(results[2].result.samplesDecoded).toEqual(21888);
+        expect(results[2].result.samplesDecoded).toEqual(19764);
         expect(results[3].result.sampleRate).toEqual(44100);
-        expect(results[3].result.samplesDecoded).toEqual(21888);
+        expect(results[3].result.samplesDecoded).toEqual(19764);
 
         expect(actual1.length).toEqual(expected1.length);
         expect(actual2.length).toEqual(expected2.length);
@@ -849,13 +842,13 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result1.sampleRate).toEqual(44100);
-        expect(result1.samplesDecoded).toEqual(21888);
+        expect(result1.samplesDecoded).toEqual(19764);
         expect(result2.sampleRate).toEqual(44100);
-        expect(result2.samplesDecoded).toEqual(21888);
+        expect(result2.samplesDecoded).toEqual(19764);
         expect(result3.sampleRate).toEqual(44100);
-        expect(result3.samplesDecoded).toEqual(21888);
+        expect(result3.samplesDecoded).toEqual(19764);
         expect(result4.sampleRate).toEqual(44100);
-        expect(result4.samplesDecoded).toEqual(21888);
+        expect(result4.samplesDecoded).toEqual(19764);
 
         expect(actual1.length).toEqual(expected1.length);
         expect(actual2.length).toEqual(expected2.length);
