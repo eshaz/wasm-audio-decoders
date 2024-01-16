@@ -4,6 +4,7 @@
     "configure": "make configure -j16",
     "build": "make clean && make -j16",
     "build-puff": "node src/common/src/puff/build_puff.js",
+    "install-decoders": "./decoder-npm-install.sh",
     "minify": "UV_THREADPOOL_SIZE=1024 node build.js $SOURCE_PATH $OUTPUT_NAME $COMPRESSION_ITERATIONS $MODULE $MODULE_MIN",
     "deploy": "gh-pages -d demo",
     "format": "prettier --cache --write '**/*.js' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.*ts'",

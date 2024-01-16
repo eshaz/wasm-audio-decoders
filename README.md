@@ -62,23 +62,76 @@ Decodes Ogg Vorbis data into PCM
 ## Developing
 
 ### Prerequisites
-1. Install Emscripten by following these [instructions](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions).
-   * This repository has been tested with Emscripten 3.1.46.
+1. Linux, or a Linux-like environment to build (i.e. WSL).
+1. NodeJS 18.x or higher.
+1. Emscripten 3.1.51
+   * Install by following these [instructions](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions).
+
+### Initial Setup
+1. Clone this repo.
+1. Change directory to this repo and run `git submodule update --init` to clone the git sub-modules.
+
+```sh
+git clone https://github.com/eshaz/wasm-audio-decoders.git
+cd wasm-audio-decoders
+git submodule update --init
+```
+
+### Installing Dependencies
+1. Run `npm install` to install the build dependencies.
+1. Run `npm run install-decoders` to install the dependencies for each decoder.
+
+```sh
+npm install
+npm run install-decoders
+```
 
 ### Building
-1. Make sure to `source` the Emscripten path in the terminal you want build in.
-   * i.e. `$ source path/to/emsdk/emsdk_env.sh`
-1. Run `git submodule update --init` to clone down the git sub-modules.
-1. Run `make configure` to configure the libraries. This may appear to hang forever at 100% CPU
-   when "checking whether the C compiler works", but should eventually complete.
-1. Run `npm i` to install the build tool dependencies.
-1. Run `make clean` and `make` to build the libraries.
-   * You can run `make -j8` where `8` is the number of CPU cores on your system to speed up the build.
-1. The builds will be located in each library's `dist` folder:
+1. `source` the Emscripten path in the terminal you want build in.
+   * i.e. `$ source path_to_your_emscripten_installation/emsdk_env.sh`
+1. Run `npm run configure` to configure the libraries. (only required for first time build, or after updating the `Makefile`)
+1. Run `npm run build` to build the libraries.
+   * The builds will be located in each library's `dist` folder.
+
+```sh
+# only required for first time build, OR after updating the `Makefile`
+npm run configure
+# builds the project
+npm run build
+```
 
 ### Testing
-1. Run `npm i` to install the build tool and test dependencies.
 1. Run `npm run test` to run the test suite.
+
+```sh
+npm run test
+```
+
+### Rebuilding after changes
+1. Make your changes
+1. If you updated any dependencies, make sure to [install](#installing-dependencies) them.
+1. If you updated any configuration in the `Makefile`, make sure to [configure]() the project.
+1. [Rebuild](#building) the project.  
+1. Ensure the tests still pass by running `npm run test`.
+
+## Contributing
+
+All contributions are welcome!
+
+### General recommendations
+
+* Questions / comments should be entered into an issue.
+* Changes should be entered into a PR.
+* Please read through the existing issues to check if your question / comment has already been addressed, but don't hesitate to reach out if you still have unanswered questions.
+* Please make sure to clearly describe your question / comment, or the feature / fix you wish to contribute.
+  * Sharing sample data as a demonstration is usually the best way to do this.
+* Adding test cases for new features or fixes is highly appreciated.
+
+All contributes / interactions with this repository must follow the [code of conduct](docs/CODE_OF_CONDUCT.md).
+
+## Supporting
+
+* Show your support by 'starring' this repo, contributing, or donating through Github sponsors.
 
 ## Attributions
 
