@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "du": "find src -iname \"*.min.js\" -exec du -b {} \\;",
+    "du": "find src -iname \"*.min.js\" -printf \"%s %p\n\" | perl -pe 's|^(\\d+)(.*)|sprintf(\"%10.1f\", $1/1024).$2|e;'\\;",
     "configure": "make configure -j16",
     "build": "make clean && make -j16",
     "build-puff": "node src/common/src/puff/build_puff.js",
