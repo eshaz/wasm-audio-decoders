@@ -1,6 +1,6 @@
 {
   "name": "@wasm-audio-decoders/ogg-vorbis",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Web Assembly streaming Ogg Vorbis decoder",
   "type": "module",
   "main": "./index.js",
