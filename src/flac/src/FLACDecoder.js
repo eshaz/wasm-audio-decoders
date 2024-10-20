@@ -257,8 +257,7 @@ export default class FLACDecoder {
     const oggPage = oggPages[oggPages.length - 1];
     if (oggPage && oggPage[isLastPage]) {
       // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
-      const samplesToTrim =
-        this[totalSamplesDecoded] - oggPage[totalSamples];
+      const samplesToTrim = this[totalSamplesDecoded] - oggPage[totalSamples];
 
       if (samplesToTrim > 0) {
         for (let i = 0; i < decoded.channelData.length; i++)

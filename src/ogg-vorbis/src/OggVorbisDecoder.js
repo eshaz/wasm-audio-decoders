@@ -251,8 +251,7 @@ export default class OggVorbisDecoder {
     const oggPage = oggPages[oggPages.length - 1];
     if (oggPage && oggPage[isLastPage]) {
       // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
-      const samplesToTrim =
-        this._totalSamplesDecoded - oggPage[totalSamples];
+      const samplesToTrim = this._totalSamplesDecoded - oggPage[totalSamples];
 
       if (samplesToTrim > 0) {
         for (let i = 0; i < decoded.channelData.length; i++)

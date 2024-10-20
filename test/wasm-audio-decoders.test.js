@@ -2633,7 +2633,9 @@ describe("wasm-audio-decoders", () => {
       decoder.ready.then(() => decoder.free());
 
       expect(name).toEqual("OggVorbisDecoderWebWorker");
-      expect(OggVorbisDecoderWebWorker.name).toEqual("OggVorbisDecoderWebWorker");
+      expect(OggVorbisDecoderWebWorker.name).toEqual(
+        "OggVorbisDecoderWebWorker",
+      );
     });
 
     describe("main thread", () => {
