@@ -10,8 +10,8 @@ import CodecParser, {
   preSkip,
   isLastPage,
   absoluteGranulePosition,
-  samples,
   data,
+  totalSamples,
 } from "codec-parser";
 
 export default class OggOpusDecoder {
@@ -49,7 +49,6 @@ export default class OggOpusDecoder {
     this._totalSamplesDecoded = 0;
     this._preSkip = header[preSkip];
     this._channels = this._forceStereo ? 2 : header[channels];
-    this._beginningSampleOffset = null;
 
     this._decoder = new this._decoderClass({
       channels: header[channels],
@@ -94,37 +93,25 @@ export default class OggOpusDecoder {
 
         this._totalSamplesDecoded += samplesDecoded;
 
-        // record beginning sample offset for absoluteGranulePosition logic
-        if (
-          this._beginningSampleOffset === null &&
-          Number(oggPage[absoluteGranulePosition]) > -1
-        ) {
-          this._beginningSampleOffset =
-            oggPage[absoluteGranulePosition] -
-            BigInt(oggPage[samples]) +
-            BigInt(this._preSkip);
-        }
-
         if (oggPage[isLastPage]) {
           // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
           if (oggPage[absoluteGranulePosition] !== undefined) {
             const totalDecodedSamples_48000 =
               (this._totalSamplesDecoded / this._sampleRate) * 48000;
-            const totalOggSamples_48000 = Number(
-              oggPage[absoluteGranulePosition] - this._beginningSampleOffset,
-            );
 
             // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
             const samplesToTrim = Math.round(
-              ((totalDecodedSamples_48000 - totalOggSamples_48000) / 48000) *
+              ((totalDecodedSamples_48000 - oggPage[totalSamples]) / 48000) *
                 this._sampleRate,
             );
 
-            for (let i = 0; i < channelData.length; i++) {
-              channelData[i] = channelData[i].subarray(
-                0,
-                samplesDecoded - samplesToTrim,
-              );
+            if (samplesToTrim > 0) {
+              for (let i = 0; i < channelData.length; i++) {
+                channelData[i] = channelData[i].subarray(
+                  0,
+                  samplesDecoded - samplesToTrim,
+                );
+              }
             }
 
             samplesThisDecode -= samplesToTrim;
