@@ -1,7 +1,6 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import CodecParser, {
-  absoluteGranulePosition,
-  samples,
+  totalSamples,
   data,
   codecFrames,
   header,
@@ -189,7 +188,7 @@ export default class OggVorbisDecoder {
 
   _init() {
     this._vorbisSetupInProgress = true;
-    this._beginningSampleOffset = undefined;
+    this._totalSamplesDecoded = 0;
     this._codecParser = new CodecParser("audio/ogg", {
       onCodec: this._onCodec,
       enableFrameCRC32: false,
@@ -246,28 +245,23 @@ export default class OggVorbisDecoder {
 
     const decoded = await this._decoder.decodePackets(packets);
 
+    this._totalSamplesDecoded += decoded.samplesDecoded;
+
     // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
     const oggPage = oggPages[oggPages.length - 1];
-    if (oggPages.length && Number(oggPage[absoluteGranulePosition]) > -1) {
-      if (this._beginningSampleOffset === undefined) {
-        this._beginningSampleOffset =
-          oggPage[absoluteGranulePosition] - BigInt(oggPage[samples]);
-      }
+    if (oggPage && oggPage[isLastPage]) {
+      // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+      const samplesToTrim = this._totalSamplesDecoded - oggPage[totalSamples];
 
-      if (oggPage[isLastPage]) {
-        // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
-        const samplesToTrim =
-          decoded.samplesDecoded - Number(oggPage[absoluteGranulePosition]);
+      if (samplesToTrim > 0) {
+        for (let i = 0; i < decoded.channelData.length; i++)
+          decoded.channelData[i] = decoded.channelData[i].subarray(
+            0,
+            decoded.samplesDecoded - samplesToTrim,
+          );
 
-        if (samplesToTrim > 0) {
-          for (let i = 0; i < decoded.channelData.length; i++)
-            decoded.channelData[i] = decoded.channelData[i].subarray(
-              0,
-              decoded.samplesDecoded - samplesToTrim,
-            );
-
-          decoded.samplesDecoded -= samplesToTrim;
-        }
+        decoded.samplesDecoded -= samplesToTrim;
+        this._totalSamplesDecoded -= samplesToTrim;
       }
     }
 
@@ -279,14 +273,14 @@ export default class OggVorbisDecoder {
   }
 
   async flush() {
-    const decoded = this.decodeOggPages([...this._codecParser.flush()]);
+    const decoded = await this.decodeOggPages([...this._codecParser.flush()]);
 
     await this.reset();
     return decoded;
   }
 
   async decodeFile(vorbisData) {
-    const decoded = this.decodeOggPages([
+    const decoded = await this.decodeOggPages([
       ...this._codecParser.parseAll(vorbisData),
     ]);
 

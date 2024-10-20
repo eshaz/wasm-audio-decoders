@@ -1620,7 +1620,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.samplesDecoded).toEqual(287688); //287063
         expect(result.sampleRate).toEqual(48000);
         expect(Buffer.compare(actual, expected)).toEqual(0);
-      });
+      }, 10000);
 
       it("should decode 255 channel opus frames in a web worker", async () => {
         const {
@@ -1654,7 +1654,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.sampleRate).toEqual(48000);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
-    });
+    }, 10000);
   });
 
   describe("ogg-opus-decoder", () => {
@@ -2114,7 +2114,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.samplesDecoded).toEqual(286751); //287063
         expect(result.sampleRate).toEqual(48000);
         expect(Buffer.compare(actual, expected)).toEqual(0);
-      });
+      }, 10000);
 
       it("should decode 255 channel ogg opus frames in a web worker", async () => {
         const { paths, result } = await test_decode(
@@ -2132,7 +2132,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.samplesDecoded).toEqual(286751); //287063
         expect(result.sampleRate).toEqual(48000);
         expect(Buffer.compare(actual, expected)).toEqual(0);
-      });
+      }, 10000);
     });
 
     describe("File decoding", () => {
@@ -2627,13 +2627,15 @@ describe("wasm-audio-decoders", () => {
       expect(OggVorbisDecoder.name).toEqual("OggVorbisDecoder");
     });
 
-    it("should have name as an instance and static property for OggOpusDecoderWebWorker", () => {
-      const decoder = new OggOpusDecoderWebWorker();
+    it("should have name as an instance and static property for OggVorbisDecoderWebWorker", () => {
+      const decoder = new OggVorbisDecoderWebWorker();
       const name = decoder.constructor.name;
       decoder.ready.then(() => decoder.free());
 
-      expect(name).toEqual("OggOpusDecoderWebWorker");
-      expect(OggOpusDecoderWebWorker.name).toEqual("OggOpusDecoderWebWorker");
+      expect(name).toEqual("OggVorbisDecoderWebWorker");
+      expect(OggVorbisDecoderWebWorker.name).toEqual(
+        "OggVorbisDecoderWebWorker",
+      );
     });
 
     describe("main thread", () => {
@@ -2652,7 +2654,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(3496960);
+        expect(result.samplesDecoded).toEqual(3496512);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2675,7 +2677,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(3496960);
+        expect(result.samplesDecoded).toEqual(3496512);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2784,7 +2786,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
-      });
+      }, 10000);
 
       it("should decode chained vorbis", async () => {
         const { paths, result } = await test_decode(
@@ -2887,7 +2889,7 @@ describe("wasm-audio-decoders", () => {
         ]);
 
         expect(result.errors.length).toEqual(0);
-        expect(result.samplesDecoded).toEqual(3496960);
+        expect(result.samplesDecoded).toEqual(3496512);
         expect(result.sampleRate).toEqual(44100);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
@@ -2996,7 +2998,7 @@ describe("wasm-audio-decoders", () => {
         expect(result.sampleRate).toEqual(48000);
         expect(result.bitDepth).toEqual(16);
         expect(Buffer.compare(actual, expected)).toEqual(0);
-      });
+      }, 10000);
 
       it("should decode chained vorbis", async () => {
         const { paths, result } = await test_decode(

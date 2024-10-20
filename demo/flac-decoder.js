@@ -473,7 +473,7 @@
   const rate7350 = 7350;
 
   // header key constants
-  const absoluteGranulePosition$1 = "absoluteGranulePosition";
+  const absoluteGranulePosition = "absoluteGranulePosition";
   const bandwidth = "bandwidth";
   const bitDepth = "bitDepth";
   const bitrate = "bitrate";
@@ -563,7 +563,7 @@
   const sampleNumber = sample + Number$1;
   const sampleRate = sample + Rate;
   const sampleRateBits = symbol();
-  const samples$1 = sample + "s";
+  const samples = sample + "s";
 
   const stream = "stream";
   const streamCount = stream + "Count";
@@ -574,7 +574,7 @@
   const total = "total";
   const totalBytesOut = total + "BytesOut";
   const totalDuration = total + "Duration";
-  const totalSamples = total + "Samples";
+  const totalSamples$1 = total + "Samples";
 
   // private methods
   const readRawData = symbol();
@@ -790,6 +790,30 @@
       return (window >> (7 - bit)) & 0xff;
     }
   }
+
+  /**
+   * @todo Old versions of Safari do not support BigInt
+   */
+  const readInt64le = (view, offset) => {
+    try {
+      return view.getBigInt64(offset, true);
+    } catch {
+      const sign = view.getUint8(offset + 7) & 0x80 ? -1 : 1;
+      let firstPart = view.getUint32(offset, true);
+      let secondPart = view.getUint32(offset + 4, true);
+
+      if (sign === -1) {
+        firstPart = ~firstPart + 1;
+        secondPart = ~secondPart + 1;
+      }
+
+      if (secondPart > 0x000fffff) {
+        console.warn("This platform does not support BigInt");
+      }
+
+      return sign * (firstPart + secondPart * 2 ** 32);
+    }
+  };
 
   /* Copyright 2020-2023 Ethan Halsall
       
@@ -1027,7 +1051,7 @@
 
       if (headerValue) {
         const frameLengthValue = headerStore.get(headerValue)[frameLength];
-        const samplesValue = headerStore.get(headerValue)[samples$1];
+        const samplesValue = headerStore.get(headerValue)[samples];
 
         const frame = (yield* codecParser[readRawData](
           frameLengthValue,
@@ -1044,11 +1068,11 @@
       super(headerValue, dataValue);
 
       this[header] = headerValue;
-      this[samples$1] = samplesValue;
+      this[samples] = samplesValue;
       this[duration] = (samplesValue / headerValue[sampleRate]) * 1000;
       this[frameNumber] = null;
       this[totalBytesOut] = null;
-      this[totalSamples] = null;
+      this[totalSamples$1] = null;
       this[totalDuration] = null;
 
       frameStore.get(this)[length] = dataValue[length];
@@ -1273,18 +1297,18 @@
       [modeExtension]: layer3ModeExtensions,
       [v1]: {
         [bitrateIndex]: v1Layer3,
-        [samples$1]: 1152,
+        [samples]: 1152,
       },
       [v2]: {
         [bitrateIndex]: v2Layer23,
-        [samples$1]: 576,
+        [samples]: 576,
       },
     },
     0b00000100: {
       [description]: "Layer II",
       [framePadding]: 1,
       [modeExtension]: layer12ModeExtensions,
-      [samples$1]: 1152,
+      [samples]: 1152,
       [v1]: {
         [bitrateIndex]: v1Layer2,
       },
@@ -1296,7 +1320,7 @@
       [description]: "Layer I",
       [framePadding]: 4,
       [modeExtension]: layer12ModeExtensions,
-      [samples$1]: 384,
+      [samples]: 384,
       [v1]: {
         [bitrateIndex]: v1Layer1,
       },
@@ -1410,7 +1434,7 @@
 
       header[mpegVersion] = mpegVersionValues[description];
       header[layer] = layerValues[description];
-      header[samples$1] = layerValues[samples$1];
+      header[samples] = layerValues[samples];
       header[protection] = protectionValues$1[data[1] & 0b00000001];
 
       header[length] = 4;
@@ -1432,7 +1456,7 @@
       header[isPrivate] = !!(data[2] & 0b00000001);
 
       header[frameLength] = Math.floor(
-        (125 * header[bitrate] * header[samples$1]) / header[sampleRate] +
+        (125 * header[bitrate] * header[samples]) / header[sampleRate] +
           header[framePadding],
       );
       if (!header[frameLength]) return null;
@@ -1709,7 +1733,7 @@
         header[copyrightId] = !!(data[3] & 0b00001000);
         header[copyrightIdStart] = !!(data[3] & 0b00000100);
         header[bitDepth] = 16;
-        header[samples$1] = 1024;
+        header[samples] = 1024;
 
         // Byte (7 of 7)
         // * `......PP` Number of AAC frames (RDBs) in ADTS frame minus 1, for maximum compatibility always use 1 AAC frame per ADTS frame
@@ -1899,7 +1923,7 @@
       header[streamInfo] = streamInfoValue;
       header[crc16] = FLACFrame._getFrameFooterCrc16(data);
 
-      super(header, data, headerStore.get(header)[samples$1]);
+      super(header, data, headerStore.get(header)[samples]);
     }
   }
 
@@ -2167,7 +2191,7 @@
         header[length] += 2;
       }
 
-      header[samples$1] = header[blockSize];
+      header[samples] = header[blockSize];
 
       // Byte (...)
       // * `KKKKKKKK|(KKKKKKKK)`: Sample rate (8/16bit custom value)
@@ -2320,9 +2344,8 @@
               ))
             ) {
               // found a valid next frame header
-              let frameData = yield* this._codecParser[readRawData](
-                nextHeaderOffset,
-              );
+              let frameData =
+                yield* this._codecParser[readRawData](nextHeaderOffset);
 
               if (!this._codecParser._flushing)
                 frameData = frameData[subarray](0, nextHeaderOffset);
@@ -2448,13 +2471,7 @@
       // Byte (7-14 of 28)
       // * `FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF|FFFFFFFF`
       // * Absolute Granule Position
-
-      /**
-       * @todo Safari does not support getBigInt64, but it also doesn't support Ogg
-       */
-      try {
-        header[absoluteGranulePosition$1] = view.getBigInt64(6, true);
-      } catch {}
+      header[absoluteGranulePosition] = readInt64le(view, 6);
 
       // Byte (15-18 of 28)
       // * `GGGGGGGG|GGGGGGGG|GGGGGGGG|GGGGGGGG`
@@ -2506,7 +2523,7 @@
     constructor(header) {
       headerStore.set(this, header);
 
-      this[absoluteGranulePosition$1] = header[absoluteGranulePosition$1];
+      this[absoluteGranulePosition] = header[absoluteGranulePosition];
       this[isContinuedPacket] = header[isContinuedPacket];
       this[isFirstPage] = header[isFirstPage];
       this[isLastPage$1] = header[isLastPage$1];
@@ -2568,14 +2585,14 @@
 
       this[codecFrames$1] = [];
       this[rawData] = rawDataValue;
-      this[absoluteGranulePosition$1] = header[absoluteGranulePosition$1];
+      this[absoluteGranulePosition] = header[absoluteGranulePosition];
       this[crc32] = header[pageChecksum];
       this[duration] = 0;
       this[isContinuedPacket] = header[isContinuedPacket];
       this[isFirstPage] = header[isFirstPage];
       this[isLastPage$1] = header[isLastPage$1];
       this[pageSequenceNumber] = header[pageSequenceNumber];
-      this[samples$1] = 0;
+      this[samples] = 0;
       this[streamSerialNumber] = header[streamSerialNumber];
     }
   }
@@ -2600,12 +2617,8 @@
 
 
   class OpusFrame extends CodecFrame {
-    constructor(data, header) {
-      super(
-        header,
-        data,
-        ((header[frameSize] * header[frameCount]) / 1000) * header[sampleRate],
-      );
+    constructor(data, header, samples) {
+      super(header, data, samples);
     }
   }
 
@@ -2882,6 +2895,7 @@
 
       onCodec(this[codec]);
       this._identificationHeader = null;
+      this._preSkipRemaining = null;
     }
 
     get [codec]() {
@@ -2907,7 +2921,22 @@
               this._headerCache,
             );
 
-            if (header) return new OpusFrame(segment, header);
+            if (header) {
+              if (this._preSkipRemaining === null)
+                this._preSkipRemaining = header[preSkip];
+
+              let samples =
+                ((header[frameSize] * header[frameCount]) / 1000) *
+                header[sampleRate];
+
+              if (this._preSkipRemaining > 0) {
+                this._preSkipRemaining -= samples;
+                samples =
+                  this._preSkipRemaining < 0 ? -this._preSkipRemaining : 0;
+              }
+
+              return new OpusFrame(segment, header, samples);
+            }
 
             this._codecParser[logError$1](
               "Failed to parse Ogg Opus Header",
@@ -3295,6 +3324,7 @@
       this._continuedPacket = new uint8Array();
       this._codec = null;
       this._isSupported = null;
+      this._previousAbsoluteGranulePosition = null;
     }
 
     get [codec]() {
@@ -3386,6 +3416,16 @@
           oggPageStore[segments].pop(),
         );
       }
+
+      // set total samples in this ogg page
+      if (this._previousAbsoluteGranulePosition !== null) {
+        oggPage[samples] = Number(
+          oggPage[absoluteGranulePosition] -
+            this._previousAbsoluteGranulePosition,
+        );
+      }
+
+      this._previousAbsoluteGranulePosition = oggPage[absoluteGranulePosition];
 
       if (this._isSupported) {
         const frame = this._parser[parseOggPage](oggPage);
@@ -3616,7 +3656,7 @@
           : 0;
       frame[frameNumber] = this._frameNumber++;
       frame[totalBytesOut] = this._totalBytesOut;
-      frame[totalSamples] = this._totalSamples;
+      frame[totalSamples$1] = this._totalSamples;
       frame[totalDuration] = (this._totalSamples / this._sampleRate) * 1000;
       frame[crc32] = this._crc32(frame[data$1]);
 
@@ -3626,7 +3666,7 @@
       );
 
       this._totalBytesOut += frame[data$1][length];
-      this._totalSamples += frame[samples$1];
+      this._totalSamples += frame[samples];
     }
 
     /**
@@ -3635,13 +3675,38 @@
     [mapFrameStats](frame) {
       if (frame[codecFrames$1]) {
         // Ogg container
-        frame[codecFrames$1].forEach((codecFrame) => {
-          frame[duration] += codecFrame[duration];
-          frame[samples$1] += codecFrame[samples$1];
-          this[mapCodecFrameStats](codecFrame);
-        });
+        if (frame[isLastPage$1]) {
+          // cut any excess samples that fall outside of the absolute granule position
+          // some streams put invalid data in absolute granule position, so only do this
+          // for the end of the stream
+          let absoluteGranulePositionSamples = frame[samples];
 
-        frame[totalSamples] = this._totalSamples;
+          frame[codecFrames$1].forEach((codecFrame) => {
+            const untrimmedCodecSamples = codecFrame[samples];
+
+            if (absoluteGranulePositionSamples < untrimmedCodecSamples) {
+              codecFrame[samples] =
+                absoluteGranulePositionSamples > 0
+                  ? absoluteGranulePositionSamples
+                  : 0;
+              codecFrame[duration] =
+                (codecFrame[samples] / codecFrame[header][sampleRate]) * 1000;
+            }
+
+            absoluteGranulePositionSamples -= untrimmedCodecSamples;
+
+            this[mapCodecFrameStats](codecFrame);
+          });
+        } else {
+          frame[samples] = 0;
+          frame[codecFrames$1].forEach((codecFrame) => {
+            frame[samples] += codecFrame[samples];
+            this[mapCodecFrameStats](codecFrame);
+          });
+        }
+
+        frame[duration] = (frame[samples] / this._sampleRate) * 1000 || 0;
+        frame[totalSamples$1] = this._totalSamples;
         frame[totalDuration] =
           (this._totalSamples / this._sampleRate) * 1000 || 0;
         frame[totalBytesOut] = this._totalBytesOut;
@@ -3693,11 +3758,10 @@
     }
   }
 
-  const absoluteGranulePosition = absoluteGranulePosition$1;
   const codecFrames = codecFrames$1;
   const data = data$1;
   const isLastPage = isLastPage$1;
-  const samples = samples$1;
+  const totalSamples = totalSamples$1;
 
   /* **************************************************
    * This file is auto-generated during the build process.
@@ -4109,6 +4173,7 @@ FÿG×'îfN>=}ubsÇhÉÇ¢YZQAE	Zè·ÏNÖÁKÐR?BÆ¢ÅLrm°ªfý
   const placeholderDecodeMethod = Symbol();
   const decodeMethod = Symbol();
   const init = Symbol();
+  const totalSamplesDecoded = Symbol();
 
   class FLACDecoder {
     constructor() {
@@ -4128,8 +4193,8 @@ FÿG×'îfN>=}ubsÇhÉÇ¢YZQAE	Zè·ÏNÖÁKÐR?BÆ¢ÅLrm°ªfý
 
     [init]() {
       this[decodeMethod] = placeholderDecodeMethod;
+      this[totalSamplesDecoded] = 0;
       this._codecParser = null;
-      this._beginningSampleOffset = undefined;
     }
 
     [determineDecodeMethod](data) {
@@ -4178,28 +4243,23 @@ FÿG×'îfN>=}ubsÇhÉÇ¢YZQAE	Zè·ÏNÖÁKÐR?BÆ¢ÅLrm°ªfý
       const decoded = this._decoder.decodeFrames(frames);
 
       const oggPage = oggPages[oggPages.length - 1];
-      if (oggPages.length && Number(oggPage[absoluteGranulePosition]) > -1) {
-        if (this._beginningSampleOffset === undefined) {
-          this._beginningSampleOffset =
-            oggPage[absoluteGranulePosition] - BigInt(oggPage[samples]);
-        }
+      if (oggPage && oggPage[isLastPage]) {
+        // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+        const samplesToTrim =
+          this[totalSamplesDecoded] - oggPage[totalSamples];
 
-        if (oggPage[isLastPage]) {
-          // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
-          const samplesToTrim =
-            decoded.samplesDecoded - Number(oggPage[absoluteGranulePosition]);
+        if (samplesToTrim > 0) {
+          for (let i = 0; i < decoded.channelData.length; i++)
+            decoded.channelData[i] = decoded.channelData[i].subarray(
+              0,
+              decoded.samplesDecoded - samplesToTrim,
+            );
 
-          if (samplesToTrim > 0) {
-            for (let i = 0; i < decoded.channelData.length; i++)
-              decoded.channelData[i] = decoded.channelData[i].subarray(
-                0,
-                decoded.samplesDecoded - samplesToTrim,
-              );
-
-            decoded.samplesDecoded -= samplesToTrim;
-          }
+          decoded.samplesDecoded -= samplesToTrim;
         }
       }
+
+      this[totalSamplesDecoded] += decoded.samplesDecoded;
 
       return decoded;
     }

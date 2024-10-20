@@ -1,7 +1,7 @@
 # `@wasm-audio-decoders/ogg-vorbis`
 
 `@wasm-audio-decoders/ogg-vorbis` is a Web Assembly Ogg Vorbis audio decoder.
-  * 97.5 KiB minified bundle size
+  * 97.9 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)

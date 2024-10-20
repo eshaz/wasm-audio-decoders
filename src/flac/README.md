@@ -1,7 +1,7 @@
 # `@wasm-audio-decoders/flac`
 
 `@wasm-audio-decoders/flac` is a Web Assembly FLAC / Ogg FLAC audio decoder.
-  * 64.8 KiB minified bundle size
+  * 65.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)

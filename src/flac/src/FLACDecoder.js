@@ -1,8 +1,7 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 import CodecParser, {
   data,
-  absoluteGranulePosition,
-  samples,
+  totalSamples,
   codecFrames,
   isLastPage,
 } from "codec-parser";
@@ -186,6 +185,7 @@ const decodeOggFlac = Symbol();
 const placeholderDecodeMethod = Symbol();
 const decodeMethod = Symbol();
 const init = Symbol();
+const totalSamplesDecoded = Symbol();
 
 export default class FLACDecoder {
   constructor() {
@@ -205,8 +205,8 @@ export default class FLACDecoder {
 
   [init]() {
     this[decodeMethod] = placeholderDecodeMethod;
+    this[totalSamplesDecoded] = 0;
     this._codecParser = null;
-    this._beginningSampleOffset = undefined;
   }
 
   [determineDecodeMethod](data) {
@@ -255,28 +255,22 @@ export default class FLACDecoder {
     const decoded = this._decoder.decodeFrames(frames);
 
     const oggPage = oggPages[oggPages.length - 1];
-    if (oggPages.length && Number(oggPage[absoluteGranulePosition]) > -1) {
-      if (this._beginningSampleOffset === undefined) {
-        this._beginningSampleOffset =
-          oggPage[absoluteGranulePosition] - BigInt(oggPage[samples]);
-      }
+    if (oggPage && oggPage[isLastPage]) {
+      // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+      const samplesToTrim = this[totalSamplesDecoded] - oggPage[totalSamples];
 
-      if (oggPage[isLastPage]) {
-        // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
-        const samplesToTrim =
-          decoded.samplesDecoded - Number(oggPage[absoluteGranulePosition]);
+      if (samplesToTrim > 0) {
+        for (let i = 0; i < decoded.channelData.length; i++)
+          decoded.channelData[i] = decoded.channelData[i].subarray(
+            0,
+            decoded.samplesDecoded - samplesToTrim,
+          );
 
-        if (samplesToTrim > 0) {
-          for (let i = 0; i < decoded.channelData.length; i++)
-            decoded.channelData[i] = decoded.channelData[i].subarray(
-              0,
-              decoded.samplesDecoded - samplesToTrim,
-            );
-
-          decoded.samplesDecoded -= samplesToTrim;
-        }
+        decoded.samplesDecoded -= samplesToTrim;
       }
     }
+
+    this[totalSamplesDecoded] += decoded.samplesDecoded;
 
     return decoded;
   }
