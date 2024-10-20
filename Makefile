@@ -138,6 +138,46 @@ mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
 
+# pcm
+PCM_SRC=src/pcm/src/
+PCM_WASM_LIB=tmp/pcm.bc
+PCM_EMSCRIPTEN_BUILD=$(PCM_SRC)pcm.wasm
+
+# ----------------------
+# @wasm-audio-decoders/pcm
+# ----------------------
+# requires: llvm, clang, llc, binaryen
+pcm-llvm:
+	@ clang \
+		--target=wasm32 \
+		-nostdlib \
+		-flto \
+		-mbulk-memory \
+		-msimd128 \
+		-Wl,--export=init_decoder \
+		-Wl,--export=decode \
+		-Wl,--export=__heap_base \
+		-Wl,--no-entry \
+		-Wl,--lto-O3 \
+		-Wl,--initial-memory=1048576 \
+		-Oz \
+		-DSLOW=1 \
+		-o "$(PCM_EMSCRIPTEN_BUILD)" \
+		$(PCM_SRC)pcm_decoder.c
+	@ wasm-opt \
+		-lmu \
+		-O3 \
+		--asyncify \
+		--pass-arg=asyncify-imports@env.read_write \
+		--pass-arg=asyncify-ignore-indirect \
+		--strip-producers \
+		--reorder-functions \
+		--reorder-locals \
+		--vacuum \
+		--print \
+		$(PCM_EMSCRIPTEN_BUILD) \
+		-o $(PCM_EMSCRIPTEN_BUILD) > $(PCM_EMSCRIPTEN_BUILD).wat
+
 
 # common EMCC options
 define EMCC_OPTS
