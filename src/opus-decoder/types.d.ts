@@ -10,6 +10,7 @@ export interface OpusDecodedAudio {
 export class OpusDecoder {
   constructor(options?: {
     forceStereo?: boolean;
+    sampleRate?: boolean;
     preSkip?: number;
     channels?: number;
     streamCount?: number;
