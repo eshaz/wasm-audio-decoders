@@ -185,6 +185,7 @@ Class that decodes Opus frames asynchronously within a web worker. Decoding is p
 ```javascript
 const decoder = new OpusDecoderWebWorker({ 
   forceStereo: false,
+  sampleRate: 48000,
   channels: 2,
   streamCount: 1,
   coupledStreamCount: 1,

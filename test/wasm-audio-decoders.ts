@@ -42,6 +42,31 @@ const oggOpusDecoder: OggOpusDecoder = new OggOpusDecoder();
 const oggOpusDecoderWebWorker: OggOpusDecoderWebWorker =
   new OggOpusDecoderWebWorker();
 
+// test opus decoder sample rates
+const opusDecoder8000 = new OpusDecoder({
+  sampleRate: 8000,
+});
+const opusDecoderWebWorker8000 = new OpusDecoderWebWorker({
+  sampleRate: 8000,
+});
+
+const opusDecoderDecode8000 = opusDecoder8000.decodeFrame(fakeData);
+const opusDecoderDecodeSampleRate8000: number =
+  opusDecoderDecode8000.sampleRate;
+
+let opusDecoder12000: OpusDecoder<12000>;
+opusDecoder12000 = new OpusDecoder({
+  sampleRate: 12000,
+});
+let opusDecoderWebWorker12000: OpusDecoderWebWorker<12000>;
+opusDecoderWebWorker12000 = new OpusDecoderWebWorker({
+  sampleRate: 12000,
+});
+
+const opusDecoderDecode12000 = opusDecoder12000.decodeFrame(fakeData);
+const opusDecoderDecodeSampleRate12000: number =
+  opusDecoderDecode12000.sampleRate;
+
 const flacDecoder: FLACDecoder = new FLACDecoder();
 const flacDecoderWebWorker: FLACDecoderWebWorker = new FLACDecoderWebWorker();
 
