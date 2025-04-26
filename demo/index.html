@@ -746,7 +746,8 @@
     const opus = "opus";
     const unknown = "unknown";
 
-    const detectType = (mimeType, extension) => {
+    const detectType = (mimeType, fileName) => {
+      fileName = fileName.toLowerCase();
       switch (mimeType) {
         case "audio/mpeg":
           return mpeg;
@@ -756,8 +757,11 @@
           return vorbis;
         case "video/ogg":
         case "audio/ogg":
-          return opus;
+          if (fileName.includes("opus")) return opus;
+          if (fileName.includes("vorbis")) return vorbis;
+          if (fileName.includes("flac")) return flac;
         default:
+          const extension = fileName.split(".").at(-1);
           switch (extension) {
             case "mp3":
             case "mp2":
@@ -765,11 +769,14 @@
               return mpeg;
             case "flac":
               return flac;
-            case "ogg":
             case "vorbis":
               return vorbis;
             case "opus":
               return opus;
+            case "ogg":
+              if (fileName.includes("opus")) return opus;
+              if (fileName.includes("vorbis")) return vorbis;
+              if (fileName.includes("flac")) return flac;
             default:
               return unknown;
               throw new Error(
@@ -829,7 +836,7 @@
         );
       }
 
-      async getDecoder(mimeType, extension, fileSize, selectedType) {
+      async getDecoder(mimeType, fileSize, selectedType) {
         let DecoderClass, decoderStats, decoderMethod;
 
         const mpegDecoder = () => {
@@ -878,9 +885,7 @@
             oggOpusDecoder();
             break;
           case unknown:
-            throw new Error(
-              `Unsupported file type ${mimeType} with extension ${extension}`,
-            );
+            throw new Error(`Unsupported file type ${mimeType}`);
         }
 
         let decoderEntry = this._getNextDecoder(DecoderClass);
@@ -902,10 +907,15 @@
           this._decoderPool.push(decoderEntry);
         } else {
           // use an existing decoder
+          await decoderEntry.decoderFree;
           decoderEntry.allocated += fileSize;
         }
 
         await decoderEntry.decoder.ready;
+
+        decoderEntry.decoderFree = new Promise(
+          (resolve) => (decoderEntry.decoderFreeResolve = resolve),
+        );
 
         return decoderEntry;
       }
@@ -973,7 +983,7 @@
       numberOfDecodersEl.disabled = true;
       let totalBytes = 0;
 
-      const files = fileList.map(({ file, extension, selectedType, id }) => {
+      const files = fileList.map(({ file, selectedType, id }) => {
         totalBytes += file.size;
 
         return {
@@ -982,7 +992,6 @@
           name: file.name,
           mimeType: file.type,
           size: file.size,
-          extension: extension,
           selectedType: selectedType,
         };
       });
@@ -1006,55 +1015,56 @@
 
       const decodeOperations = [];
 
-      for (const {
-        buffer,
-        name,
-        id,
-        mimeType,
-        size,
-        selectedType,
-        extension,
-      } of files) {
+      for (const { buffer, name, id, mimeType, size, selectedType } of files) {
         const { rowEl, statusEl, decoderEl } = setFileStatus(id);
 
         decodeOperations.push(
           buffer.then((data) =>
             decoderPool
-              .getDecoder(mimeType, extension, size, selectedType)
-              .then(async ({ decoder, decoderMethod, index, allocated }) => {
-                rowEl.style = "background-color: rgba(255, 255, 0, .5)";
-                statusEl.innerHTML = `queued`;
-                decoderEl.innerHTML = `${decoder.constructor.name}[${index}]`;
-
-                const { samplesDecoded, sampleRate, channelData } =
-                  await decoder[decoderMethod](new Uint8Array(data));
-
-                stats.decodeEnd = performance.now();
-                stats.sampleRates.push(sampleRate);
-                stats.samplesDecoded += samplesDecoded;
-                stats.numberFilesDecoded++;
-                stats.bytesIn += size;
-                stats.bytesOut += downloadDecodeResult(
-                  { samplesDecoded, sampleRate, channelData },
-                  name,
-                  size,
-                );
-
-                rowEl.style = "background-color: rgba(0, 255, 0, .5)";
-                statusEl.innerHTML = "done";
-
-                updateDecodeStats(stats);
-                updateDecoderProgress(
+              .getDecoder(mimeType, size, selectedType)
+              .then(
+                async ({
+                  decoder,
+                  decoderMethod,
                   index,
-                  decoder.constructor.name,
-                  size,
                   allocated,
-                );
+                  decoderFreeResolve,
+                }) => {
+                  rowEl.style = "background-color: rgba(255, 255, 0, .5)";
+                  statusEl.innerHTML = `queued`;
+                  decoderEl.innerHTML = `${decoder.constructor.name}[${index}]`;
 
-                await decoder.reset();
+                  const { samplesDecoded, sampleRate, channelData } =
+                    await decoder[decoderMethod](new Uint8Array(data));
 
-                return { samplesDecoded, sampleRate, channelData };
-              }),
+                  stats.decodeEnd = performance.now();
+                  stats.sampleRates.push(sampleRate);
+                  stats.samplesDecoded += samplesDecoded;
+                  stats.numberFilesDecoded++;
+                  stats.bytesIn += size;
+                  stats.bytesOut += downloadDecodeResult(
+                    { samplesDecoded, sampleRate, channelData },
+                    name,
+                    size,
+                  );
+
+                  rowEl.style = "background-color: rgba(0, 255, 0, .5)";
+                  statusEl.innerHTML = "done";
+
+                  updateDecodeStats(stats);
+                  updateDecoderProgress(
+                    index,
+                    decoder.constructor.name,
+                    size,
+                    allocated,
+                  );
+
+                  await decoder.reset();
+                  decoderFreeResolve();
+
+                  return { samplesDecoded, sampleRate, channelData };
+                },
+              ),
           ),
         );
       }
@@ -1310,8 +1320,7 @@
 
       fileList = files.map((file) => ({
         file,
-        selectedType: detectType(file.type, file.name.split(".").at(-1)),
-        extension: file.name.split(".").at(-1),
+        selectedType: detectType(file.type, file.name),
       }));
 
       if (fileList.length > 0) decodeButtonEl.disabled = false;
@@ -1343,7 +1352,6 @@
 
         totalLength += size;
 
-        file.selectedType = detectType(type, file.extension);
         file.id = i;
 
         filesToDecodeEl.innerHTML += `

@@ -24,12 +24,12 @@ dist-clean:
 # puff
 COMMON_PATH=src/common/
 PUFF_SRC=$(COMMON_PATH)src/puff/
-PUFF_WASM_LIB=tmp/puff.bc
+PUFF_WASM_LIB=tmp/puff.o
 PUFF_EMSCRIPTEN_BUILD=$(COMMON_PATH)src/puff/Puff.wasm
 
 # @wasm-audio-decoders/flac
 FLAC_SRC=modules/flac/
-FLAC_WASM_LIB=tmp/flac.bc
+FLAC_WASM_LIB=tmp/flac.o
 FLAC_DECODER_PATH=src/flac/
 FLAC_EMSCRIPTEN_BUILD=$(FLAC_DECODER_PATH)src/EmscriptenWasm.tmp.js
 FLAC_DECODER_MODULE=$(FLAC_DECODER_PATH)dist/flac-decoder.js
@@ -41,7 +41,7 @@ flac-decoder-minify: $(FLAC_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(FLAC_DECODER_MODULE) \
 	MODULE_MIN=$(FLAC_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=488 \
+	COMPRESSION_ITERATIONS=150 \
 	npm run minify
 	cp $(FLAC_DECODER_MODULE) $(FLAC_DECODER_MODULE_MIN) $(FLAC_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -63,7 +63,7 @@ ogg-vorbis-decoder-minify: $(OGG_VORBIS_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OGG_VORBIS_DECODER_MODULE) \
 	MODULE_MIN=$(OGG_VORBIS_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=122 \
+	COMPRESSION_ITERATIONS=12 \
 	npm run minify
 	cp $(OGG_VORBIS_DECODER_MODULE) $(OGG_VORBIS_DECODER_MODULE_MIN) $(OGG_VORBIS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -106,19 +106,19 @@ opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OPUS_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=33 \
+	COMPRESSION_ITERATIONS=58 \
 	npm run minify
 	cp $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_MIN) $(OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
 # libopus
-OPUS_WASM_LIB=tmp/opus.bc
+OPUS_WASM_LIB=tmp/opus.o
 opus-wasmlib: $(OPUS_WASM_LIB)
 opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
 
 # mpg123-decoder
 MPG123_SRC=modules/mpg123/
-MPG123_WASM_LIB=tmp/mpg123.bc
+MPG123_WASM_LIB=tmp/mpg123.o
 MPG123_DECODER_PATH=src/mpg123-decoder/
 MPG123_EMSCRIPTEN_BUILD=$(MPG123_DECODER_PATH)src/EmscriptenWasm.tmp.js
 MPG123_MODULE=$(MPG123_DECODER_PATH)dist/mpg123-decoder.js
@@ -130,7 +130,7 @@ mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(MPG123_MODULE) \
 	MODULE_MIN=$(MPG123_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=28 \
+	COMPRESSION_ITERATIONS=240 \
 	npm run minify
 	cp $(MPG123_MODULE) $(MPG123_MODULE_MIN) $(MPG123_MODULE_MIN).map $(DEMO_PATH)
 
@@ -138,21 +138,24 @@ mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
 
-
+# -O4,--flexible-inline-max-function-size,--dae-optimizing,-ffm,--coalesce-locals-learning,--optimize-instructions,--rse,--reorder-functions,--reorder-functions,--reorder-locals,--merge-blocks,--merge-locals,--simplify-globals-optimizing,--licm,--vacuum,--converge,
 # common EMCC options
 define EMCC_OPTS
 -O3 \
 --minify 0 \
 -flto \
--s BINARYEN_EXTRA_PASSES="-O4,--flexible-inline-max-function-size,--dae-optimizing,-ffm,--coalesce-locals-learning,--optimize-instructions,--rse,--reorder-functions,--reorder-functions,--reorder-locals,--merge-blocks,--merge-locals,--simplify-globals-optimizing,--licm,--vacuum,--converge,--fuzz-exec" \
+-s BINARYEN_EXTRA_PASSES="-O4,--optimize-instructions,--vacuum,--converge" \
 -s MINIMAL_RUNTIME=2 \
 -s TEXTDECODER=2 \
--s SUPPORT_ERRNO=0 \
 -s SINGLE_FILE=1 \
 -s MALLOC="emmalloc" \
 -s NO_FILESYSTEM=1 \
 -s ENVIRONMENT=web,worker \
 -s STRICT=1 \
+-s ASSERTIONS=0 \
+-s ABORTING_MALLOC=0 \
+-s EXIT_RUNTIME=0 \
+-DNDEBUG \
 -s INCOMING_MODULE_JS_API="[]"
 endef
 

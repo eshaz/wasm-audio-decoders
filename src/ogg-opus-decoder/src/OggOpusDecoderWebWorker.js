@@ -9,6 +9,6 @@ export default class OggOpusDecoderWebWorker extends OggOpusDecoder {
   }
 
   async free() {
-    super.free();
+    await super.reset();
   }
 }

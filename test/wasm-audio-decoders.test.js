@@ -1703,12 +1703,10 @@ describe("wasm-audio-decoders", () => {
         "decodeFile",
         "should decode ogg opus with two invocations 1",
         opusStereoTestFile,
+        opusStereoTestFile,
+        [],
+        ["two_invocations", "1"],
       );
-
-      const [actual_1, expected_1] = await Promise.all([
-        fs.readFile(firstInvocation.paths.actualPath),
-        fs.readFile(firstInvocation.paths.expectedPath),
-      ]);
 
       await decoder.reset();
 
@@ -1717,7 +1715,111 @@ describe("wasm-audio-decoders", () => {
         "decodeFile",
         "should decode ogg opus with two invocations 2",
         opusStereoTestFile,
+        opusStereoTestFile,
+        [],
+        ["two_invocations", "2"],
       );
+
+      const [actual_1, expected_1] = await Promise.all([
+        fs.readFile(firstInvocation.paths.actualPath),
+        fs.readFile(firstInvocation.paths.expectedPath),
+      ]);
+
+      const [actual_2, expected_2] = await Promise.all([
+        fs.readFile(secondInvocation.paths.actualPath),
+        fs.readFile(secondInvocation.paths.expectedPath),
+      ]);
+
+      expect(firstInvocation.result.samplesDecoded).toEqual(3806842);
+      expect(firstInvocation.result.sampleRate).toEqual(48000);
+      expect(actual_1.length).toEqual(expected_1.length);
+      expect(Buffer.compare(actual_1, expected_1)).toEqual(0);
+
+      expect(secondInvocation.result.samplesDecoded).toEqual(3806842);
+      expect(secondInvocation.result.sampleRate).toEqual(48000);
+      expect(actual_2.length).toEqual(expected_2.length);
+      expect(Buffer.compare(actual_2, expected_2)).toEqual(0);
+    });
+
+    it("should decode ogg opus with two invocations web worker", async () => {
+      const decoder = new OggOpusDecoderWebWorker();
+
+      const firstInvocation = await test_decode(
+        decoder,
+        "decodeFile",
+        "should decode ogg opus with two invocations 1",
+        opusStereoTestFile,
+        opusStereoTestFile,
+        [],
+        ["two_invocations_worker", "1"],
+      );
+
+      await decoder.reset();
+
+      const secondInvocation = await test_decode(
+        decoder,
+        "decodeFile",
+        "should decode ogg opus with two invocations 2",
+        opusStereoTestFile,
+        opusStereoTestFile,
+        [],
+        ["two_invocations_worker", "2"],
+      );
+
+      const [actual_1, expected_1] = await Promise.all([
+        fs.readFile(firstInvocation.paths.actualPath),
+        fs.readFile(firstInvocation.paths.expectedPath),
+      ]);
+
+      const [actual_2, expected_2] = await Promise.all([
+        fs.readFile(secondInvocation.paths.actualPath),
+        fs.readFile(secondInvocation.paths.expectedPath),
+      ]);
+
+      expect(firstInvocation.result.samplesDecoded).toEqual(3806842);
+      expect(firstInvocation.result.sampleRate).toEqual(48000);
+      expect(actual_1.length).toEqual(expected_1.length);
+      expect(Buffer.compare(actual_1, expected_1)).toEqual(0);
+
+      expect(secondInvocation.result.samplesDecoded).toEqual(3806842);
+      expect(secondInvocation.result.sampleRate).toEqual(48000);
+      expect(actual_2.length).toEqual(expected_2.length);
+      expect(Buffer.compare(actual_2, expected_2)).toEqual(0);
+    });
+
+    it("should decode ogg opus with parallel invocations web worker", async () => {
+      const decoder1 = new OggOpusDecoderWebWorker();
+      const decoder2 = new OggOpusDecoderWebWorker();
+
+      const firstInvocationPromise = test_decode(
+        decoder1,
+        "decodeFile",
+        "should decode ogg opus with parallel invocations 1",
+        opusStereoTestFile,
+        opusStereoTestFile,
+        [],
+        ["parallel_invocations_worker", "1"],
+      );
+
+      const secondInvocationPromise = test_decode(
+        decoder2,
+        "decodeFile",
+        "should decode ogg opus with parallel invocations 2",
+        opusStereoTestFile,
+        opusStereoTestFile,
+        [],
+        ["parallel_invocations_worker", "2"],
+      );
+
+      const [firstInvocation, secondInvocation] = await Promise.all([
+        firstInvocationPromise,
+        secondInvocationPromise,
+      ]);
+
+      const [actual_1, expected_1] = await Promise.all([
+        fs.readFile(firstInvocation.paths.actualPath),
+        fs.readFile(firstInvocation.paths.expectedPath),
+      ]);
 
       const [actual_2, expected_2] = await Promise.all([
         fs.readFile(secondInvocation.paths.actualPath),

@@ -80,6 +80,15 @@ const buildWasm = async (
   if (outputName !== "none") {
     let decoder = fs.readFileSync(emscriptenInputPath, { encoding: "ascii" });
 
+    // quote wasm import properties to avoid minification
+    decoder = decoder.replace(
+      /(var|let|const)\s+wasmImports\s*=\s*\{\n([\s\S]*?)\n\};/,
+      (match, declarationKeyword, body) => {
+        const quotedBody = body.replace(/([a-zA-Z0-9_$]+):/gm, '"$1":');
+        return `${declarationKeyword} wasmImports = {\n${quotedBody}\n};`;
+      },
+    );
+
     // only compile wasm once
     const wasmInstantiateMatcher = /WebAssembly\.instantiate\(.*?exports;/s;
     decoder = decoder.replace(
@@ -93,7 +102,7 @@ this.getModule = () =>
   WASMAudioDecoderCommon.getModule(EmscriptenWASM);
 
 this.instantiate = () => {
-  this.getModule().then((wasm) => WebAssembly.instantiate(wasm, imports)).then((instance) => {
+  this.getModule().then((wasm) => WebAssembly.instantiate(wasm, imports)).then(instance => {
     const wasmExports = instance.exports;`,
     );
 
