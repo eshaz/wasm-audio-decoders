@@ -64,7 +64,7 @@ Decodes Ogg Vorbis data into PCM
 ### Prerequisites
 1. Linux, or a Linux-like environment to build (i.e. WSL).
 1. NodeJS 18.x or higher.
-1. Emscripten 3.1.51
+1. Emscripten 4.0.7
    * Install by following these [instructions](https://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#installation-instructions).
 
 ### Initial Setup
