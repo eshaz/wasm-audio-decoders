@@ -31,13 +31,12 @@ export default class OggOpusDecoder {
     new WASMAudioDecoderCommon();
     this._decoderClass = OpusDecoder;
 
-    this._init();
+    this._ready = this._init();
   }
 
-  _init() {
-    if (this._decoder) this._decoder.free();
+  async _init() {
+    if (this._decoder) await this._decoder.free();
     this._decoder = null;
-    this._ready = Promise.resolve();
 
     this._codecParser = new CodecParser("application/ogg", {
       onCodec: this._onCodec,
@@ -67,11 +66,12 @@ export default class OggOpusDecoder {
   }
 
   async reset() {
-    this._init();
+    this._ready = this._init();
+    await this._ready;
   }
 
   free() {
-    this._init();
+    this._ready = this._init();
   }
 
   async _decode(oggPages) {
@@ -86,7 +86,7 @@ export default class OggOpusDecoder {
         await decoderReady;
 
         const { channelData, samplesDecoded, errors } =
-          await this._decoder.decodeFrames(opusFrames.flat(1));
+          await this._decoder.decodeFrames(opusFrames);
 
         allChannelData.push(channelData);
         allErrors.push(...errors);
@@ -101,50 +101,52 @@ export default class OggOpusDecoder {
       const oggPage = oggPages[i];
 
       // only decode Ogg pages that have codec frames
-      opusFrames.push(...oggPage[codecFrames].map((f) => f[data]));
+      const frames = oggPage[codecFrames].map((f) => f[data]);
+      if (frames.length) {
+        opusFrames.push(...frames);
 
-      if (!this._decoder && opusFrames.length)
-        // wait until there is an Opus header before instantiating
-        decoderReady = this._instantiateDecoder(
-          oggPage[codecFrames][0][header],
-        );
-    }
-
-    const oggPage = oggPages[oggPages.length - 1];
-    if (oggPage && oggPage[isLastPage]) {
-      // decode anything left in the current ogg file
-      await flushFrames();
-
-      // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
-      if (
-        oggPage[absoluteGranulePosition] !== undefined &&
-        allChannelData.length
-      ) {
-        const totalDecodedSamples_48000 =
-          (this._totalSamplesDecoded / this._sampleRate) * 48000;
-
-        // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
-        const samplesToTrim = Math.round(
-          ((totalDecodedSamples_48000 - oggPage[totalSamples]) / 48000) *
-            this._sampleRate,
-        );
-
-        const channelData = allChannelData[allChannelData.length - 1];
-        if (samplesToTrim > 0) {
-          for (let i = 0; i < channelData.length; i++) {
-            channelData[i] = channelData[i].subarray(
-              0,
-              channelData[i].length - samplesToTrim,
-            );
-          }
-        }
-
-        samplesThisDecode -= samplesToTrim;
-        this._totalSamplesDecoded -= samplesToTrim;
+        if (!this._decoder)
+          // wait until there is an Opus header before instantiating
+          decoderReady = this._instantiateDecoder(
+            oggPage[codecFrames][0][header],
+          );
       }
 
-      // reached the end of an ogg stream, reset the decoder
-      this._init();
+      if (oggPage[isLastPage]) {
+        // decode anything left in the current ogg file
+        await flushFrames();
+
+        // in cases where BigInt isn't supported, don't do any absoluteGranulePosition logic (i.e. old iOS versions)
+        if (
+          oggPage[absoluteGranulePosition] !== undefined &&
+          allChannelData.length
+        ) {
+          const totalDecodedSamples_48000 =
+            (this._totalSamplesDecoded / this._sampleRate) * 48000;
+
+          // trim any extra samples that are decoded beyond the absoluteGranulePosition, relative to where we started in the stream
+          const samplesToTrim = Math.round(
+            ((totalDecodedSamples_48000 - oggPage[totalSamples]) / 48000) *
+              this._sampleRate,
+          );
+
+          const channelData = allChannelData[allChannelData.length - 1];
+          if (samplesToTrim > 0) {
+            for (let i = 0; i < channelData.length; i++) {
+              channelData[i] = channelData[i].subarray(
+                0,
+                channelData[i].length - samplesToTrim,
+              );
+            }
+          }
+
+          samplesThisDecode -= samplesToTrim;
+          this._totalSamplesDecoded -= samplesToTrim;
+        }
+
+        // reached the end of an ogg stream, reset the decoder
+        await this.reset();
+      }
     }
 
     await flushFrames();
@@ -159,33 +161,26 @@ export default class OggOpusDecoder {
     ];
   }
 
-  _parse(oggOpusData) {
-    return [...this._codecParser.parseChunk(oggOpusData)];
-  }
-
-  _flush() {
-    return [...this._codecParser.flush()];
-  }
-
   async decode(oggOpusData) {
-    const decoded = await this._decode(this._parse(oggOpusData));
+    const decoded = await this._decode([
+      ...this._codecParser.parseChunk(oggOpusData),
+    ]);
 
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(...decoded);
   }
 
   async decodeFile(oggOpusData) {
     const decoded = await this._decode([
-      ...this._parse(oggOpusData),
-      ...this._flush(),
+      ...this._codecParser.parseAll(oggOpusData),
     ]);
-    this._init();
+    await this.reset();
 
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(...decoded);
   }
 
   async flush() {
-    const decoded = await this._decode(this._flush());
-    this._init();
+    const decoded = await this._decode([...this._codecParser.flush()]);
+    await this.reset();
 
     return WASMAudioDecoderCommon.getDecodedAudioMultiChannel(...decoded);
   }
