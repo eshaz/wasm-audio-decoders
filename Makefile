@@ -41,7 +41,7 @@ flac-decoder-minify: $(FLAC_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(FLAC_DECODER_MODULE) \
 	MODULE_MIN=$(FLAC_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=150 \
+	COMPRESSION_ITERATIONS=209 \
 	npm run minify
 	cp $(FLAC_DECODER_MODULE) $(FLAC_DECODER_MODULE_MIN) $(FLAC_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -106,12 +106,13 @@ opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OPUS_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=58 \
+	COMPRESSION_ITERATIONS=44 \
 	npm run minify
 	cp $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_MIN) $(OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
 # libopus
-OPUS_WASM_LIB=tmp/opus.o
+OPUS_SRC=modules/opus/
+OPUS_WASM_LIB=tmp/libopus.a
 opus-wasmlib: $(OPUS_WASM_LIB)
 opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
@@ -246,7 +247,8 @@ $(FLAC_WASM_LIB):
 	  $(FLAC_SRC)src/libFLAC/fixed.c \
 	  $(FLAC_SRC)src/libFLAC/lpc.c \
 	  $(FLAC_SRC)src/libFLAC/memory.c \
-	  $(FLAC_SRC)src/libFLAC/md5.c
+	  $(FLAC_SRC)src/libFLAC/md5.c \
+	  $(FLAC_SRC)src/libFLAC/cpu.c
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(FLAC_WASM_LIB)"
@@ -262,10 +264,9 @@ flac-configure:
 	  --disable-programs \
 	  --disable-examples \
 	  --disable-asm-optimizations \
-	  --disable-sse \
-	  --disable-altivec \
-	  --disable-vsx \
-	  --disable-avx \
+	  --disable-multithreading \
+	  --disable-largefile \
+	  --enable-debug=no \
 	  --host=wasm32-unknown-emscripten
 	cd $(FLAC_SRC); rm a.wasm 
 
@@ -373,39 +374,63 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_WASM_LIB):
+#$(OPUS_WASM_LIB):
+#	@ mkdir -p tmp
+#	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
+#	@ emcc \
+#	  -o "$(OPUS_WASM_LIB)" \
+#	  -r \
+#	  -Os \
+#	  -flto \
+#	  -D VAR_ARRAYS \
+#	  -D OPUS_BUILD \
+#	  -D HAVE_LRINTF \
+#	  -s JS_MATH \
+#	  -s NO_DYNAMIC_EXECUTION=1 \
+#	  -s NO_FILESYSTEM=1 \
+#	  -s STRICT=1 \
+#	  -I modules/opus/dnn \
+#	  -I modules/opus/include \
+#	  -I modules/opus/celt \
+#	  -I modules/opus/silk \
+#	  -I modules/opus/silk/float \
+#	  modules/opus/src/opus.c \
+#	  modules/opus/src/opus_multistream.c \
+#	  modules/opus/src/opus_multistream_decoder.c \
+#	  modules/opus/src/opus_decoder.c \
+#	  modules/opus/silk/*.c \
+#	  modules/opus/celt/*.c
+#	@ echo "+-------------------------------------------------------------------------------"
+#	@ echo "|"
+#	@ echo "|  Successfully built: $(OPUS_WASM_LIB)"
+#	@ echo "|"
+#	@ echo "+-------------------------------------------------------------------------------"
+
+$(OPUS_WASM_LIB): 
 	@ mkdir -p tmp
 	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
-	@ emcc \
-	  -o "$(OPUS_WASM_LIB)" \
-	  -r \
-	  -Os \
-	  -flto \
-	  -D VAR_ARRAYS \
-	  -D OPUS_BUILD \
-	  -D HAVE_LRINTF \
-	  -s JS_MATH \
-	  -s NO_DYNAMIC_EXECUTION=1 \
-	  -s NO_FILESYSTEM=1 \
-	  -s STRICT=1 \
-	  -I "modules/opus/include" \
-	  -I "modules/opus/celt" \
-	  -I "modules/opus/silk" \
-	  -I "modules/opus/silk/float" \
-	  modules/opus/src/opus.c \
-	  modules/opus/src/opus_multistream.c \
-	  modules/opus/src/opus_multistream_decoder.c \
-	  modules/opus/src/opus_decoder.c \
-	  modules/opus/silk/*.c \
-	  modules/opus/celt/*.c
+	@ cd $(OPUS_SRC); emmake make -j 4 libopus.la \
+	  -r
+	@ cp ${OPUS_SRC}.libs/libopus.a $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(OPUS_WASM_LIB)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
+#  --enable-dred \
+#  --enable-dred-plc \
+#  --enable-osce \
+#  --enable-osce-training-data
+
 libopus-configure:
-	cd modules/opus; ./autogen.sh
+	@ cd $(OPUS_SRC); ./autogen.sh
+	@ cd $(OPUS_SRC); CFLAGS="-Os" emconfigure ./configure \
+	  --host=wasm32-unknown-emscripten \
+	  --enable-float-approx \
+	  --disable-rtcd \
+	  --disable-hardening
+	cd $(OPUS_SRC); rm a.wasm
 
 # -----------
 # mpg123-decoder

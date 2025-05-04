@@ -22,7 +22,7 @@ Decodes MPEG Layer I/II/III into PCM
 
 ### [`@wasm-audio-decoders/flac`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac)
 Decodes FLAC and Ogg FLAC data into PCM
-  * 67.0 KiB minified bundle size
+  * 67.2 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)
@@ -32,7 +32,7 @@ Decodes FLAC and Ogg FLAC data into PCM
 
 ### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 109.1 KiB minified bundle size
+  * 109.5 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
