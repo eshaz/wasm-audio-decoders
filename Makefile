@@ -106,7 +106,7 @@ opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OPUS_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=44 \
+	COMPRESSION_ITERATIONS=1 \
 	npm run minify
 	cp $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_MIN) $(OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -173,7 +173,7 @@ puff:
 		-Wl,--export=__heap_base \
 		-Wl,--no-entry \
 		-Wl,--lto-O3 \
-		-Wl,--initial-memory=1048576 \
+		-Wl,--initial-memory=10485760 \
 		-Oz \
 		-DSLOW=1 \
 		-o "$(PUFF_EMSCRIPTEN_BUILD)" \
@@ -346,8 +346,8 @@ $(VORBIS_WASM_LIB):
 # opus-decoder
 # ------------------
 define OPUS_DECODER_EMCC_OPTS
--s JS_MATH \
--s INITIAL_MEMORY=28MB \
+-s INITIAL_MEMORY=52MB \
+-s STACK_SIZE=128KB \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
   , '_opus_frame_decoder_destroy' \
@@ -385,6 +385,7 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 #	  -D VAR_ARRAYS \
 #	  -D OPUS_BUILD \
 #	  -D HAVE_LRINTF \
+#	  -D ENABLE_OSCE \
 #	  -s JS_MATH \
 #	  -s NO_DYNAMIC_EXECUTION=1 \
 #	  -s NO_FILESYSTEM=1 \
@@ -399,7 +400,16 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 #	  modules/opus/src/opus_multistream_decoder.c \
 #	  modules/opus/src/opus_decoder.c \
 #	  modules/opus/silk/*.c \
-#	  modules/opus/celt/*.c
+#	  modules/opus/celt/*.c \
+#	  modules/opus/dnn/osce.c \
+#	  modules/opus/dnn/osce_features.c \
+#	  modules/opus/dnn/nndsp.c \
+#	  modules/opus/dnn/lace_data.c \
+#	  modules/opus/dnn/nolace_data.c \
+#	  modules/opus/dnn/nnet.c \
+#	  modules/opus/dnn/lossgen.c \
+#	  modules/opus/dnn/freq.c \
+#	  modules/opus/dnn/lpcnet_tables.c
 #	@ echo "+-------------------------------------------------------------------------------"
 #	@ echo "|"
 #	@ echo "|  Successfully built: $(OPUS_WASM_LIB)"
@@ -429,7 +439,8 @@ libopus-configure:
 	  --host=wasm32-unknown-emscripten \
 	  --enable-float-approx \
 	  --disable-rtcd \
-	  --disable-hardening
+	  --disable-hardening \
+      --enable-osce
 	cd $(OPUS_SRC); rm a.wasm
 
 # -----------

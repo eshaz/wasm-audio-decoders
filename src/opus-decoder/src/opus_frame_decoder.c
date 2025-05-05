@@ -132,6 +132,7 @@ OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int s
       mapping, 
       decoder.errors
     );
+    opus_multistream_decoder_ctl(decoder.st, OPUS_SET_COMPLEXITY(10));
 
     OpusFrameDecoder *ptr = malloc(sizeof(decoder));
     *ptr = decoder;

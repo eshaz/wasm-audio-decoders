@@ -6,70 +6,31 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { rollup } from "rollup";
 import { minify } from "terser";
 
-const searchFileSize = async (
-  startIteration,
-  stopIteration,
-  sourcePath,
-  outputName,
-  rollupOutput,
-  terserOutput,
-) => {
-  let bestLength = Infinity;
-  let bestIteration = Infinity;
+const getDynEncodeWasm = (wasmBuffer, numiterations) => {
+  let wasmBufferCompressed = wasmBuffer;
 
-  const sizes = [];
-
-  for (
-    let iteration = startIteration;
-    iteration <= stopIteration;
-    iteration++
-  ) {
-    await buildWasm(
-      sourcePath,
-      outputName,
-      iteration,
-      rollupOutput,
-      terserOutput,
-    )
-      .then((code) => {
-        sizes.push({
-          iteration,
-          size: code.length,
-        });
-
-        if (code.length <= bestLength) {
-          if (code.length < bestLength || bestIteration > iteration) {
-            bestIteration = iteration;
-            console.log(
-              "new best iteration",
-              iteration,
-              sourcePath,
-              code.length,
-            );
-          }
-          bestLength = code.length;
-        }
-
-        console.log(iteration, sourcePath, code.length);
-      })
-      .catch((e) => {
-        console.error("failed", iteration, sourcePath);
-        console.error(e);
-      });
+  if (numiterations > 0) {
+    wasmBufferCompressed = Zopfli.deflateSync(wasmBuffer, {
+      numiterations,
+      blocksplitting: true,
+      blocksplittingmax: 0,
+    });
   }
 
-  sizes.sort((a, b) => a.size - b.size || a.iteration - b.iteration);
-  fs.writeFileSync(moduleMin + ".sizes.json", JSON.stringify(sizes, null, 2));
-
-  console.log(moduleMin, "best iteration", bestIteration);
+  return {
+    wasm: yenc.dynamicEncode(wasmBufferCompressed, "`"),
+    quote: "`",
+  };
 };
 
 const buildWasm = async (
   sourcePath,
   outputName,
-  compressionIterations,
   rollupOutput,
   terserOutput,
+  compressionIterations,
+  startIteration,
+  endIteration,
 ) => {
   const emscriptenInputPath = sourcePath + `src/${outputName}.tmp.js`;
   const emscriptenOutputPath = sourcePath + `src/${outputName}.js`;
@@ -114,20 +75,58 @@ this.instantiate = () => {
     const wasmContent = decoder.match(wasmBase64ContentMatcher).groups.wasm;
     // compressed buffer
     const wasmBuffer = Uint8Array.from(Buffer.from(wasmContent, "base64"));
-    let wasmBufferCompressed = wasmBuffer;
+    let dynEncodedWasm;
 
-    if (compressionIterations > 0) {
-      wasmBufferCompressed = Zopfli.deflateSync(wasmBuffer, {
-        numiterations: compressionIterations,
-        blocksplitting: true,
-        blocksplittingmax: 0,
-      });
+    if (startIteration !== undefined) {
+      let bestLength = Infinity;
+      let bestIteration = Infinity;
+
+      const sizes = [];
+
+      for (
+        let iteration = startIteration;
+        iteration <= endIteration;
+        iteration++
+      ) {
+        try {
+          dynEncodedWasm = getDynEncodeWasm(wasmBuffer, iteration);
+          const code = dynEncodedWasm.wasm;
+
+          sizes.push({
+            iteration,
+            size: code.length,
+          });
+
+          if (code.length <= bestLength) {
+            if (code.length < bestLength || bestIteration > iteration) {
+              bestIteration = iteration;
+              console.log(
+                "new best iteration",
+                iteration,
+                sourcePath,
+                code.length,
+              );
+            }
+            bestLength = code.length;
+          }
+
+          console.log(iteration, sourcePath, code.length);
+        } catch (e) {
+          console.error("failed on iteration:", iteration);
+          console.error(e);
+        }
+      }
+
+      sizes.sort((a, b) => a.size - b.size || a.iteration - b.iteration);
+      fs.writeFileSync(
+        moduleMin + ".sizes.json",
+        JSON.stringify(sizes, null, 2),
+      );
+
+      console.log(moduleMin, "best iteration", bestIteration);
+    } else {
+      dynEncodedWasm = getDynEncodeWasm(wasmBuffer, compressionIterations);
     }
-
-    const dynEncodedWasm = {
-      wasm: yenc.dynamicEncode(wasmBufferCompressed, "`"),
-      quote: "`",
-    };
 
     // code before the wasm
     const wasmStartIdx = decoder.indexOf(wasmBase64DeclarationMatcher);
@@ -215,18 +214,9 @@ const moduleMin = process.argv[6];
 await buildWasm(
   sourcePath,
   outputName,
-  compressionIterations,
   module,
   moduleMin,
+  compressionIterations,
+  //1, // start iteration
+  //500, // stop iteration
 );
-
-/*
-await searchFileSize(
-  1, // start iteration
-  500, // stop iteration
-  sourcePath,
-  outputName,
-  module,
-  moduleMin
-);
-*/
