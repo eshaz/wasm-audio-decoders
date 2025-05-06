@@ -85,7 +85,7 @@ OGG_OPUS_DECODER_MODULE=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.js
 OGG_OPUS_DECODER_MODULE_MIN=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.min.js
 
 ogg-opus-decoder: ogg-opus-decoder-minify
-ogg-opus-decoder-minify:
+ogg-opus-decoder-minify: opus-decoder
 	SOURCE_PATH=$(OGG_OPUS_DECODER_PATH) \
 	OUTPUT_NAME=none \
 	MODULE=$(OGG_OPUS_DECODER_MODULE) \
@@ -156,7 +156,6 @@ define EMCC_OPTS
 -s ASSERTIONS=0 \
 -s ABORTING_MALLOC=0 \
 -s EXIT_RUNTIME=0 \
--DNDEBUG \
 -s INCOMING_MODULE_JS_API="[]"
 endef
 
@@ -173,7 +172,7 @@ puff:
 		-Wl,--export=__heap_base \
 		-Wl,--no-entry \
 		-Wl,--lto-O3 \
-		-Wl,--initial-memory=10485760 \
+		-Wl,--initial-memory=6291456 \
 		-Oz \
 		-DSLOW=1 \
 		-o "$(PUFF_EMSCRIPTEN_BUILD)" \
@@ -232,7 +231,6 @@ $(FLAC_WASM_LIB):
 	  -O3 \
 	  -flto \
 	  -s JS_MATH \
-	  -s NO_DYNAMIC_EXECUTION=1 \
 	  -s NO_FILESYSTEM=1 \
 	  -s STRICT=1 \
 	  -D HAVE_CONFIG_H=1 \
@@ -354,6 +352,7 @@ define OPUS_DECODER_EMCC_OPTS
   , '_opus_frame_decode_float_deinterleaved' \
   , '_opus_frame_decoder_create' \
 ]" \
+-msimd128 \
 --pre-js '$(OPUS_DECODER_PATH)src/emscripten-pre.js' \
 --post-js '$(OPUS_DECODER_PATH)src/emscripten-post.js' \
 -I "modules/opus/include" \
@@ -428,19 +427,16 @@ $(OPUS_WASM_LIB):
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-#  --enable-dred \
-#  --enable-dred-plc \
-#  --enable-osce \
-#  --enable-osce-training-data
-
 libopus-configure:
+	@ cd $(OPUS_SRC); git apply ../../opus_enable_osce.patch
 	@ cd $(OPUS_SRC); ./autogen.sh
-	@ cd $(OPUS_SRC); CFLAGS="-Os" emconfigure ./configure \
-	  --host=wasm32-unknown-emscripten \
+	@ cd $(OPUS_SRC); OPUS_X86_PRESUME_AVX2=0 OPUS_X86_MAY_HAVE_AVX2=0 CFLAGS="-O3 -msimd128 -mavx2"  \
+	  emconfigure ./configure \
+	  --host=x86_64-unknown-emscripten \
 	  --enable-float-approx \
 	  --disable-rtcd \
 	  --disable-hardening \
-      --enable-osce
+	  --enable-osce
 	cd $(OPUS_SRC); rm a.wasm
 
 # -----------
@@ -539,7 +535,6 @@ $(MPG123_WASM_LIB):
 	  -Oz \
 	  -flto \
 	  -Wno-macro-redefined \
-	  -s NO_DYNAMIC_EXECUTION=1 \
 	  -s NO_FILESYSTEM=1 \
 	  -s STRICT=1 \
 	  -DOPT_GENERIC -DREAL_IS_FLOAT \
