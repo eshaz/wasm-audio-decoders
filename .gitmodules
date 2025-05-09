@@ -1,9 +1,12 @@
 [submodule "modules/opus"]
 	path = modules/opus
-	url = https://github.com/xiph/opus
+	url = https://github.com/xiph/opus.git
+[submodule "modules/opus-ml"]
+	path = modules/opus-ml
+	url = https://github.com/xiph/opus.git
 [submodule "modules/mpg123"]
 	path = modules/mpg123
-	url = https://github.com/madebr/mpg123
+	url = https://github.com/madebr/mpg123.git
 	branch = master
 [submodule "modules/flac"]
 	path = modules/flac

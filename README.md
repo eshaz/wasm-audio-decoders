@@ -12,7 +12,7 @@ Each decoder is built with inline WASM to reduce bundling complexity with transp
 
 Pre-built minified JS files are available from NPM and in each decoder's `dist` folder.
 
-### [`mpg123-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder)
+### [`mpg123-decoder`](src/mpg123-decoder)
 Decodes MPEG Layer I/II/III into PCM
   * 76.6 KiB minified bundle size
   * Browser and NodeJS support
@@ -20,7 +20,7 @@ Decodes MPEG Layer I/II/III into PCM
   * Based on [`mpg123`](https://www.mpg123.de/)
   * Install using [NPM](https://www.npmjs.com/package/mpg123-decoder)
 
-### [`@wasm-audio-decoders/flac`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac)
+### [`@wasm-audio-decoders/flac`](src/flac)
 Decodes FLAC and Ogg FLAC data into PCM
   * 67.2 KiB minified bundle size
   * Browser and NodeJS support
@@ -30,7 +30,7 @@ Decodes FLAC and Ogg FLAC data into PCM
   * Based on [`libFLAC`](https://github.com/xiph/flac) and [`codec-parser`](https://github.com/eshaz/codec-parser)
   * Install using [NPM](https://www.npmjs.com/package/@wasm-audio-decoders/flac)
 
-### [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder)
+### [`ogg-opus-decoder`](src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
   * 109.5 KiB minified bundle size
   * Browser and NodeJS support
@@ -39,7 +39,7 @@ Decodes Ogg Opus data into PCM
   * Based on [`libopus`](https://github.com/xiph/opus) and [`codec-parser`](https://github.com/eshaz/codec-parser)
   * Install using [NPM](https://www.npmjs.com/package/ogg-opus-decoder)
 
-### [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder)
+### [`opus-decoder`](src/opus-decoder)
 Decodes raw Opus audio frames into PCM
   * 85.1 KiB minified bundle size
   * Browser and NodeJS support
@@ -49,7 +49,18 @@ Decodes raw Opus audio frames into PCM
   * Based on [`libopus`](https://github.com/xiph/opus)
   * Install using [NPM](https://www.npmjs.com/package/opus-decoder)
 
-### [`@wasm-audio-decoders/ogg-vorbis`](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-vorbis)
+### [`@wasm-audio-decoders/opus-ml`](src/opus-ml)
+Decodes raw Opus audio frames into PCM with [Machine Learning enhancements](https://opus-codec.org/demo/opus-1.5/)
+  * 3.9 MiB minified bundle size
+  * Machine learning enhancements are enabled for high quality speech decoding.
+  * Browser and NodeJS support (WASM SIMD support required)
+  * Built in Web Worker support
+  * Multichannel decoding (up to 255 channels)
+  * Intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4))
+  * Based on [`libopus`](https://github.com/xiph/opus)
+  * Install using [NPM](https://www.npmjs.com/package/opus-decoder)
+
+### [`@wasm-audio-decoders/ogg-vorbis`](src/ogg-vorbis)
 Decodes Ogg Vorbis data into PCM
   * 98.6 KiB minified bundle size
   * Browser and NodeJS support
@@ -110,8 +121,8 @@ npm run test
 ### Rebuilding after changes
 1. Make your changes
 1. If you updated any dependencies, make sure to [install](#installing-dependencies) them.
-1. If you updated any configuration in the `Makefile`, make sure to [configure]() the project.
-1. [Rebuild](#building) the project.  
+1. If you updated any configuration in the `Makefile` or changed any of the submodules, make sure to `configure` the project.
+1. [Rebuild](#building) the project.
 1. Ensure the tests still pass by running `npm run test`.
 
 ## Contributing

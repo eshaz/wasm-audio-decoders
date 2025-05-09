@@ -3,21 +3,23 @@ default: dist
 
 clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean ogg-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean
 
-configure: flac-configure ogg-configure vorbis-configure libopus-configure mpg123-configure
+configure: flac-configure ogg-configure vorbis-configure libopus-configure libopus-ml-configure mpg123-configure
 
 DEMO_PATH=demo/
 
-dist: flac-decoder opus-decoder ogg-opus-decoder ogg-vorbis-decoder mpg123-decoder
+dist: flac-decoder opus-decoder opus-ml-decoder ogg-opus-decoder ogg-vorbis-decoder mpg123-decoder
 dist-clean:
 	rm -rf $(DEMO_PATH)*.js
 	rm -rf $(FLAC_DECODER_PATH)dist/*
 	rm -rf $(OPUS_DECODER_PATH)dist/*
+	rm -rf $(OPUS_ML_DECODER_PATH)dist/*
 	rm -rf $(OGG_OPUS_DECODER_PATH)dist/*
 	rm -rf $(MPG123_DECODER_PATH)dist/*
 	rm -rf $(OGG_VORBIS_DECODER_PATH)dist/*
 	rm -rf $(PUFF_EMSCRIPTEN_BUILD)
 	rm -rf $(FLAC_EMSCRIPTEN_BUILD)
 	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
+	rm -rf $(OPUS_ML_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 	rm -rf $(OGG_VORBIS_EMSCRIPTEN_BUILD)
 
@@ -81,18 +83,12 @@ ogg-wasmlib-clean: dist-clean
 
 # ogg-opus-decoder
 OGG_OPUS_DECODER_PATH=src/ogg-opus-decoder/
-OGG_OPUS_DECODER_MODULE=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.js
-OGG_OPUS_DECODER_MODULE_MIN=$(OGG_OPUS_DECODER_PATH)dist/ogg-opus-decoder.min.js
+OGG_OPUS_DECODER_MODULE=$(OGG_OPUS_DECODER_PATH)dist/
 
 ogg-opus-decoder: ogg-opus-decoder-minify
-ogg-opus-decoder-minify: opus-decoder
-	SOURCE_PATH=$(OGG_OPUS_DECODER_PATH) \
-	OUTPUT_NAME=none \
-	MODULE=$(OGG_OPUS_DECODER_MODULE) \
-	MODULE_MIN=$(OGG_OPUS_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=1 \
-	npm run minify
-	cp $(OGG_OPUS_DECODER_MODULE) $(OGG_OPUS_DECODER_MODULE_MIN) $(OGG_OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
+ogg-opus-decoder-minify: opus-decoder opus-ml-decoder
+	cd $(OGG_OPUS_DECODER_PATH); npm run build
+	cp $(OGG_OPUS_DECODER_MODULE)* $(DEMO_PATH)
 
 # opus-decoder
 OPUS_DECODER_PATH=src/opus-decoder/
@@ -106,7 +102,7 @@ opus-decoder-minify: $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	OUTPUT_NAME=EmscriptenWasm \
 	MODULE=$(OPUS_DECODER_MODULE) \
 	MODULE_MIN=$(OPUS_DECODER_MODULE_MIN) \
-	COMPRESSION_ITERATIONS=1 \
+	COMPRESSION_ITERATIONS=44 \
 	npm run minify
 	cp $(OPUS_DECODER_MODULE) $(OPUS_DECODER_MODULE_MIN) $(OPUS_DECODER_MODULE_MIN).map $(DEMO_PATH)
 
@@ -116,6 +112,29 @@ OPUS_WASM_LIB=tmp/libopus.a
 opus-wasmlib: $(OPUS_WASM_LIB)
 opus-wasmlib-clean: dist-clean
 	rm -rf $(OPUS_WASM_LIB)
+
+# opus-ml-decoder
+OPUS_ML_DECODER_PATH=src/opus-ml/
+OPUS_ML_DECODER_EMSCRIPTEN_BUILD=$(OPUS_ML_DECODER_PATH)src/EmscriptenWasm.tmp.js
+OPUS_ML_DECODER_MODULE=$(OPUS_ML_DECODER_PATH)dist/opus-ml-decoder.js
+OPUS_ML_DECODER_MODULE_MIN=$(OPUS_ML_DECODER_PATH)dist/opus-ml-decoder.min.js
+
+opus-ml-decoder: opus-ml-wasmlib opus-ml-decoder-minify $(OPUS_ML_DECODER_EMSCRIPTEN_BUILD)
+opus-ml-decoder-minify: $(OPUS_ML_DECODER_EMSCRIPTEN_BUILD)
+	SOURCE_PATH=$(OPUS_ML_DECODER_PATH) \
+	OUTPUT_NAME=EmscriptenWasm \
+	MODULE=$(OPUS_ML_DECODER_MODULE) \
+	MODULE_MIN=$(OPUS_ML_DECODER_MODULE_MIN) \
+	COMPRESSION_ITERATIONS=3 \
+	npm run minify
+	cp $(OPUS_ML_DECODER_MODULE) $(OPUS_ML_DECODER_MODULE_MIN) $(OPUS_ML_DECODER_MODULE_MIN).map $(DEMO_PATH)
+
+# libopus-ml
+OPUS_ML_SRC=modules/opus-ml/
+OPUS_ML_WASM_LIB=tmp/libopus-ml.a
+opus-ml-wasmlib: $(OPUS_ML_WASM_LIB)
+opus-ml-wasmlib-clean: dist-clean
+	rm -rf $(OPUS_ML_WASM_LIB)
 
 # mpg123-decoder
 MPG123_SRC=modules/mpg123/
@@ -344,15 +363,14 @@ $(VORBIS_WASM_LIB):
 # opus-decoder
 # ------------------
 define OPUS_DECODER_EMCC_OPTS
--s INITIAL_MEMORY=52MB \
--s STACK_SIZE=128KB \
+-s JS_MATH \
+-s INITIAL_MEMORY=28MB \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
   , '_opus_frame_decoder_destroy' \
   , '_opus_frame_decode_float_deinterleaved' \
   , '_opus_frame_decoder_create' \
 ]" \
--msimd128 \
 --pre-js '$(OPUS_DECODER_PATH)src/emscripten-pre.js' \
 --post-js '$(OPUS_DECODER_PATH)src/emscripten-post.js' \
 -I "modules/opus/include" \
@@ -370,6 +388,92 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built JS Module: $(OPUS_DECODER_EMSCRIPTEN_BUILD)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+#$(OPUS_WASM_LIB):
+#	@ mkdir -p tmp
+#	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
+#	@ emcc \
+#	  -o "$(OPUS_WASM_LIB)" \
+#	  -r \
+#	  -Os \
+#	  -flto \
+#	  -D VAR_ARRAYS \
+#	  -D OPUS_BUILD \
+#	  -D HAVE_LRINTF \
+#	  -s JS_MATH \
+#	  -s NO_DYNAMIC_EXECUTION=1 \
+#	  -s NO_FILESYSTEM=1 \
+#	  -s STRICT=1 \
+#	  -I modules/opus/dnn \
+#	  -I modules/opus/include \
+#	  -I modules/opus/celt \
+#	  -I modules/opus/silk \
+#	  -I modules/opus/silk/float \
+#	  modules/opus/src/opus.c \
+#	  modules/opus/src/opus_multistream.c \
+#	  modules/opus/src/opus_multistream_decoder.c \
+#	  modules/opus/src/opus_decoder.c \
+#	  modules/opus/silk/*.c \
+#	  modules/opus/celt/*.c
+#	@ echo "+-------------------------------------------------------------------------------"
+#	@ echo "|"
+#	@ echo "|  Successfully built: $(OPUS_WASM_LIB)"
+#	@ echo "|"
+#	@ echo "+-------------------------------------------------------------------------------"
+
+$(OPUS_WASM_LIB): 
+	@ mkdir -p tmp
+	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
+	@ cd $(OPUS_SRC); emmake make -j 4 libopus.la \
+	  -r
+	@ cp ${OPUS_SRC}.libs/libopus.a $(OPUS_WASM_LIB)
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built: $(OPUS_WASM_LIB)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+libopus-configure:
+	@ cd $(OPUS_SRC); ./autogen.sh
+	@ cd $(OPUS_SRC); CFLAGS="-Os" emconfigure ./configure \
+	  --host=wasm32-unknown-emscripten \
+	  --enable-float-approx \
+	  --disable-rtcd \
+	  --disable-hardening
+	cd $(OPUS_SRC); rm a.wasm
+
+# ------------------
+# opus-ml
+# ------------------
+define OPUS_ML_DECODER_EMCC_OPTS
+-s INITIAL_MEMORY=52MB \
+-s STACK_SIZE=128KB \
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  , '_opus_ml_frame_decoder_destroy' \
+  , '_opus_ml_frame_decode_float_deinterleaved' \
+  , '_opus_ml_frame_decoder_create' \
+]" \
+-msimd128 \
+--pre-js '$(OPUS_ML_DECODER_PATH)src/emscripten-pre.js' \
+--post-js '$(OPUS_ML_DECODER_PATH)src/emscripten-post.js' \
+-I "modules/opus/include" \
+$(OPUS_ML_DECODER_PATH)src/opus_ml_frame_decoder.c
+endef
+
+$(OPUS_ML_DECODER_EMSCRIPTEN_BUILD): $(OPUS_ML_WASM_LIB)
+	@ mkdir -p $(OPUS_ML_DECODER_PATH)dist
+	@ echo "Building Emscripten WebAssembly module $(OPUS_ML_DECODER_EMSCRIPTEN_BUILD)..."
+	@ emcc \
+		-o "$(OPUS_ML_DECODER_EMSCRIPTEN_BUILD)" \
+	  ${EMCC_OPTS} \
+	  $(OPUS_ML_DECODER_EMCC_OPTS) \
+	  $(OPUS_ML_WASM_LIB)
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built JS Module: $(OPUS_ML_DECODER_EMSCRIPTEN_BUILD)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
@@ -415,29 +519,30 @@ $(OPUS_DECODER_EMSCRIPTEN_BUILD): $(OPUS_WASM_LIB)
 #	@ echo "|"
 #	@ echo "+-------------------------------------------------------------------------------"
 
-$(OPUS_WASM_LIB): 
+$(OPUS_ML_WASM_LIB): 
 	@ mkdir -p tmp
-	@ echo "Building Opus Emscripten Library $(OPUS_WASM_LIB)..."
-	@ cd $(OPUS_SRC); emmake make -j 4 libopus.la \
+	@ echo "Building Opus Emscripten Library $(OPUS_ML_WASM_LIB)..."
+	@ cd $(OPUS_ML_SRC); emmake make -j 4 libopus.la \
 	  -r
-	@ cp ${OPUS_SRC}.libs/libopus.a $(OPUS_WASM_LIB)
+	@ cp ${OPUS_ML_SRC}.libs/libopus.a $(OPUS_ML_WASM_LIB)
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
-	@ echo "|  Successfully built: $(OPUS_WASM_LIB)"
+	@ echo "|  Successfully built: $(OPUS_ML_WASM_LIB)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"
 
-libopus-configure:
-	@ cd $(OPUS_SRC); git apply ../../opus_enable_osce.patch
-	@ cd $(OPUS_SRC); ./autogen.sh
-	@ cd $(OPUS_SRC); OPUS_X86_PRESUME_AVX2=0 OPUS_X86_MAY_HAVE_AVX2=0 CFLAGS="-O3 -msimd128 -mavx2"  \
+libopus-ml-configure:
+	@ cd $(OPUS_ML_SRC); git checkout src/opus_multistream_decoder.c
+	@ cd $(OPUS_ML_SRC); git apply ../../$(OPUS_ML_DECODER_PATH)opus_enable_osce.patch
+	@ cd $(OPUS_ML_SRC); ./autogen.sh
+	@ cd $(OPUS_ML_SRC); OPUS_X86_PRESUME_AVX2=0 OPUS_X86_MAY_HAVE_AVX2=0 CFLAGS="-O3 -msimd128 -mavx2"  \
 	  emconfigure ./configure \
 	  --host=x86_64-unknown-emscripten \
 	  --enable-float-approx \
 	  --disable-rtcd \
 	  --disable-hardening \
 	  --enable-osce
-	cd $(OPUS_SRC); rm a.wasm
+	cd $(OPUS_ML_SRC); rm a.wasm
 
 # -----------
 # mpg123-decoder

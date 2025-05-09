@@ -2,7 +2,7 @@
   "external": ["@eshaz/web-worker"],
   "output": {
     "format": "umd",
-    "name": "ogg-opus-decoder",
+    "name": "opus-ml",
     "globals": {
       "@eshaz/web-worker": "Worker"
     }

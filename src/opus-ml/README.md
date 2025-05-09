@@ -1,33 +1,34 @@
-# `opus-decoder`
+# `opus-ml`
 
-`opus-decoder` is a Web Assembly Opus audio decoder.
+`opus-ml` is a Web Assembly Opus audio decoder with machine learning enhancements.
   * 85.1 KiB minified bundle size
+  * See [`opus-decoder`]() for a smaller library without the machine learning enhancements
   * Browser and NodeJS support
   * Built in Web Worker support
   * Based on [`libopus`](https://github.com/xiph/opus)
 
-This library is intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4)). [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) if you have an Ogg Opus file to decode.
+This library is intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4)). See [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) if you have an Ogg Opus file to decode.
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
 ### [Checkout the demo here](https://eshaz.github.io/wasm-audio-decoders/)
 
 ## Installing
-* Install from [NPM](https://www.npmjs.com/package/opus-decoder).
+* Install from [NPM](https://www.npmjs.com/package/opus-ml).
 
-  Run `npm i opus-decoder`
+  Run `npm i opus-ml`
 
   ```javascript
-  import { OpusDecoder } from 'opus-decoder';
+  import { OpusMLDecoder } from 'opus-ml';
 
-  const decoder = new OpusDecoder();
+  const decoder = new OpusMLDecoder();
   ```
  
-* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-decoder/dist) and include it as a script.
+* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-ml/dist) and include it as a script.
   ```html
-  <script src="opus-decoder.min.js"></script>
+  <script src="opus-ml.min.js"></script>
   <script>
-    const decoder = new window["opus-decoder"].OpusDecoder();
+    const decoder = new window["opus-ml"].OpusMLDecoder();
   </script>
   ```
 
@@ -37,9 +38,9 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
    **Main thread synchronous decoding**
    ```javascript
-   import { OpusDecoder } from 'opus-decoder';
+   import { OpusMLDecoder } from 'opus-ml';
 
-   const decoder = new OpusDecoder();
+   const decoder = new OpusMLDecoder();
 
    // wait for the WASM to be compiled
    await decoder.ready;
@@ -47,9 +48,9 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
    **Web Worker asynchronous decoding**
    ```javascript
-   import { OpusDecoderWebWorker } from 'opus-decoder';
+   import { OpusMLDecoderWebWorker } from 'opus-ml';
 
-   const decoder = new OpusDecoderWebWorker();
+   const decoder = new OpusMLDecoderWebWorker();
 
    // wait for the WASM to be compiled
    await decoder.ready;
@@ -121,13 +122,13 @@ See: https://datatracker.ietf.org/doc/html/rfc7845.html#section-5.1.1.2
 
 Each Float32Array within `channelData` can be used directly in the WebAudio API for playback.
 
-## `OpusDecoder`
+## `OpusMLDecoder`
 
 Class that decodes Opus frames synchronously on the main thread.
 
 ### Options
 ```javascript
-const decoder = new OpusDecoder({ 
+const decoder = new OpusMLDecoder({ 
   forceStereo: false,
   sampleRate: 48000,
   preSkip: 0,
@@ -177,13 +178,13 @@ See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus he
   * De-allocates the memory used by the decoder.
   * After calling `free()`, the current instance is made unusable, and a new instance will need to be created to decode additional Opus frames.
 
-## `OpusDecoderWebWorker`
+## `OpusMLDecoderWebWorker`
 
 Class that decodes Opus frames asynchronously within a web worker. Decoding is performed in a separate, non-blocking thread. Each new instance spawns a new worker allowing you to run multiple workers for concurrent decoding of multiple streams.
 
 ### Options
 ```javascript
-const decoder = new OpusDecoderWebWorker({ 
+const decoder = new OpusMLDecoderWebWorker({ 
   forceStereo: false,
   sampleRate: 48000,
   channels: 2,
@@ -233,9 +234,9 @@ See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus he
 
 ### Properly using the Web Worker interface
 
-`OpusDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, your code should avoid using `await` on decode operations where it will block the main thread.
+`OpusMLDecoderWebWorker` uses async functions to send operations to the web worker without blocking the main thread. To fully take advantage of the concurrency provided by web workers, your code should avoid using `await` on decode operations where it will block the main thread.
 
-Each method call on a `OpusDecoderWebWorker` instance will queue up an operation to the web worker. Operations will complete within the web worker thread one at a time and in the same order in which the methods were called.
+Each method call on a `OpusMLDecoderWebWorker` instance will queue up an operation to the web worker. Operations will complete within the web worker thread one at a time and in the same order in which the methods were called.
 
   * **Good** Main thread is not blocked during each decode operation. The example `playAudio` function is called when each decode operation completes. Also, the next decode operation can begin while `playAudio` is doing work on the main thread.
     ```javascript

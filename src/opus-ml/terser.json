@@ -1,0 +1,44 @@
+{
+  "sourceMap": {
+    "url": "opus-ml.min.js.map"
+  },
+  "output": {
+    "preamble": "/* Copyright 2021-2025 Ethan Halsall. This file is part of wasm-audio-decoders. https://github.com/eshaz/wasm-audio-decoders */"
+  },
+  "compress": {
+    "ecma": 2021,
+    "passes": 5,
+    "toplevel": true,
+    "unsafe": true,
+    "unsafe_methods": true,
+    "unsafe_arrows": true
+  },
+  "mangle": {
+    "module": true,
+    "properties": {
+      "keep_quoted": true,
+      "debug": false,
+      "reserved": [
+        "OpusMLDecoder",
+        "OpusMLDecoderWebWorker",
+        "instance",
+        "decodeFrame",
+        "decodeFrames",
+        "free",
+        "ready",
+        "reset",
+        "channelData",
+        "samplesDecoded",
+        "bitDepth",
+        "message",
+        "frameLength",
+        "frameNumber",
+        "inputBytes",
+        "outputSamples"
+      ]
+    }
+  },
+  "ecma": 2021,
+  "safari10": true,
+  "module": true
+}

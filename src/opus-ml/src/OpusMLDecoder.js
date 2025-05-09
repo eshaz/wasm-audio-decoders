@@ -2,11 +2,11 @@ import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
-export default function OpusDecoder(options = {}) {
+export default function OpusMLDecoder(options = {}) {
   // static properties
-  if (!OpusDecoder.errors) {
+  if (!OpusMLDecoder.errors) {
     // prettier-ignore
-    Object.defineProperties(OpusDecoder, {
+    Object.defineProperties(OpusMLDecoder, {
       errors: {
         value: new Map([
           [-1, "OPUS_BAD_ARG: One or more invalid/out of range arguments"],
@@ -50,13 +50,14 @@ export default function OpusDecoder(options = {}) {
 
         mapping.buf.set(this._channelMappingTable);
 
-        this._decoder = this._common.wasm.opus_frame_decoder_create(
+        this._decoder = this._common.wasm.opus_ml_frame_decoder_create(
           this._sampleRate,
           this._channels,
           this._streamCount,
           this._coupledStreamCount,
           mapping.ptr,
           this._preSkip,
+          this._complexity,
           this._forceStereo,
         );
       });
@@ -74,7 +75,7 @@ export default function OpusDecoder(options = {}) {
 
   this.free = () => {
     this._common.free();
-    this._common.wasm.opus_frame_decoder_destroy(this._decoder);
+    this._common.wasm.opus_ml_frame_decoder_destroy(this._decoder);
     this._common.wasm.free(this._decoder);
   };
 
@@ -87,7 +88,7 @@ export default function OpusDecoder(options = {}) {
     this._input.buf.set(opusFrame);
 
     let samplesDecoded =
-      this._common.wasm.opus_frame_decode_float_deinterleaved(
+      this._common.wasm.opus_ml_frame_decode_float_deinterleaved(
         this._decoder,
         this._input.ptr,
         opusFrame.length,
@@ -101,7 +102,7 @@ export default function OpusDecoder(options = {}) {
         "libopus " +
         samplesDecoded +
         " " +
-        (OpusDecoder.errors.get(samplesDecoded) || "Unknown Error");
+        (OpusMLDecoder.errors.get(samplesDecoded) || "Unknown Error");
 
       console.error(error);
       samplesDecoded = 0;
@@ -184,11 +185,11 @@ export default function OpusDecoder(options = {}) {
   };
 
   // injects dependencies when running as a web worker
-  this._isWebWorker = OpusDecoder.isWebWorker;
+  this._isWebWorker = OpusMLDecoder.isWebWorker;
   this._WASMAudioDecoderCommon =
-    OpusDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-  this._EmscriptenWASM = OpusDecoder.EmscriptenWASM || EmscriptenWASM;
-  this._module = OpusDecoder.module;
+    OpusMLDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+  this._EmscriptenWASM = OpusMLDecoder.EmscriptenWASM || EmscriptenWASM;
+  this._module = OpusMLDecoder.module;
 
   const MAX_FORCE_STEREO_CHANNELS = 8;
   const isNumber = (param) => typeof param === "number";
@@ -199,6 +200,7 @@ export default function OpusDecoder(options = {}) {
   const coupledStreamCount = options.coupledStreamCount;
   const channelMappingTable = options.channelMappingTable;
   const preSkip = options.preSkip;
+  const speechQualityEnhancement = options.speechQualityEnhancement;
   const forceStereo = options.forceStereo ? 1 : 0;
 
   // channel mapping family >= 1
@@ -225,6 +227,18 @@ export default function OpusDecoder(options = {}) {
   this._channelMappingTable =
     channelMappingTable || (this._channels === 2 ? [0, 1] : [0]);
   this._preSkip = preSkip || 0;
+
+  switch (speechQualityEnhancement) {
+    case "none":
+      this._complexity = 0;
+      break;
+    case "lace":
+      this._complexity = 6;
+      break;
+    case "nolace":
+    default:
+      this._complexity = 7;
+  }
 
   this._forceStereo =
     channels <= MAX_FORCE_STEREO_CHANNELS && channels != 2 ? forceStereo : 0;

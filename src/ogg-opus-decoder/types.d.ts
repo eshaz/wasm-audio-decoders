@@ -1,4 +1,5 @@
 import { DecodeError } from "@wasm-audio-decoders/common";
+import { OpusMLSpeechQualityEnhancementOption } from "@wasm-audio-decoders/opus-ml";
 
 export interface OggOpusDecodedAudio {
   channelData: Float32Array[];
@@ -8,7 +9,10 @@ export interface OggOpusDecodedAudio {
 }
 
 export class OggOpusDecoder {
-  public constructor(options?: { forceStereo?: boolean });
+  public constructor(options?: {
+    forceStereo?: boolean;
+    speechQualityEnhancement?: OpusMLSpeechQualityEnhancementOption;
+  });
   ready: Promise<void>;
   reset: () => Promise<void>;
   free: () => void;
@@ -18,7 +22,10 @@ export class OggOpusDecoder {
 }
 
 export class OggOpusDecoderWebWorker {
-  public constructor(options?: { forceStereo?: boolean });
+  public constructor(options?: {
+    forceStereo?: boolean;
+    speechQualityEnhancement?: OpusMLSpeechQualityEnhancementOption;
+  });
   ready: Promise<void>;
   reset: () => Promise<void>;
   free: () => Promise<void>;

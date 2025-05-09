@@ -1,4 +1,4 @@
-#include "opus_frame_decoder.h"
+#include "opus_ml_frame_decoder.h"
 // #include "stdio.h"
 
 /*
@@ -73,7 +73,7 @@ static const float OP_STEREO_DOWNMIX[MAX_FORCE_STEREO_CHANNELS-2][MAX_FORCE_STER
   }
 };
 
-static float* stereo_downmix(OpusFrameDecoder *decoder, float *pcm, int samples_decoded) {
+static float* stereo_downmix(OpusMLFrameDecoder *decoder, float *pcm, int samples_decoded) {
   if (decoder->channels == 1) {
     for(int i=0; i<samples_decoded; i++)
       decoder->stereo_buffer[2*i+0] = decoder->stereo_buffer[2*i+1] = pcm[i];
@@ -94,7 +94,7 @@ static float* stereo_downmix(OpusFrameDecoder *decoder, float *pcm, int samples_
   return decoder->stereo_buffer;
 }
 
-OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int streams, int coupled_streams, unsigned char *mapping, int pre_skip, int force_stereo) {
+OpusMLFrameDecoder *opus_ml_frame_decoder_create(int sample_rate, int channels, int streams, int coupled_streams, unsigned char *mapping, int pre_skip, int complexity, int force_stereo) {
     /*fprintf(stdout, "\nparams: ");
     for (int i = 0; i < sizeof(op->data); i++) {
       fprintf(stdout, "0x%02x ", op->data[i]);
@@ -112,7 +112,7 @@ OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int s
       op->params.coupled_stream_count
     );*/
 
-    OpusFrameDecoder decoder;
+    OpusMLFrameDecoder decoder;
     decoder.pre_skip = pre_skip;
     decoder.channels = channels;
     decoder.output_channels = channels;
@@ -132,8 +132,9 @@ OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int s
       mapping, 
       decoder.errors
     );
+    opus_multistream_decoder_ctl(decoder.st, OPUS_SET_COMPLEXITY(complexity));
 
-    OpusFrameDecoder *ptr = malloc(sizeof(decoder));
+    OpusMLFrameDecoder *ptr = malloc(sizeof(decoder));
     *ptr = decoder;
     return ptr;
 }
@@ -142,7 +143,7 @@ OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int s
 // frame_size should be the maximum packet duration (120ms; 5760 for 48kHz)
 #define MAX_PACKET_DURATION_MS 5760
 
-int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned char *in, opus_int32 in_len, float *out) {
+int opus_ml_frame_decode_float_deinterleaved(OpusMLFrameDecoder *decoder, unsigned char *in, opus_int32 in_len, float *out) {
     int samples_decoded = opus_multistream_decode_float(
       decoder->st, 
       in, 
@@ -184,7 +185,7 @@ int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned ch
     return samples_decoded;
 }
 
-void opus_frame_decoder_destroy(OpusFrameDecoder *decoder) {
+void opus_ml_frame_decoder_destroy(OpusMLFrameDecoder *decoder) {
     opus_multistream_decoder_destroy(decoder->st);
     free(decoder);
 };

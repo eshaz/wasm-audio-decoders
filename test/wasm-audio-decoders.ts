@@ -11,6 +11,12 @@ import {
   OpusDecoderWebWorker,
 } from "opus-decoder";
 import {
+  DecodeError as OpusMLDecodeError,
+  OpusMLDecodedAudio,
+  OpusMLDecoder,
+  OpusMLDecoderWebWorker,
+} from "@wasm-audio-decoders/opus-ml";
+import {
   DecodeError as OggOpusDecodeError,
   OggOpusDecodedAudio,
   OggOpusDecoder,
@@ -37,6 +43,10 @@ const mpegDecoderWebWorker: MPEGDecoderWebWorker = new MPEGDecoderWebWorker();
 
 const opusDecoder: OpusDecoder = new OpusDecoder();
 const opusDecoderWebWorker: OpusDecoderWebWorker = new OpusDecoderWebWorker();
+
+const opusMlDecoder: OpusMLDecoder = new OpusMLDecoder();
+const opusMlDecoderWebWorker: OpusMLDecoderWebWorker =
+  new OpusMLDecoderWebWorker();
 
 const oggOpusDecoder: OggOpusDecoder = new OggOpusDecoder();
 const oggOpusDecoderWebWorker: OggOpusDecoderWebWorker =
@@ -90,6 +100,16 @@ const opusDecoderDecodeSamplesDecoded: number =
   opusDecoderDecode.samplesDecoded;
 const opusDecoderDecodeSampleRate: number = opusDecoderDecode.sampleRate;
 const opusDecoderDecodeErrors: OpusDecodeError[] = opusDecoderDecode.errors;
+
+const opusMlDecoderDecode: OpusMLDecodedAudio =
+  opusMlDecoder.decodeFrame(fakeData);
+const opusMlDecoderDecodeChannelData: Float32Array[] =
+  opusMlDecoderDecode.channelData;
+const opusMlDecoderDecodeSamplesDecoded: number =
+  opusMlDecoderDecode.samplesDecoded;
+const opusMlDecoderDecodeSampleRate: number = opusMlDecoderDecode.sampleRate;
+const opusMlDecoderDecodeErrors: OpusMLDecodeError[] =
+  opusMlDecoderDecode.errors;
 
 const oggOpusDecoderDecode: OggOpusDecodedAudio =
   oggOpusDecoder.decode(fakeData);
