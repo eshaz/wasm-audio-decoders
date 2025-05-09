@@ -309,6 +309,17 @@ describe("wasm-audio-decoders", () => {
   const opus64TestFile = "ogg.opus.64.ogg";
   const opus255TestFile = "ogg.opus.255.ogg";
 
+  // OSCE test files from https://opus-codec.org/demo/opus-1.5/
+  // opusenc --bitrate 5 --vbr --set-ctl-int 4008=1103 female_ref.wav opus_osce_female_ref_5kbs.ogg
+  const opusOsceFemale5kbsTestFile = "opus_osce_female_ref_5kbs.ogg";
+  const opusOsceFemale6kbsTestFile = "opus_osce_female_ref_6kbs.ogg";
+  const opusOsceFemale9kbsTestFile = "opus_osce_female_ref_9kbs.ogg";
+  const opusOsceFemale12kbsTestFile = "opus_osce_female_ref_12kbs.ogg";
+  const opusOsceMale5kbsTestFile = "opus_osce_male_ref_5kbs.ogg";
+  const opusOsceMale6kbsTestFile = "opus_osce_male_ref_6kbs.ogg";
+  const opusOsceMale9kbsTestFile = "opus_osce_male_ref_9kbs.ogg";
+  const opusOsceMale12kbsTestFile = "opus_osce_male_ref_12kbs.ogg";
+
   beforeAll(async () => {
     await decompressExpectedFiles();
   });
@@ -1655,6 +1666,108 @@ describe("wasm-audio-decoders", () => {
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     }, 10000);
+
+    describe.each([
+      opusOsceFemale5kbsTestFile,
+      opusOsceFemale6kbsTestFile,
+      opusOsceFemale9kbsTestFile,
+      opusOsceFemale12kbsTestFile,
+      opusOsceMale5kbsTestFile,
+      opusOsceMale6kbsTestFile,
+      opusOsceMale9kbsTestFile,
+      opusOsceMale12kbsTestFile,
+    ])("Quality Enhancements %s", (testFile) => {
+      const parser = new CodecParser("application/ogg");
+      const speechQualityEnhancements = ["none", "lace", "nolace"];
+
+      let frames, header, framesLength, sampleCount;
+
+      beforeAll(async () => {
+        [frames, header, framesLength, sampleCount] = getFrames(
+          parser.parseAll(
+            await fs.readFile(getTestPaths(opusOsceMale5kbsTestFile).inputPath),
+          ),
+        );
+      });
+
+      it.each(speechQualityEnhancements)(
+        `should decode ${testFile}, %s`,
+        async (speechQualityEnhancement) => {
+          const {
+            channels,
+            channelMappingTable,
+            coupledStreamCount,
+            streamCount,
+            preSkip,
+          } = header;
+          const { paths, result } = await test_decodeFrames(
+            new OpusDecoder({
+              channels,
+              channelMappingTable,
+              coupledStreamCount,
+              streamCount,
+              preSkip,
+              speechQualityEnhancement,
+            }),
+            `should decode ${testFile}, ${speechQualityEnhancement}`,
+            testFile,
+            testFile.replace("ogg.", "").replace(".ogg", ""),
+            frames,
+            framesLength,
+            [speechQualityEnhancement],
+            [speechQualityEnhancement],
+          );
+
+          const [actual, expected] = await Promise.all([
+            fs.readFile(paths.actualPath),
+            fs.readFile(paths.expectedPath),
+          ]);
+
+          expect(result.samplesDecoded).toEqual(960648);
+          expect(result.sampleRate).toEqual(48000);
+          expect(Buffer.compare(actual, expected)).toEqual(0);
+        },
+      );
+
+      it.each(speechQualityEnhancements)(
+        `should decode ${testFile}, %s in a web worker`,
+        async (speechQualityEnhancement) => {
+          const {
+            channels,
+            channelMappingTable,
+            coupledStreamCount,
+            streamCount,
+            preSkip,
+          } = header;
+          const { paths, result } = await test_decodeFrames(
+            new OpusDecoderWebWorker({
+              channels,
+              channelMappingTable,
+              coupledStreamCount,
+              streamCount,
+              preSkip,
+              speechQualityEnhancement,
+            }),
+            `should decode ${testFile}, ${speechQualityEnhancement} in a web worker`,
+            testFile,
+            testFile.replace("ogg.", "").replace(".ogg", ""),
+            frames,
+            framesLength,
+            [speechQualityEnhancement],
+            [speechQualityEnhancement],
+          );
+
+          const [actual, expected] = await Promise.all([
+            fs.readFile(paths.actualPath),
+            fs.readFile(paths.expectedPath),
+          ]);
+
+          expect(result.samplesDecoded).toEqual(960648);
+          expect(result.sampleRate).toEqual(48000);
+          expect(Buffer.compare(actual, expected)).toEqual(0);
+        },
+      );
+    });
   });
 
   describe("ogg-opus-decoder", () => {
@@ -2291,6 +2404,67 @@ describe("wasm-audio-decoders", () => {
         expect(result.sampleRate).toEqual(48000);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
+    });
+
+    describe.each([
+      opusOsceFemale5kbsTestFile,
+      opusOsceFemale6kbsTestFile,
+      opusOsceFemale9kbsTestFile,
+      opusOsceFemale12kbsTestFile,
+      opusOsceMale5kbsTestFile,
+      opusOsceMale6kbsTestFile,
+      opusOsceMale9kbsTestFile,
+      opusOsceMale12kbsTestFile,
+    ])("Quality Enhancements %s", (testFile) => {
+      const speechQualityEnhancements = ["none", "lace", "nolace"];
+
+      it.each(speechQualityEnhancements)(
+        `should decode ${testFile}, %s`,
+        async (speechQualityEnhancement) => {
+          const { paths, result } = await test_decode(
+            new OggOpusDecoder({ speechQualityEnhancement }),
+            "decodeFile",
+            `should decode ${testFile}, ${speechQualityEnhancement}`,
+            testFile,
+            testFile,
+            [speechQualityEnhancement],
+            [speechQualityEnhancement],
+          );
+
+          const [actual, expected] = await Promise.all([
+            fs.readFile(paths.actualPath),
+            fs.readFile(paths.expectedPath),
+          ]);
+
+          expect(result.samplesDecoded).toEqual(960000);
+          expect(result.sampleRate).toEqual(48000);
+          expect(Buffer.compare(actual, expected)).toEqual(0);
+        },
+      );
+
+      it.each(speechQualityEnhancements)(
+        `should decode ${testFile}, %s in a web worker`,
+        async (speechQualityEnhancement) => {
+          const { paths, result } = await test_decode(
+            new OggOpusDecoderWebWorker({ speechQualityEnhancement }),
+            "decodeFile",
+            `should decode ${testFile}, ${speechQualityEnhancement} in a web worker`,
+            testFile,
+            testFile,
+            [speechQualityEnhancement],
+            [speechQualityEnhancement],
+          );
+
+          const [actual, expected] = await Promise.all([
+            fs.readFile(paths.actualPath),
+            fs.readFile(paths.expectedPath),
+          ]);
+
+          expect(result.samplesDecoded).toEqual(960000);
+          expect(result.sampleRate).toEqual(48000);
+          expect(Buffer.compare(actual, expected)).toEqual(0);
+        },
+      );
     });
   });
 
