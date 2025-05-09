@@ -57,6 +57,7 @@ export default function OpusDecoder(options = {}) {
           this._coupledStreamCount,
           mapping.ptr,
           this._preSkip,
+          this._complexity,
           this._forceStereo,
         );
       });
@@ -199,6 +200,7 @@ export default function OpusDecoder(options = {}) {
   const coupledStreamCount = options.coupledStreamCount;
   const channelMappingTable = options.channelMappingTable;
   const preSkip = options.preSkip;
+  const speechQualityEnhancement = options.speechQualityEnhancement;
   const forceStereo = options.forceStereo ? 1 : 0;
 
   // channel mapping family >= 1
@@ -225,6 +227,18 @@ export default function OpusDecoder(options = {}) {
   this._channelMappingTable =
     channelMappingTable || (this._channels === 2 ? [0, 1] : [0]);
   this._preSkip = preSkip || 0;
+
+  switch (speechQualityEnhancement) {
+    case "none":
+      this._complexity = 0;
+      break;
+    case "lace":
+      this._complexity = 6;
+      break;
+    case "nolace":
+    default:
+      this._complexity = 7;
+  }
 
   this._forceStereo =
     channels <= MAX_FORCE_STEREO_CHANNELS && channels != 2 ? forceStereo : 0;

@@ -94,7 +94,7 @@ static float* stereo_downmix(OpusFrameDecoder *decoder, float *pcm, int samples_
   return decoder->stereo_buffer;
 }
 
-OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int streams, int coupled_streams, unsigned char *mapping, int pre_skip, int force_stereo) {
+OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int streams, int coupled_streams, unsigned char *mapping, int pre_skip, int complexity, int force_stereo) {
     /*fprintf(stdout, "\nparams: ");
     for (int i = 0; i < sizeof(op->data); i++) {
       fprintf(stdout, "0x%02x ", op->data[i]);
@@ -132,7 +132,7 @@ OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int s
       mapping, 
       decoder.errors
     );
-    opus_multistream_decoder_ctl(decoder.st, OPUS_SET_COMPLEXITY(10));
+    opus_multistream_decoder_ctl(decoder.st, OPUS_SET_COMPLEXITY(complexity));
 
     OpusFrameDecoder *ptr = malloc(sizeof(decoder));
     *ptr = decoder;

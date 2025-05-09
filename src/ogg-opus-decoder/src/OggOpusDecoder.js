@@ -17,6 +17,7 @@ import CodecParser, {
 export default class OggOpusDecoder {
   constructor(options = {}) {
     this._sampleRate = options.sampleRate || 48000;
+    this._speechQualityEnhancement = options.speechQualityEnhancement;
     this._forceStereo =
       options.forceStereo !== undefined ? options.forceStereo : false;
 
@@ -56,6 +57,7 @@ export default class OggOpusDecoder {
       channelMappingTable: header[channelMappingTable],
       preSkip: Math.round((this._preSkip / 48000) * this._sampleRate),
       sampleRate: this._sampleRate,
+      speechQualityEnhancement: this._speechQualityEnhancement,
       forceStereo: this._forceStereo,
     });
     await this._decoder.ready;

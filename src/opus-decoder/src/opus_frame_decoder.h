@@ -12,7 +12,7 @@ typedef struct {
     OpusMSDecoder *st;
 } OpusFrameDecoder;
 
-OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int streams, int coupled_streams, unsigned char *mapping, int preSkip, int force_stereo);
+OpusFrameDecoder *opus_frame_decoder_create(int sample_rate, int channels, int streams, int coupled_streams, unsigned char *mapping, int preSkip, int complexity, int force_stereo);
 
 int opus_frame_decode_float_deinterleaved(OpusFrameDecoder *decoder, unsigned char *in, opus_int32 in_len, float *out);
 
