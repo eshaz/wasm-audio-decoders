@@ -14,6 +14,9 @@ import CodecParser, {
   totalSamples,
 } from "codec-parser";
 
+// prettier-ignore
+const simd=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11]))
+
 export default class OggOpusDecoder {
   constructor(options = {}) {
     this._sampleRate = options.sampleRate || 48000;
@@ -46,11 +49,20 @@ export default class OggOpusDecoder {
 
   async _loadDecoderLibrary() {
     if (this._useMLDecoder) {
-      const { OpusMLDecoder, OpusMLDecoderWebWorker } = await import(
-        /* webpackChunkName: "opus-ml" */ "@wasm-audio-decoders/opus-ml"
-      );
-      this.OpusMLDecoder = OpusMLDecoder;
-      this.OpusMLDecoderWebWorker = OpusMLDecoderWebWorker;
+      const simdSupported = await simd();
+
+      if (simdSupported) {
+        const { OpusMLDecoder, OpusMLDecoderWebWorker } = await import(
+          /* webpackChunkName: "opus-ml" */ "@wasm-audio-decoders/opus-ml"
+        );
+        this.OpusMLDecoder = OpusMLDecoder;
+        this.OpusMLDecoderWebWorker = OpusMLDecoderWebWorker;
+      } else {
+        console.warn(
+          `ogg-opus-decoder: This platform does not support WebAssembly SIMD; { speechQualityEnhancements: '${this._speechQualityEnhancement}' } has been disabled`,
+        );
+        this._useMLDecoder = false;
+      }
     }
     this.OpusDecoder = OpusDecoder;
     this.OpusDecoderWebWorker = OpusDecoderWebWorker;
