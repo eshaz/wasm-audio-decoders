@@ -16,6 +16,10 @@ import { nestedWorker } from "./nested-worker";
 
 import { MPEGDecoder, MPEGDecoderWebWorker } from "mpg123-decoder";
 import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
+import {
+  OpusMLDecoder,
+  OpusMLDecoderWebWorker,
+} from "@wasm-audio-decoders/opus-ml";
 import { OggOpusDecoder, OggOpusDecoderWebWorker } from "ogg-opus-decoder";
 import { FLACDecoder, FLACDecoderWebWorker } from "@wasm-audio-decoders/flac";
 import {
@@ -1666,6 +1670,46 @@ describe("wasm-audio-decoders", () => {
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     }, 10000);
+  });
+
+  describe("opus-ml-decoder", () => {
+    const getFrames = (codecFrames) => {
+      let length = 0,
+        header,
+        frames,
+        absoluteGranulePosition;
+
+      frames = codecFrames
+        .flatMap((frame) => {
+          absoluteGranulePosition = frame.absoluteGranulePosition;
+          return frame.codecFrames;
+        })
+        .map((codecFrame) => {
+          length += codecFrame.data.length;
+          header = codecFrame.header;
+          return codecFrame.data;
+        });
+
+      return [frames, header, length, Number(absoluteGranulePosition)];
+    };
+
+    it("should have name as an instance and static property for OpusMLDecoder", () => {
+      const decoder = new OpusMLDecoder();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OpusMLDecoder");
+      expect(OpusMLDecoder.name).toEqual("OpusMLDecoder");
+    });
+
+    it("should have name as an instance and static property for OpusMLDecoderWebWorker", () => {
+      const decoder = new OpusMLDecoderWebWorker();
+      const name = decoder.constructor.name;
+      decoder.ready.then(() => decoder.free());
+
+      expect(name).toEqual("OpusMLDecoderWebWorker");
+      expect(OpusMLDecoderWebWorker.name).toEqual("OpusMLDecoderWebWorker");
+    });
 
     describe.each([
       opusOsceFemale5kbsTestFile,
@@ -1701,7 +1745,7 @@ describe("wasm-audio-decoders", () => {
             preSkip,
           } = header;
           const { paths, result } = await test_decodeFrames(
-            new OpusDecoder({
+            new OpusMLDecoder({
               channels,
               channelMappingTable,
               coupledStreamCount,
@@ -1740,7 +1784,7 @@ describe("wasm-audio-decoders", () => {
             preSkip,
           } = header;
           const { paths, result } = await test_decodeFrames(
-            new OpusDecoderWebWorker({
+            new OpusMLDecoderWebWorker({
               channels,
               channelMappingTable,
               coupledStreamCount,

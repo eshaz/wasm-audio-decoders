@@ -1,6 +1,6 @@
 {
   "sourceMap": {
-    "url": "opus-ml.min.js.map"
+    "url": "opus-ml-decoder.min.js.map"
   },
   "output": {
     "preamble": "/* Copyright 2021-2025 Ethan Halsall. This file is part of wasm-audio-decoders. https://github.com/eshaz/wasm-audio-decoders */"
