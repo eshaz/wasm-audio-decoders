@@ -1,5 +1,5 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
-import { OpusDecoder } from "opus-decoder";
+import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
 import CodecParser, {
   codecFrames,
   header,
@@ -30,9 +30,32 @@ export default class OggOpusDecoder {
 
     // instantiate to create static properties
     new WASMAudioDecoderCommon();
-    this._decoderClass = OpusDecoder;
+    this._useMLDecoder = ["lace", "nolace"].includes(
+      this._speechQualityEnhancement,
+    );
 
+    this._decoderLibraryLoaded = this._loadDecoderLibrary();
     this._ready = this._init();
+  }
+
+  _initDecoderClass() {
+    this._decoderClass = this._useMLDecoder
+      ? this.OpusMLDecoder
+      : this.OpusDecoder;
+  }
+
+  async _loadDecoderLibrary() {
+    if (this._useMLDecoder) {
+      const { OpusMLDecoder, OpusMLDecoderWebWorker } = await import(
+        /* webpackChunkName: "opus-ml" */ "@wasm-audio-decoders/opus-ml"
+      );
+      this.OpusMLDecoder = OpusMLDecoder;
+      this.OpusMLDecoderWebWorker = OpusMLDecoderWebWorker;
+    }
+    this.OpusDecoder = OpusDecoder;
+    this.OpusDecoderWebWorker = OpusDecoderWebWorker;
+
+    this._initDecoderClass();
   }
 
   async _init() {
@@ -49,6 +72,8 @@ export default class OggOpusDecoder {
     this._totalSamplesDecoded = 0;
     this._preSkip = header[preSkip];
     this._channels = this._forceStereo ? 2 : header[channels];
+
+    await this._decoderLibraryLoaded;
 
     this._decoder = new this._decoderClass({
       channels: header[channels],
@@ -109,7 +134,7 @@ export default class OggOpusDecoder {
 
         if (!this._decoder)
           // wait until there is an Opus header before instantiating
-          decoderReady = this._instantiateDecoder(
+          decoderReady = await this._instantiateDecoder(
             oggPage[codecFrames][0][header],
           );
       }

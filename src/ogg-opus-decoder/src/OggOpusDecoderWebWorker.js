@@ -1,11 +1,14 @@
-import { OpusDecoderWebWorker } from "opus-decoder";
 import OggOpusDecoder from "./OggOpusDecoder.js";
 
 export default class OggOpusDecoderWebWorker extends OggOpusDecoder {
   constructor(options) {
     super(options);
+  }
 
-    this._decoderClass = OpusDecoderWebWorker;
+  _initDecoderClass() {
+    this._decoderClass = this._useMLDecoder
+      ? this.OpusMLDecoderWebWorker
+      : this.OpusDecoderWebWorker;
   }
 
   async free() {
