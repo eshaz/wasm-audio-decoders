@@ -1,6 +1,6 @@
 {
   "name": "@wasm-audio-decoders/ogg-vorbis",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Web Assembly streaming Ogg Vorbis decoder",
   "type": "module",
   "main": "./index.js",
@@ -52,7 +52,7 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "@wasm-audio-decoders/common": "9.0.6",
+    "@wasm-audio-decoders/common": "9.0.7",
     "codec-parser": "2.5.0"
   }
 }
