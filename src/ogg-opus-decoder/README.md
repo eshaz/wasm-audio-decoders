@@ -1,7 +1,9 @@
 # `ogg-opus-decoder`
 
-`ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder.
-  * 109.5 KiB minified bundle size
+`ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder
+  * 120.5 KiB minified bundle size (without machine learning enhancements)
+  * Uses the latest Opus 1.5 machine learning enhancements for high quality speech decoding
+    * Note: Bundle size increases to 4.0 MiB when machine learning enhancements are enabled
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
@@ -22,13 +24,14 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
   const decoder = new OggOpusDecoder();
   ```
  
-* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder/dist) and include it as a script.
+* Or download the build files [here](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder/dist) and load `ogg-opus-decoder.min.js` in script tag.
   ```html
   <script src="ogg-opus-decoder.min.js"></script>
   <script>
     const decoder = new window["ogg-opus-decoder"].OggOpusDecoder();
   </script>
   ```
+  * The `ogg-opus-decoder.opus-ml.min.js` build file is loaded at runtime when `options.speechQualityEnhancement` is set to `"lace"` or `"nolace"`. You may exclude this file if you don't use this option.
 
 ## Usage
 
@@ -122,12 +125,24 @@ Class that decodes Ogg Opus data synchronously on the main thread.
 
 ### Options
 ```javascript
-const decoder = new OggOpusDecoder({ forceStereo: true });
+const decoder = new OggOpusDecoder({ forceStereo: true, speechQualityEnhancement: "nolace" });
 ```
 
 * `forceStereo` *optional, defaults to `false`*
   * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
   * If there are more than 8 channels, this option is ignored.
+* `speechQualityEnhancement` *optional, defaults to `"none"`*
+  * `"none"`: (default)
+    * Disables machine learning decoding.
+    * Normal quality, but fastest.
+  * `"lace"`:
+    * Enables LACE machine learning decoding.
+    * Medium quality, but faster (complexity of 100 MFLOPS)
+  * `"nolace"`:
+    * Enables Non-Linear LACE machine learning decoding.
+    * Best quality, but slower (complexity of 400 MFLOPS).
+  * **Note**: Web Assembly SIMD instruction support is required for `"lace"` and `"nolace"`. These options will automatically fallback to `"none"` if SIMD is not supported.
+  * See the [opus-1.5 release notes](https://opus-codec.org/demo/opus-1.5/) for more information about machine learning decoding.
 * `sampleRate` *optional, defaults to `48000`*
   * Sample rate the decoder will output.
   * Valid sample rates: `8000, 12000, 16000, 24000, or 48000`
@@ -161,12 +176,24 @@ Class that decodes Ogg Opus data asynchronously within a web worker. Decoding is
 
 ### Options
 ```javascript
-const decoder = new OggOpusDecoderWebWorker({ forceStereo: true });
+const decoder = new OggOpusDecoderWebWorker({ forceStereo: true, speechQualityEnhancement: "nolace" });
 ```
 
 * `forceStereo` *optional, defaults to `false`*
   * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
   * If there are more than 8 channels, this option is ignored.
+* `speechQualityEnhancement` *optional, defaults to `"none"`*
+  * `"none"`: (default)
+    * Disables machine learning decoding.
+    * Normal quality, but fastest.
+  * `"lace"`:
+    * Enables LACE machine learning decoding.
+    * Medium quality, but faster (complexity of 100 MFLOPS)
+  * `"nolace"`:
+    * Enables Non-Linear LACE machine learning decoding.
+    * Best quality, but slower (complexity of 400 MFLOPS).
+  * **Note**: Web Assembly SIMD instruction support is required for `"lace"` and `"nolace"`. These options will automatically fallback to `"none"` if SIMD is not supported.
+  * See the [opus-1.5 release notes](https://opus-codec.org/demo/opus-1.5/) for more information about machine learning decoding.
 * `sampleRate` *optional, defaults to `48000`*
   * Sample rate the decoder will output.
   * Valid sample rates: `8000, 12000, 16000, 24000, or 48000`

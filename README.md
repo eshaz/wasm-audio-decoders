@@ -52,7 +52,7 @@ Decodes raw Opus audio frames into PCM
 ### [`@wasm-audio-decoders/opus-ml`](src/opus-ml)
 Decodes raw Opus audio frames into PCM with [Machine Learning enhancements](https://opus-codec.org/demo/opus-1.5/)
   * 3.9 MiB minified bundle size
-  * Machine learning enhancements are enabled for high quality speech decoding.
+  * Uses the latest [Opus 1.5 machine learning enhancements](https://opus-codec.org/demo/opus-1.5/) for high quality speech decoding
   * Browser and NodeJS support (WASM SIMD support required)
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)

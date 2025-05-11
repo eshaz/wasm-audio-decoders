@@ -1,11 +1,15 @@
-# `opus-ml`
+# `@wasm-audio-decoders/opus-ml`
 
-`opus-ml` is a Web Assembly Opus audio decoder with machine learning enhancements.
-  * 85.1 KiB minified bundle size
-  * See [`opus-decoder`]() for a smaller library without the machine learning enhancements
-  * Browser and NodeJS support
+`@wasm-audio-decoders/opus-ml` is a Web Assembly Opus audio decoder compiled with machine learning enhancements.
+  * 3.9 MiB minified bundle size
+  * Uses the latest [Opus 1.5 machine learning enhancements](https://opus-codec.org/demo/opus-1.5/) for high quality speech decoding
+  * Browser and NodeJS support (WASM SIMD support required)
   * Built in Web Worker support
+  * Multichannel decoding (up to 255 channels)
   * Based on [`libopus`](https://github.com/xiph/opus)
+  * **Notes**
+    * Web Assembly SIMD instruction support is required for this library. Please use [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/opus-decoder) or [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) if your platform does not support SIMD.
+    * For a smaller library, see [`opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/opus-decoder) which is compiled without the machine learning enhancements.
 
 This library is intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4)). See [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) if you have an Ogg Opus file to decode.
 
@@ -19,14 +23,14 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
   Run `npm i opus-ml`
 
   ```javascript
-  import { OpusMLDecoder } from 'opus-ml';
+  import { OpusMLDecoder } from '@wasm-audio-decoders/opus-ml';
 
   const decoder = new OpusMLDecoder();
   ```
  
 * Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/opus-ml/dist) and include it as a script.
   ```html
-  <script src="opus-ml.min.js"></script>
+  <script src="opus-ml-decoder.min.js"></script>
   <script>
     const decoder = new window["opus-ml"].OpusMLDecoder();
   </script>
@@ -38,7 +42,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
    **Main thread synchronous decoding**
    ```javascript
-   import { OpusMLDecoder } from 'opus-ml';
+   import { OpusMLDecoder } from '@wasm-audio-decoders/opus-ml';
 
    const decoder = new OpusMLDecoder();
 
@@ -48,7 +52,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
 
    **Web Worker asynchronous decoding**
    ```javascript
-   import { OpusMLDecoderWebWorker } from 'opus-ml';
+   import { OpusMLDecoderWebWorker } from '@wasm-audio-decoders/opus-ml';
 
    const decoder = new OpusMLDecoderWebWorker();
 
@@ -128,7 +132,8 @@ Class that decodes Opus frames synchronously on the main thread.
 
 ### Options
 ```javascript
-const decoder = new OpusMLDecoder({ 
+const decoder = new OpusMLDecoder({
+  speechQualityEnhancement: "nolace",
   forceStereo: false,
   sampleRate: 48000,
   preSkip: 0,
@@ -142,6 +147,17 @@ const decoder = new OpusMLDecoder({
 #### **The below options should be obtained from the Opus Header.**
 See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus header for more information. If you don't have access to the Opus header, the default values will successfully decode most stereo Opus streams.
 
+* `speechQualityEnhancement` *optional, defaults to `"nolace"`*
+  * `"none"`:
+    * Disables machine learning decoding.
+    * Normal quality, but fastest.
+  * `"lace"`:
+    * Enables LACE machine learning decoding.
+    * Medium quality, but faster (complexity of 100 MFLOPS)
+  * `"nolace"`: (default)
+    * Enables Non-Linear LACE machine learning decoding.
+    * Best quality, but slower (complexity of 400 MFLOPS).
+  * See the [opus-1.5 release notes](https://opus-codec.org/demo/opus-1.5/) for more information about machine learning decoding.
 * `forceStereo` *optional, defaults to `false`*
   * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
   * If there are more than 8 channels, this option is ignored.
@@ -185,6 +201,7 @@ Class that decodes Opus frames asynchronously within a web worker. Decoding is p
 ### Options
 ```javascript
 const decoder = new OpusMLDecoderWebWorker({ 
+  speechQualityEnhancement: "nolace",
   forceStereo: false,
   sampleRate: 48000,
   channels: 2,
@@ -197,6 +214,17 @@ const decoder = new OpusMLDecoderWebWorker({
 #### **The below options should be obtained from the Opus Header.**
 See this [documentation](https://wiki.xiph.org/OggOpus#ID_Header) on the Opus header for more information. If you don't have access to the Opus header, the default values will successfully decode most stereo Opus streams.
 
+* `speechQualityEnhancement` *optional, defaults to `"nolace"`*
+  * `"none"`:
+    * Disables machine learning decoding.
+    * Normal quality, but fastest.
+  * `"lace"`:
+    * Enables LACE machine learning decoding.
+    * Medium quality, but faster (complexity of 100 MFLOPS)
+  * `"nolace"`: (default)
+    * Enables Non-Linear LACE machine learning decoding.
+    * Best quality, but slower (complexity of 400 MFLOPS).
+  * See the [opus-1.5 release notes](https://opus-codec.org/demo/opus-1.5/) for more information about machine learning decoding.
 * `forceStereo` *optional, defaults to `false`*
   * Set to `true` to force stereo output when decoding mono or multichannel Ogg Opus.
   * If there are more than 8 channels, this option is ignored.

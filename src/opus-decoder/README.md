@@ -4,9 +4,10 @@
   * 85.1 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
+  * Multichannel decoding (up to 255 channels)
   * Based on [`libopus`](https://github.com/xiph/opus)
 
-This library is intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4)). [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) if you have an Ogg Opus file to decode.
+This library is intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4)). See [`ogg-opus-decoder`](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder) if you have an Ogg Opus file to decode.
 
 See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this repository for more Web Assembly audio decoders like this one.
 
