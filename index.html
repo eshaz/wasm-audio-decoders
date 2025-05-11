@@ -280,6 +280,12 @@
             Runs using a Web Assembly build of
             <a href="https://github.com/xiph/opus">libopus</a>.
           </li>
+          <li>
+            Uses the latest
+            <a href="https://opus-codec.org/demo/opus-1.5/"
+              >Opus 1.5 Machine Learning optimized speech decoding</a
+            >.
+          </li>
           <li>Decodes up to 255 discrete channels of audio.</li>
           <li>
             Runs in the main thread or a separate thread using the Web Worker
@@ -395,27 +401,19 @@
             <div style="width: 100%">
               <form name="playerForm" id="playerForm" onsubmit="return false;">
                 <fieldset name="file-upload" class="column">
-                  <legend>Select Files to Decode</legend>
+                  <legend>Select Files</legend>
                   <div style="width: 100%" class="row center">
-                    <button
-                      class="center grow"
-                      onclick="document.getElementById('file-selector').click();"
-                    >
-                      Select Files
-                    </button>
                     <input
                       type="file"
                       id="file-selector"
                       accept="*"
                       multiple="true"
-                      style="display: none"
+                      style="width: 40%"
                     />
-                    <div class="row center">
-                      <input id="download-decoded-file" type="checkbox" />
-                      <label for="download-decoded-file"
-                        >Download Results</label
-                      >
-                    </div>
+                    or
+                    <button class="center grow" id="opus-lace-demo-button" title="Adds low-bitrate speech files to demonstrate the Opus 1.5 machine learning decoding enhancements">
+                      Ogg Opus LACE / NoLace Demo
+                    </button>
                   </div>
                   <div style="width: 100%" class="row center">
                     <button class="center grow" id="decode-button" disabled>
@@ -446,6 +444,13 @@
                         Max workers
                       </option>
                     </select>
+                    and
+                    <div class="row center">
+                      <input id="download-decoded-file" type="checkbox" />
+                      <label for="download-decoded-file"
+                        >download results</label
+                      >
+                    </div>
                   </div>
                 </fieldset>
               </form>
@@ -565,7 +570,7 @@
       totalFilesEl.innerHTML = (parseInt(totalFilesEl.innerHTML) || 0) + 1;
 
       // update decoder progress bar
-      const decoderId = `${decoderName}-${index}`;
+      const decoderId = `${decoderName}`;
       const decoderProgressId = `_progress-${decoderId}`;
       const decoderTotalBytesId = `_total-bytes-${decoderId}`;
       const decoderTotalFilesId = `_total-files-${decoderId}`;
@@ -584,7 +589,7 @@
       if (decoderProgressEl === null) {
         decoderProgressBodyEl.innerHTML +=
           "<tr>" +
-          `<td>${decoderName}[${index}]</td>` +
+          `<td>${decoderName}</td>` +
           `<td class="progress-td"><progress id="${decoderProgressId}" value="${value}" max="${total}"></progress></td>` +
           `<td class="stats-td" id="${decoderTotalBytesId}">${value}</td>` +
           `<td class="stats-td" id="${decoderTotalFilesId}">1</td>` +
@@ -728,6 +733,8 @@
     const filesToDecodeEl =
       filesToDecodeContainerEl.shadowRoot.getElementById("files-to-decode");
 
+    const opusLaceDemoButton = document.getElementById("opus-lace-demo-button");
+
     const decodeButtonEl = document.getElementById("decode-button");
     const numberOfDecodersEl = document.getElementById("threads");
   </script>
@@ -789,6 +796,34 @@
       }
     };
 
+    class Semaphore {
+      constructor(capacity) {
+        this.capacity = capacity;
+        this.current = 0;
+        this.queue = [];
+      }
+
+      async acquire() {
+        if (this.current < this.capacity) {
+          this.current++;
+          return;
+        }
+
+        await new Promise((resolve) => {
+          this.queue.push(resolve);
+        });
+        this.current++;
+      }
+
+      release() {
+        this.current--;
+        if (this.queue.length > 0) {
+          const resolve = this.queue.shift();
+          resolve();
+        }
+      }
+    }
+
     class DecoderPool {
       constructor(
         numberOfDecoders,
@@ -799,8 +834,18 @@
       ) {
         const totalBytes = bytesMPEG + bytesOpus + bytesFLAC + bytesVorbis;
 
-        this._useMainThread = numberOfDecoders === "main";
-        this._numberOfDecoders = numberOfDecoders;
+        switch (numberOfDecoders) {
+          case "main":
+            this._useMainThread = true;
+            this._numberOfDecoders = 1;
+            break;
+          case "max":
+            this._numberOfDecoders = 256;
+            break;
+          default:
+            this._numberOfDecoders = numberOfDecoders;
+        }
+        this._decoderSemaphore = new Semaphore(this._numberOfDecoders);
 
         this._mpegDecoderStats = {
           maxDecoders:
@@ -823,20 +868,7 @@
           numberDecoders: 0,
         };
 
-        this._decoderPool = [];
-      }
-
-      _getNextDecoder(DecoderClass) {
-        const decodersFilteredByClass = this._decoderPool.filter(
-          ({ decoder }) => decoder.constructor.name === DecoderClass.name,
-        );
-
-        return (
-          decodersFilteredByClass.length &&
-          decodersFilteredByClass.reduce((acc, decoderEntry) =>
-            decoderEntry.allocated < acc.allocated ? decoderEntry : acc,
-          )
-        );
+        this._decoderPool = new Set();
       }
 
       async getDecoder(mimeType, fileSize, selectedType) {
@@ -867,6 +899,7 @@
             : OggOpusDecoderWebWorker;
           decoderStats = this._opusDecoderStats;
           decoderMethod = "decodeFile";
+          decoderOptions.speechQualityEnhancement = "none";
         };
 
         const oggOpusLaceDecoder = () => {
@@ -910,34 +943,20 @@
             throw new Error(`Unsupported file type ${mimeType}`);
         }
 
-        let decoderEntry = this._getNextDecoder(DecoderClass);
-
-        if (
-          !decoderEntry || // there are no decoders
-          (decoderEntry.allocated !== 0 && // the least used decoder is unallocated
-            (this._numberOfDecoders === "max" || // always create a new decoder when "max" is set
-              decoderStats.numberDecoders < decoderStats.maxDecoders)) // create a new decoder when the max hasn't been reached
-        ) {
-          decoderEntry = {
-            decoder: new DecoderClass(decoderOptions),
-            decoderMethod,
-            allocated: fileSize,
-            index: this._decoderPool.length,
-          };
-          decoderStats.numberDecoders++;
-
-          this._decoderPool.push(decoderEntry);
-        } else {
-          // use an existing decoder
-          await decoderEntry.decoderFree;
-          decoderEntry.allocated += fileSize;
-        }
+        const decoderEntry = {
+          decoder: new DecoderClass(decoderOptions),
+          decoderMethod,
+          allocated: fileSize,
+          decoderFree: async () => {
+            await decoderEntry.decoder.free();
+            this._decoderSemaphore.release();
+            this._decoderPool.delete(decoderEntry);
+          },
+        };
+        this._decoderPool.add(decoderEntry);
 
         await decoderEntry.decoder.ready;
-
-        decoderEntry.decoderFree = new Promise(
-          (resolve) => (decoderEntry.decoderFreeResolve = resolve),
-        );
+        await this._decoderSemaphore.acquire();
 
         return decoderEntry;
       }
@@ -950,6 +969,7 @@
 
       destroy() {
         this._decoderPool.forEach(({ decoder }) => decoder.free());
+        this._decoderPool.clear();
       }
     }
 
@@ -1050,7 +1070,7 @@
                   decoderMethod,
                   index,
                   allocated,
-                  decoderFreeResolve,
+                  decoderFree,
                 }) => {
                   rowEl.style = "background-color: rgba(255, 255, 0, .5)";
                   statusEl.innerHTML = `queued`;
@@ -1081,8 +1101,7 @@
                     allocated,
                   );
 
-                  await decoder.reset();
-                  decoderFreeResolve();
+                  await decoderFree();
 
                   return { samplesDecoded, sampleRate, channelData };
                 },
@@ -1333,6 +1352,8 @@
         if (selectedType === mpeg) mpegLength += file.size;
         if (selectedType === flac) flacLength += file.size;
         if (selectedType === opus) opusLength += file.size;
+        if (selectedType === opusLace) opusLength += file.size;
+        if (selectedType === opusNoLace) opusLength += file.size;
         if (selectedType === vorbis) vorbisLength += file.size;
       });
 
@@ -1345,6 +1366,44 @@
       resetDecoderPool();
     };
 
+    const getFileFromResource = async (url, mimeType) => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const blob = await response.blob();
+        return new File([blob], url, { type: mimeType });
+      } catch (error) {
+        console.error("Could not fetch or create file:", error);
+        return null;
+      }
+    };
+
+    opusLaceDemoButton.addEventListener("click", async () => {
+      const demoFiles = await Promise.all(
+        [
+          "opus_osce_female_ref_5kbs.ogg",
+          "opus_osce_female_ref_6kbs.ogg",
+          "opus_osce_female_ref_9kbs.ogg",
+          "opus_osce_female_ref_12kbs.ogg",
+          "opus_osce_male_ref_5kbs.ogg",
+          "opus_osce_male_ref_6kbs.ogg",
+          "opus_osce_male_ref_9kbs.ogg",
+          "opus_osce_male_ref_12kbs.ogg",
+        ].map((file) => getFileFromResource(file, "audio/opus")),
+      );
+
+      fileList = demoFiles.flatMap((file) =>
+        [opus, opusLace, opusNoLace].map((selectedType) => ({
+          file,
+          selectedType,
+        })),
+      );
+
+      updateFileList();
+    });
+
     fileSelector.addEventListener("change", (e) => {
       const files = [...e.target.files];
 
@@ -1353,6 +1412,10 @@
         selectedType: detectType(file.type, file.name),
       }));
 
+      updateFileList();
+    });
+
+    const updateFileList = () => {
       if (fileList.length > 0) decodeButtonEl.disabled = false;
       else decodeButtonEl.disabled = true;
 
@@ -1408,13 +1471,13 @@
               } value="flac">flac</option>
               <option ${
                 file.selectedType === opus ? "selected " : ""
-              } value="opus">ogg-opus</option>
+              } value="opus">ogg-opus (Standard Decoder)</option>
               <option ${
                 file.selectedType === opusLace ? "selected " : ""
-              } value="opus-lace">ogg-opus (Lace Enhancement)</option>
+              } value="opus-lace">ogg-opus (LACE Enhancement)</option>
               <option ${
                 file.selectedType === opusNoLace ? "selected " : ""
-              } value="opus-nolace">ogg-opus (NoLace Enhancement)</option>
+              } value="opus-nolace">ogg-opus (NoLACE Enhancement)</option>
               <option ${
                 file.selectedType === vorbis ? "selected " : ""
               } value="vorbis">ogg-vorbis</option>
@@ -1428,6 +1491,6 @@
       resetDecoderPool();
       updateDecodeStats();
       clearDecoderProgress();
-    });
+    };
   </script>
 </html>
