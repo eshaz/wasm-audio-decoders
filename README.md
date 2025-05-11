@@ -60,7 +60,7 @@ Decodes raw Opus audio frames into PCM with [Machine Learning enhancements](http
   * Multichannel decoding (up to 255 channels)
   * Intended for users that already have Opus frames extracted from a container, i.e. (Ogg, Matroska (WEBM), or ISOBMFF (mp4))
   * Based on [`libopus`](https://github.com/xiph/opus)
-  * Install using [NPM](https://www.npmjs.com/package/opus-decoder)
+  * Install using [NPM](https://www.npmjs.com/@wasm-audio-decoders/opus-ml)
 
 ### [`@wasm-audio-decoders/ogg-vorbis`](src/ogg-vorbis)
 Decodes Ogg Vorbis data into PCM
