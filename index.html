@@ -13,6 +13,7 @@
     <script src="mpg123-decoder.min.js"></script>
     <script src="flac-decoder.min.js"></script>
     <script src="opus-decoder.min.js"></script>
+    <script src="opus-ml-decoder.min.js"></script>
     <script src="ogg-opus-decoder.min.js"></script>
     <script src="ogg-vorbis-decoder.min.js"></script>
     <script>
@@ -270,7 +271,7 @@
     <ul>
       <li>
         <a
-          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder"
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder"
           ><b>ogg-opus-decoder</b></a
         >
         is used to decode Ogg Opus data.
@@ -288,7 +289,7 @@
       </li>
       <li>
         <a
-          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-vorbis"
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-vorbis"
           ><b>ogg-vorbis-decoder</b></a
         >
         is used to decode Ogg Vorbis data.
@@ -306,7 +307,7 @@
       </li>
       <li>
         <a
-          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac"
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/main/src/flac"
           ><b>flac-decoder</b></a
         >
         is used to decode FLAC data.
@@ -324,7 +325,7 @@
       </li>
       <li>
         <a
-          href="https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder"
+          href="https://github.com/eshaz/wasm-audio-decoders/tree/main/src/mpg123-decoder"
           ><b>mpg123-decoder</b></a
         >
         is used to decode MPEG Layer I/II/III data.
@@ -744,6 +745,8 @@
     const flac = "flac";
     const vorbis = "vorbis";
     const opus = "opus";
+    const opusLace = "opus-lace";
+    const opusNoLace = "opus-nolace";
     const unknown = "unknown";
 
     const detectType = (mimeType, fileName) => {
@@ -837,7 +840,10 @@
       }
 
       async getDecoder(mimeType, fileSize, selectedType) {
-        let DecoderClass, decoderStats, decoderMethod;
+        let DecoderClass,
+          decoderStats,
+          decoderMethod,
+          decoderOptions = {};
 
         const mpegDecoder = () => {
           DecoderClass = this._useMainThread
@@ -863,6 +869,16 @@
           decoderMethod = "decodeFile";
         };
 
+        const oggOpusLaceDecoder = () => {
+          oggOpusDecoder();
+          decoderOptions.speechQualityEnhancement = "lace";
+        };
+
+        const oggOpusNoLaceDecoder = () => {
+          oggOpusDecoder();
+          decoderOptions.speechQualityEnhancement = "nolace";
+        };
+
         const oggVorbisDecoder = () => {
           DecoderClass = this._useMainThread
             ? OggVorbisDecoder
@@ -884,6 +900,12 @@
           case opus:
             oggOpusDecoder();
             break;
+          case opusLace:
+            oggOpusLaceDecoder();
+            break;
+          case opusNoLace:
+            oggOpusNoLaceDecoder();
+            break;
           case unknown:
             throw new Error(`Unsupported file type ${mimeType}`);
         }
@@ -897,7 +919,7 @@
               decoderStats.numberDecoders < decoderStats.maxDecoders)) // create a new decoder when the max hasn't been reached
         ) {
           decoderEntry = {
-            decoder: new DecoderClass(),
+            decoder: new DecoderClass(decoderOptions),
             decoderMethod,
             allocated: fileSize,
             index: this._decoderPool.length,
@@ -1141,6 +1163,9 @@
         this.timeEl = filesToDecodeContainerEl.shadowRoot.getElementById(
           "_time-" + this.id,
         );
+        this.selectedType = filesToDecodeContainerEl.shadowRoot.getElementById(
+          "_type-" + this.id,
+        );
 
         this.startProgress = () => {
           clearInterval(this.progressInterval);
@@ -1173,6 +1198,7 @@
       }
 
       async decode() {
+        this.decodedType = this.selectedType.value;
         this.playbackEl.disabled = true;
 
         await decode([fileList[this.id]], false)
@@ -1199,6 +1225,9 @@
 
       play(offset = 0) {
         // wait for decoding to complete
+        if (this.decodedType !== this.selectedType.value)
+          this.decodePromise = this.decode();
+
         this.decodePromise.then(() => {
           // start playing audio
           audioCtx.resume();
@@ -1311,7 +1340,8 @@
     };
 
     const changeDecodeType = (el) => {
-      fileList[parseInt(el.id)].selectedType = el.value;
+      const rowNumber = el.id.replace("_type-", "");
+      fileList[parseInt(rowNumber)].selectedType = el.value;
       resetDecoderPool();
     };
 
@@ -1366,7 +1396,7 @@
           <td>${name}</td>
           <td>${size}</td>
           <td style="text-align: center;">
-            <select style="background-color: transparent; font-weight: bold;" id="${i}" onchange="changeDecodeType(this);">
+            <select style="background-color: transparent; font-weight: bold;" id="_type-${i}" onchange="changeDecodeType(this);">
               <option disabled ${
                 file.selectedType === unknown ? "selected " : ""
               } value="unknown">select one</option>
@@ -1380,9 +1410,15 @@
                 file.selectedType === opus ? "selected " : ""
               } value="opus">ogg-opus</option>
               <option ${
+                file.selectedType === opusLace ? "selected " : ""
+              } value="opus-lace">ogg-opus (Lace Enhancement)</option>
+              <option ${
+                file.selectedType === opusNoLace ? "selected " : ""
+              } value="opus-nolace">ogg-opus (NoLace Enhancement)</option>
+              <option ${
                 file.selectedType === vorbis ? "selected " : ""
               } value="vorbis">ogg-vorbis</option>
-            <select/>
+            </select>
           </td>
           <td style="display:none;" id="_status-${i}">selected</td>
           <td style="display:none;" id="_decoder-${i}"></td>
