@@ -1,6 +1,6 @@
 {
   "name": "ogg-opus-decoder",
-  "version": "1.6.16",
+  "version": "1.7.0",
   "description": "Web Assembly streaming Ogg Opus decoder",
   "type": "module",
   "main": "./index.js",
@@ -17,7 +17,9 @@
     "src/OggOpusDecoder.js",
     "src/OggOpusDecoderWebWorker.js",
     "dist/ogg-opus-decoder.min.js",
-    "dist/ogg-opus-decoder.min.js.map"
+    "dist/ogg-opus-decoder.min.js.map",
+    "dist/ogg-opus-decoder.opus-ml.min.js",
+    "dist/ogg-opus-decoder.opus-ml.min.js.map"
   ],
   "keywords": [
     "Opus",
@@ -65,8 +67,8 @@
   },
   "dependencies": {
     "@wasm-audio-decoders/common": "9.0.7",
-    "@wasm-audio-decoders/opus-ml": "../opus-ml",
-    "opus-decoder": "../opus-decoder",
+    "@wasm-audio-decoders/opus-ml": "0.0.1",
+    "opus-decoder": "0.7.10",
     "codec-parser": "2.5.0"
   }
 }

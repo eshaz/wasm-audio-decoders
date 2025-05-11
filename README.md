@@ -32,7 +32,7 @@ Decodes FLAC and Ogg FLAC data into PCM
 
 ### [`ogg-opus-decoder`](src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 109.5 KiB minified bundle size
+  * 114.3 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)

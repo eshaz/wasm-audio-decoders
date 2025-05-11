@@ -1,7 +1,7 @@
 # `ogg-opus-decoder`
 
 `ogg-opus-decoder` is a Web Assembly Ogg Opus audio decoder
-  * 120.5 KiB minified bundle size (without machine learning enhancements)
+  * 114.3 KiB minified bundle size (without machine learning enhancements)
   * Uses the latest Opus 1.5 machine learning enhancements for high quality speech decoding
     * Note: Bundle size increases to 4.0 MiB when machine learning enhancements are enabled
   * Browser and NodeJS support
