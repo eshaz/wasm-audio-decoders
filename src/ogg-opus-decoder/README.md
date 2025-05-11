@@ -24,7 +24,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
   const decoder = new OggOpusDecoder();
   ```
  
-* Or download the build files [here](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-opus-decoder/dist) and load `ogg-opus-decoder.min.js` in script tag.
+* Or download the build files [here](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder/dist) and load `ogg-opus-decoder.min.js` in script tag.
   ```html
   <script src="ogg-opus-decoder.min.js"></script>
   <script>

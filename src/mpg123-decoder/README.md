@@ -21,7 +21,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
   const decoder = new MPEGDecoder();
   ```
  
-* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/mpg123-decoder/dist) and include it as a script.
+* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/mpg123-decoder/dist) and include it as a script.
   ```html
   <script src="mpg123-decoder.min.js"></script>
   <script>

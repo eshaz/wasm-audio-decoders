@@ -23,7 +23,7 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
   const decoder = new OggVorbisDecoder();
   ```
  
-* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/master/src/vorbis/dist) and include it as a script.
+* Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/vorbis/dist) and include it as a script.
   ```html
   <script src="ogg-vorbis-decoder.min.js"></script>
   <script>

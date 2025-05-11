@@ -41,7 +41,7 @@
   "bugs": {
     "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
   },
-  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/ogg-vorbis",
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-vorbis",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/eshaz/wasm-audio-decoders.git",

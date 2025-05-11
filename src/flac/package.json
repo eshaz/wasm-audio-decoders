@@ -40,7 +40,7 @@
   "bugs": {
     "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
   },
-  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/flac",
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/main/src/flac",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/eshaz/wasm-audio-decoders.git",

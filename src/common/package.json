@@ -28,7 +28,7 @@
   "bugs": {
     "url": "https://github.com/eshaz/wasm-audio-decoders/issues"
   },
-  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/master/src/common",
+  "homepage": "https://github.com/eshaz/wasm-audio-decoders/tree/main/src/common",
   "dependencies": {
     "@eshaz/web-worker": "1.2.2",
     "simple-yenc": "^1.0.4"
