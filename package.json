@@ -18,6 +18,7 @@
     "@types/jest": "^29.5.14",
     "@wasm-audio-decoders/flac": "file:src/flac",
     "@wasm-audio-decoders/ogg-vorbis": "file:src/ogg-vorbis",
+    "@wasm-audio-decoders/opus-ml": "file:src/opus-ml",
     "@wpdas/wave-header": "^1.0.1",
     "codec-parser": "2.5.0",
     "gh-pages": "^6.3.0",

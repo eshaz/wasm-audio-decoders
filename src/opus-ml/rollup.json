@@ -1,0 +1,10 @@
+{
+  "external": ["@eshaz/web-worker"],
+  "output": {
+    "format": "umd",
+    "name": "opus-ml",
+    "globals": {
+      "@eshaz/web-worker": "Worker"
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { WASMAudioDecoderCommon } from "@wasm-audio-decoders/common";
-import { OpusDecoder } from "opus-decoder";
+import { OpusDecoder, OpusDecoderWebWorker } from "opus-decoder";
 import CodecParser, {
   codecFrames,
   header,
@@ -14,9 +14,13 @@ import CodecParser, {
   totalSamples,
 } from "codec-parser";
 
+// prettier-ignore
+const simd=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11]))
+
 export default class OggOpusDecoder {
   constructor(options = {}) {
     this._sampleRate = options.sampleRate || 48000;
+    this._speechQualityEnhancement = options.speechQualityEnhancement;
     this._forceStereo =
       options.forceStereo !== undefined ? options.forceStereo : false;
 
@@ -29,9 +33,41 @@ export default class OggOpusDecoder {
 
     // instantiate to create static properties
     new WASMAudioDecoderCommon();
-    this._decoderClass = OpusDecoder;
+    this._useMLDecoder = ["lace", "nolace"].includes(
+      this._speechQualityEnhancement,
+    );
 
+    this._decoderLibraryLoaded = this._loadDecoderLibrary();
     this._ready = this._init();
+  }
+
+  _initDecoderClass() {
+    this._decoderClass = this._useMLDecoder
+      ? this.OpusMLDecoder
+      : this.OpusDecoder;
+  }
+
+  async _loadDecoderLibrary() {
+    if (this._useMLDecoder) {
+      const simdSupported = await simd();
+
+      if (simdSupported) {
+        const { OpusMLDecoder, OpusMLDecoderWebWorker } = await import(
+          /* webpackChunkName: "opus-ml" */ "@wasm-audio-decoders/opus-ml"
+        );
+        this.OpusMLDecoder = OpusMLDecoder;
+        this.OpusMLDecoderWebWorker = OpusMLDecoderWebWorker;
+      } else {
+        console.warn(
+          `ogg-opus-decoder: This platform does not support WebAssembly SIMD; { speechQualityEnhancements: '${this._speechQualityEnhancement}' } has been disabled`,
+        );
+        this._useMLDecoder = false;
+      }
+    }
+    this.OpusDecoder = OpusDecoder;
+    this.OpusDecoderWebWorker = OpusDecoderWebWorker;
+
+    this._initDecoderClass();
   }
 
   async _init() {
@@ -49,6 +85,8 @@ export default class OggOpusDecoder {
     this._preSkip = header[preSkip];
     this._channels = this._forceStereo ? 2 : header[channels];
 
+    await this._decoderLibraryLoaded;
+
     this._decoder = new this._decoderClass({
       channels: header[channels],
       streamCount: header[streamCount],
@@ -56,6 +94,7 @@ export default class OggOpusDecoder {
       channelMappingTable: header[channelMappingTable],
       preSkip: Math.round((this._preSkip / 48000) * this._sampleRate),
       sampleRate: this._sampleRate,
+      speechQualityEnhancement: this._speechQualityEnhancement,
       forceStereo: this._forceStereo,
     });
     await this._decoder.ready;
@@ -107,7 +146,7 @@ export default class OggOpusDecoder {
 
         if (!this._decoder)
           // wait until there is an Opus header before instantiating
-          decoderReady = this._instantiateDecoder(
+          decoderReady = await this._instantiateDecoder(
             oggPage[codecFrames][0][header],
           );
       }
