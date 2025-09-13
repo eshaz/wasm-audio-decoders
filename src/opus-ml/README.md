@@ -30,11 +30,12 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
  
 * Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/opus-ml/dist) and include it as a script.
   ```html
-  <script src="opus-ml-decoder.min.js"></script>
+  <script src="opus-ml-decoder.min.js" charset="UTF-8"></script>
   <script>
     const decoder = new window["opus-ml"].OpusMLDecoder();
   </script>
   ```
+* Note that the script must be read using UTF-8 character encoding. If running in a browser, the `<script>` tag must include the `charset="UTF-8"` attribute; or, the loading HTML must include `<meta charset="utf-8" />`.
 
 ## Usage
 

@@ -26,12 +26,14 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
  
 * Or download the build files [here](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/ogg-opus-decoder/dist) and load `ogg-opus-decoder.min.js` in script tag.
   ```html
-  <script src="ogg-opus-decoder.min.js"></script>
+  <script src="ogg-opus-decoder.min.js" charset="UTF-8"></script>
   <script>
     const decoder = new window["ogg-opus-decoder"].OggOpusDecoder();
   </script>
   ```
   * The `ogg-opus-decoder.opus-ml.min.js` build file is loaded at runtime when `options.speechQualityEnhancement` is set to `"lace"` or `"nolace"`. You may exclude this file if you don't use this option.
+
+* Note that the script must be read using UTF-8 character encoding. If running in a browser, the `<script>` tag must include the `charset="UTF-8"` attribute; or, the loading HTML must include `<meta charset="utf-8" />`.
 
 ## Usage
 

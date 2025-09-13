@@ -23,11 +23,12 @@ See the [homepage](https://github.com/eshaz/wasm-audio-decoders) of this reposit
  
 * Or download the [build](https://github.com/eshaz/wasm-audio-decoders/tree/main/src/mpg123-decoder/dist) and include it as a script.
   ```html
-  <script src="mpg123-decoder.min.js"></script>
+  <script src="mpg123-decoder.min.js" charset="UTF-8"></script>
   <script>
     const decoder = new window["mpg123-decoder"].MPEGDecoder();
   </script>
   ```
+* Note that the script must be read using UTF-8 character encoding. If running in a browser, the `<script>` tag must include the `charset="UTF-8"` attribute; or, the loading HTML must include `<meta charset="utf-8" />`.
 
 ## Usage
 
