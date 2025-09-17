@@ -97,7 +97,7 @@ export default class OggOpusDecoder {
       speechQualityEnhancement: this._speechQualityEnhancement,
       forceStereo: this._forceStereo,
     });
-    await this._decoder.ready;
+    return this._decoder.ready;
   }
 
   get ready() {
@@ -117,12 +117,11 @@ export default class OggOpusDecoder {
     let opusFrames = [],
       allErrors = [],
       allChannelData = [],
-      samplesThisDecode = 0,
-      decoderReady;
+      samplesThisDecode = 0;
 
     const flushFrames = async () => {
       if (opusFrames.length) {
-        await decoderReady;
+        await this._decoderReady;
 
         const { channelData, samplesDecoded, errors } =
           await this._decoder.decodeFrames(opusFrames);
@@ -146,7 +145,7 @@ export default class OggOpusDecoder {
 
         if (!this._decoder)
           // wait until there is an Opus header before instantiating
-          decoderReady = await this._instantiateDecoder(
+          this._decoderReady = this._instantiateDecoder(
             oggPage[codecFrames][0][header],
           );
       }
