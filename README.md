@@ -74,7 +74,7 @@ Decodes Ogg Vorbis data into PCM
 
 ### [`@wasm-audio-decoders/aac`](src/aac)
 Decodes AAC data into PCM
-  * 226.8 KiB minified bundle size
+  * 227.8 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 8 channels)

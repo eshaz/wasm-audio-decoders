@@ -692,13 +692,10 @@ $(MPG123_WASM_LIB):
 # -------------------------
 # @wasm-audio-decoders/aac
 # -------------------------
-# libfaad is compiled directly from source with the same defines used by the
-# upstream CMake build. SSR and DRM decoding are disabled by default upstream
-# and their sources compile to empty objects. HE-AAC v1 (SBR) and v2 (PS)
-# decoding can be removed to reduce size by adding -DLC_ONLY_DECODER.
 define AAC_EMCC_OPTS
 -Oz \
 --no-entry \
+-s BINARYEN_EXTRA_PASSES="-Oz,--optimize-instructions,--vacuum,--converge" \
 -s STACK_SIZE=128KB \
 -s EXPORTED_FUNCTIONS="[ \
     '_free', '_malloc' \
