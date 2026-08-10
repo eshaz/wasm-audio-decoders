@@ -16,6 +16,7 @@
     <script src="opus-ml-decoder.min.js"></script>
     <script src="ogg-opus-decoder.min.js"></script>
     <script src="ogg-vorbis-decoder.min.js"></script>
+    <script src="aac-decoder.min.js"></script>
     <script>
       // WAVE file helper functions
       const max = (a, b) => (a > b ? a : b);
@@ -340,6 +341,23 @@
             Runs using a Web Assembly build of
             <a href="https://www.mpg123.de/">mpg123</a>.
           </li>
+          <li>
+            Runs in the main thread or a separate thread using the Web Worker
+            api.
+          </li>
+        </ul>
+      </li>
+      <li>
+        <a href="https://github.com/eshaz/wasm-audio-decoders/tree/main/src/aac"
+          ><b>aac-decoder</b></a
+        >
+        is used to decode AAC data.
+        <ul>
+          <li>
+            Runs using a Web Assembly build of
+            <a href="https://github.com/knik0/faad2">faad2</a>.
+          </li>
+          <li>Decodes up to 8 discrete channels of audio.</li>
           <li>
             Runs in the main thread or a separate thread using the Web Worker
             api.
@@ -696,7 +714,13 @@
     };
 
     // file selector
-    let fileList, totalLength, mpegLength, opusLength, flacLength, vorbisLength;
+    let fileList,
+      totalLength,
+      mpegLength,
+      opusLength,
+      flacLength,
+      vorbisLength,
+      aacLength;
 
     const fileSelector = document.getElementById("file-selector");
 
@@ -751,6 +775,7 @@
       window["ogg-opus-decoder"];
     const { OggVorbisDecoderWebWorker, OggVorbisDecoder } =
       window["ogg-vorbis-decoder"];
+    const { AACDecoderWebWorker, AACDecoder } = window["aac-decoder"];
 
     const mpeg = "mpeg";
     const flac = "flac";
@@ -758,6 +783,7 @@
     const opus = "opus";
     const opusLace = "opus-lace";
     const opusNoLace = "opus-nolace";
+    const aac = "aac";
     const unknown = "unknown";
 
     const detectType = (mimeType, fileName) => {
@@ -769,6 +795,9 @@
           return flac;
         case "audio/vorbis":
           return vorbis;
+        case "audio/aac":
+        case "audio/aacp":
+          return aac;
         case "video/ogg":
         case "audio/ogg":
           if (fileName.includes("opus")) return opus;
@@ -787,6 +816,10 @@
               return vorbis;
             case "opus":
               return opus;
+            case "aac":
+            case "adts":
+            case "adif":
+              return aac;
             case "ogg":
               if (fileName.includes("opus")) return opus;
               if (fileName.includes("vorbis")) return vorbis;
@@ -835,8 +868,10 @@
         bytesOpus,
         bytesFLAC,
         bytesVorbis,
+        bytesAAC,
       ) {
-        const totalBytes = bytesMPEG + bytesOpus + bytesFLAC + bytesVorbis;
+        const totalBytes =
+          bytesMPEG + bytesOpus + bytesFLAC + bytesVorbis + bytesAAC;
 
         switch (numberOfDecoders) {
           case "main":
@@ -869,6 +904,11 @@
         this._oggVorbisDecoderStats = {
           maxDecoders:
             Math.round((bytesVorbis / totalBytes) * numberOfDecoders) || 1,
+          numberDecoders: 0,
+        };
+        this._aacDecoderStats = {
+          maxDecoders:
+            Math.round((bytesAAC / totalBytes) * numberOfDecoders) || 1,
           numberDecoders: 0,
         };
 
@@ -924,6 +964,12 @@
           decoderMethod = "decodeFile";
         };
 
+        const aacDecoder = () => {
+          DecoderClass = this._useMainThread ? AACDecoder : AACDecoderWebWorker;
+          decoderStats = this._aacDecoderStats;
+          decoderMethod = "decodeFile";
+        };
+
         switch (selectedType) {
           case mpeg:
             mpegDecoder();
@@ -942,6 +988,9 @@
             break;
           case opusNoLace:
             oggOpusNoLaceDecoder();
+            break;
+          case aac:
+            aacDecoder();
             break;
           case unknown:
             throw new Error(`Unsupported file type ${mimeType}`);
@@ -983,6 +1032,7 @@
       opusLength,
       flacLength,
       vorbisLength,
+      aacLength,
     );
 
     const createDecoderPool = () => {
@@ -993,6 +1043,7 @@
         opusLength,
         flacLength,
         vorbisLength,
+        aacLength,
       );
     };
 
@@ -1351,6 +1402,7 @@
       opusLength = 0;
       flacLength = 0;
       vorbisLength = 0;
+      aacLength = 0;
 
       fileList.forEach(({ file, selectedType }) => {
         if (selectedType === mpeg) mpegLength += file.size;
@@ -1359,6 +1411,7 @@
         if (selectedType === opusLace) opusLength += file.size;
         if (selectedType === opusNoLace) opusLength += file.size;
         if (selectedType === vorbis) vorbisLength += file.size;
+        if (selectedType === aac) aacLength += file.size;
       });
 
       createDecoderPool();
@@ -1428,6 +1481,7 @@
       opusLength = 0;
       flacLength = 0;
       vorbisLength = 0;
+      aacLength = 0;
 
       resetWebAudioPlayers();
 
@@ -1485,6 +1539,9 @@
               <option ${
                 file.selectedType === vorbis ? "selected " : ""
               } value="vorbis">ogg-vorbis</option>
+              <option ${
+                file.selectedType === aac ? "selected " : ""
+              } value="aac">aac</option>
             </select>
           </td>
           <td style="display:none;" id="_status-${i}">selected</td>

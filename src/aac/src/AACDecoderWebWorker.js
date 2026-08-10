@@ -1,10 +1,10 @@
 import { WASMAudioDecoderWorker } from "@wasm-audio-decoders/common";
 import EmscriptenWASM from "./EmscriptenWasm.js";
-import FLACDecoder, { _FLACDecoder, setDecoderClass } from "./FLACDecoder.js";
+import AACDecoder, { _AACDecoder, setDecoderClass } from "./AACDecoder.js";
 
 class DecoderWorker extends WASMAudioDecoderWorker {
   constructor(options) {
-    super(options, "flac-decoder", _FLACDecoder, EmscriptenWASM);
+    super(options, "aac-decoder", _AACDecoder, EmscriptenWASM);
   }
 
   async decodeFrames(frames) {
@@ -12,9 +12,9 @@ class DecoderWorker extends WASMAudioDecoderWorker {
   }
 }
 
-export default class FLACDecoderWebWorker extends FLACDecoder {
-  constructor() {
-    super();
+export default class AACDecoderWebWorker extends AACDecoder {
+  constructor(options) {
+    super(options);
 
     super[setDecoderClass](DecoderWorker);
   }

@@ -1,13 +1,13 @@
 
 default: dist
 
-clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean ogg-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean
+clean: dist-clean flac-wasmlib-clean opus-wasmlib-clean ogg-wasmlib-clean vorbis-wasmlib-clean mpg123-wasmlib-clean faad2-wasmlib-clean
 
 configure: flac-configure ogg-configure vorbis-configure libopus-configure libopus-ml-configure mpg123-configure
 
 DEMO_PATH=demo/
 
-dist: flac-decoder opus-decoder opus-ml-decoder ogg-opus-decoder ogg-vorbis-decoder mpg123-decoder
+dist: flac-decoder opus-decoder opus-ml-decoder ogg-opus-decoder ogg-vorbis-decoder mpg123-decoder aac-decoder
 dist-clean:
 	rm -rf $(DEMO_PATH)*.js
 	rm -rf $(FLAC_DECODER_PATH)dist/*
@@ -16,12 +16,14 @@ dist-clean:
 	rm -rf $(OGG_OPUS_DECODER_PATH)dist/*
 	rm -rf $(MPG123_DECODER_PATH)dist/*
 	rm -rf $(OGG_VORBIS_DECODER_PATH)dist/*
+	rm -rf $(AAC_DECODER_PATH)dist/*
 	rm -rf $(PUFF_EMSCRIPTEN_BUILD)
 	rm -rf $(FLAC_EMSCRIPTEN_BUILD)
 	rm -rf $(OPUS_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(OPUS_ML_DECODER_EMSCRIPTEN_BUILD)
 	rm -rf $(MPG123_EMSCRIPTEN_BUILD)
 	rm -rf $(OGG_VORBIS_EMSCRIPTEN_BUILD)
+	rm -rf $(AAC_EMSCRIPTEN_BUILD)
 
 # puff
 COMMON_PATH=src/common/
@@ -157,6 +159,28 @@ mpg123-decoder-minify: $(MPG123_EMSCRIPTEN_BUILD)
 mpg123-wasmlib: $(MPG123_WASM_LIB)
 mpg123-wasmlib-clean: dist-clean
 	rm -rf $(MPG123_WASM_LIB)
+
+# @wasm-audio-decoders/aac
+FAAD2_SRC=modules/faad2/
+FAAD2_WASM_LIB=tmp/faad2.o
+AAC_DECODER_PATH=src/aac/
+AAC_EMSCRIPTEN_BUILD=$(AAC_DECODER_PATH)src/EmscriptenWasm.tmp.js
+AAC_DECODER_MODULE=$(AAC_DECODER_PATH)dist/aac-decoder.js
+AAC_DECODER_MODULE_MIN=$(AAC_DECODER_PATH)dist/aac-decoder.min.js
+
+aac-decoder: faad2-wasmlib aac-decoder-minify $(AAC_EMSCRIPTEN_BUILD)
+aac-decoder-minify: $(AAC_EMSCRIPTEN_BUILD)
+	SOURCE_PATH=$(AAC_DECODER_PATH) \
+	OUTPUT_NAME=EmscriptenWasm \
+	MODULE=$(AAC_DECODER_MODULE) \
+	MODULE_MIN=$(AAC_DECODER_MODULE_MIN) \
+	COMPRESSION_ITERATIONS=5 \
+	npm run minify
+	cp $(AAC_DECODER_MODULE) $(AAC_DECODER_MODULE_MIN) $(AAC_DECODER_MODULE_MIN).map $(DEMO_PATH)
+
+faad2-wasmlib: $(FAAD2_WASM_LIB)
+faad2-wasmlib-clean: dist-clean
+	rm -rf $(FAAD2_WASM_LIB)
 
 # -O4,--flexible-inline-max-function-size,--dae-optimizing,-ffm,--coalesce-locals-learning,--optimize-instructions,--rse,--reorder-functions,--reorder-functions,--reorder-locals,--merge-blocks,--merge-locals,--simplify-globals-optimizing,--licm,--vacuum,--converge,
 # common EMCC options
@@ -662,5 +686,70 @@ $(MPG123_WASM_LIB):
 	@ echo "+-------------------------------------------------------------------------------"
 	@ echo "|"
 	@ echo "|  Successfully built: $(MPG123_WASM_LIB)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+# -------------------------
+# @wasm-audio-decoders/aac
+# -------------------------
+# libfaad is compiled directly from source with the same defines used by the
+# upstream CMake build. SSR and DRM decoding are disabled by default upstream
+# and their sources compile to empty objects. HE-AAC v1 (SBR) and v2 (PS)
+# decoding can be removed to reduce size by adding -DLC_ONLY_DECODER.
+define AAC_EMCC_OPTS
+-Oz \
+--no-entry \
+-s STACK_SIZE=128KB \
+-s EXPORTED_FUNCTIONS="[ \
+    '_free', '_malloc' \
+  , '_create_decoder' \
+  , '_destroy_decoder' \
+  , '_decode_frame' \
+]" \
+--pre-js '$(AAC_DECODER_PATH)src/emscripten-pre.js' \
+--post-js '$(AAC_DECODER_PATH)src/emscripten-post.js' \
+-I "$(FAAD2_SRC)include" \
+$(AAC_DECODER_PATH)src/aac_decoder.c
+endef
+
+$(AAC_EMSCRIPTEN_BUILD): $(FAAD2_WASM_LIB)
+	@ mkdir -p $(AAC_DECODER_PATH)dist
+	@ echo "Building Emscripten WebAssembly module $(AAC_EMSCRIPTEN_BUILD)..."
+	@ emcc \
+		-o "$(AAC_EMSCRIPTEN_BUILD)" \
+	  ${EMCC_OPTS} \
+	  $(AAC_EMCC_OPTS) \
+	  $(FAAD2_WASM_LIB)
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built JS Module: $(AAC_EMSCRIPTEN_BUILD)"
+	@ echo "|"
+	@ echo "+-------------------------------------------------------------------------------"
+
+$(FAAD2_WASM_LIB):
+	@ mkdir -p tmp
+	@ echo "Building faad2 Emscripten Library $(FAAD2_WASM_LIB)..."
+	@ emcc \
+	  -o "$(FAAD2_WASM_LIB)" \
+	  -r \
+	  -Oz \
+	  -flto \
+	  -s NO_FILESYSTEM=1 \
+	  -s STRICT=1 \
+	  -D HAVE_INTTYPES_H=1 \
+	  -D HAVE_MEMCPY=1 \
+	  -D HAVE_STRING_H=1 \
+	  -D HAVE_STRINGS_H=1 \
+	  -D HAVE_SYS_STAT_H=1 \
+	  -D HAVE_SYS_TYPES_H=1 \
+	  -D HAVE_LRINTF=1 \
+	  -D APPLY_DRC \
+	  -D PACKAGE_VERSION='"2.11.2"' \
+	  -I "$(FAAD2_SRC)include" \
+	  -I "$(FAAD2_SRC)libfaad" \
+	  $(wildcard $(FAAD2_SRC)libfaad/*.c)
+	@ echo "+-------------------------------------------------------------------------------"
+	@ echo "|"
+	@ echo "|  Successfully built: $(FAAD2_WASM_LIB)"
 	@ echo "|"
 	@ echo "+-------------------------------------------------------------------------------"

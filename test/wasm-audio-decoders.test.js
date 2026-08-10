@@ -26,6 +26,7 @@ import {
   OggVorbisDecoder,
   OggVorbisDecoderWebWorker,
 } from "@wasm-audio-decoders/ogg-vorbis";
+import { AACDecoder, AACDecoderWebWorker } from "@wasm-audio-decoders/aac";
 
 const EXPECTED_PATH = new URL("expected", import.meta.url).pathname;
 const ACTUAL_PATH = new URL("actual", import.meta.url).pathname;
@@ -325,6 +326,22 @@ describe("wasm-audio-decoders", () => {
   const opusOsceMale6kbsTestFile = "opus_osce_male_ref_6kbs.ogg";
   const opusOsceMale9kbsTestFile = "opus_osce_male_ref_9kbs.ogg";
   const opusOsceMale12kbsTestFile = "opus_osce_male_ref_12kbs.ogg";
+
+  // ffmpeg -i flac.flac -c:a libfdk_aac -b:a 128k -f adts aac.lc.adts
+  const aacStereoTestFile = "aac.lc.adts";
+  // ffmpeg -i flac.flac -ac 1 -c:a libfdk_aac -b:a 64k -f adts aac.lc.mono.adts
+  const aacMonoTestFile = "aac.lc.mono.adts";
+  // ffmpeg -i flac.flac -c:a libfdk_aac -profile:a aac_he -b:a 48k -f adts aac.he_v1.adts
+  const aacHeV1TestFile = "aac.he_v1.adts";
+  // ffmpeg -i flac.flac -c:a libfdk_aac -profile:a aac_he_v2 -b:a 32k -f adts aac.he_v2.adts
+  const aacHeV2TestFile = "aac.he_v2.adts";
+  // ffmpeg -i flac.flac -t 30 -af "pan=5.1|FL=FL|FR=FR|FC=0.6*FL+0.6*FR|LFE=0.1*FL|BL=0.8*FL|BR=0.8*FR" -c:a libfdk_aac -b:a 320k -f adts aac.lc.5_1.adts
+  const aacSurround51TestFile = "aac.lc.5_1.adts";
+  // ffmpeg -i flac.flac -t 30 -af "pan=7.1|FL=FL|FR=FR|FC=0.6*FL+0.6*FR|LFE=0.1*FL|BL=0.8*FL|BR=0.8*FR|SL=0.4*FL|SR=0.4*FR" -c:a libfdk_aac -b:a 448k -f adts aac.lc.7_1.adts
+  const aacSurround71TestFile = "aac.lc.7_1.adts";
+  // ADIF header (VBR, PCE: AAC-LC 44100 Hz stereo CPE) followed by the raw
+  // frame payloads of a 30 second 128k CBR ADTS encode of flac.flac
+  const aacAdifTestFile = "aac.adif";
 
   beforeAll(async () => {
     await decompressExpectedFiles();
@@ -3457,6 +3474,536 @@ describe("wasm-audio-decoders", () => {
         expect(result.samplesDecoded).toEqual(343);
         expect(result.sampleRate).toEqual(8000);
         expect(result.bitDepth).toEqual(16);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+  });
+
+  describe("aac-decoder", () => {
+    let aacStereoFrames,
+      aacStereoFramesLength,
+      aacRawFrames,
+      aacRawFramesLength;
+
+    // AAC-LC, 44100 Hz, stereo
+    const aacRawAudioSpecificConfig = new Uint8Array([0x12, 0x10]);
+
+    const getFrames = (codecFrames) => {
+      let length = 0,
+        frames;
+
+      frames = codecFrames.map((codecFrame) => {
+        length += codecFrame.data.length;
+        return codecFrame.data;
+      });
+
+      return [frames, length];
+    };
+
+    beforeAll(async () => {
+      const parser = new CodecParser("audio/aac");
+
+      [aacStereoFrames, aacStereoFramesLength] = getFrames(
+        parser.parseAll(
+          await fs.readFile(getTestPaths(aacStereoTestFile).inputPath),
+        ),
+      );
+
+      // strip the 7 byte ADTS headers to produce raw AAC frames
+      aacRawFrames = aacStereoFrames.map((frame) => frame.subarray(7));
+      aacRawFramesLength = aacRawFrames.reduce(
+        (total, frame) => total + frame.length,
+        0,
+      );
+    });
+
+    it("should have name as an instance and static property for AACDecoder", async () => {
+      const decoder = new AACDecoder();
+      const name = decoder.constructor.name;
+      await decoder.ready;
+      decoder.free();
+
+      expect(name).toEqual("AACDecoder");
+      expect(AACDecoder.name).toEqual("AACDecoder");
+    });
+
+    it("should have name as an instance and static property for AACDecoderWebWorker", async () => {
+      const decoder = new AACDecoderWebWorker();
+      const name = decoder.constructor.name;
+      await decoder.ready;
+      await decoder.free();
+
+      expect(name).toEqual("AACDecoderWebWorker");
+      expect(AACDecoderWebWorker.name).toEqual("AACDecoderWebWorker");
+    });
+
+    describe("main thread", () => {
+      it("should decode aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoder(),
+          "decodeFile",
+          "should decode aac",
+          aacStereoTestFile,
+          aacStereoTestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode aac while reading small chunks", async () => {
+        const { paths, result } = await test_decodeChunks(
+          new AACDecoder(),
+          "decode",
+          "should decode aac while reading small chunks",
+          aacStereoTestFile,
+          aacStereoTestFile,
+          [],
+          [],
+          123,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode aac frames", async () => {
+        const { paths, result } = await test_decodeFrames(
+          new AACDecoder(),
+          "should decode aac frames",
+          aacStereoTestFile,
+          null,
+          aacStereoFrames,
+          aacStereoFramesLength,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode aac frames with errors", async () => {
+        const frameWithErrors = Uint8Array.from({ length: 400 }, () => 1);
+        const aacStereoFramesWithErrors = [
+          ...aacStereoFrames.slice(0, 5),
+          frameWithErrors,
+          ...aacStereoFrames.slice(5),
+        ];
+        const aacStereoFramesLengthWithErrors = aacStereoFramesLength + 400;
+
+        // a corrupt frame perturbs the faad2 decoder state deterministically,
+        // so the frames decoded after the error differ from the clean decode
+        const { paths, result } = await test_decodeFrames(
+          new AACDecoder(),
+          "should decode aac frames",
+          aacStereoTestFile,
+          null,
+          aacStereoFramesWithErrors,
+          aacStereoFramesLengthWithErrors,
+          ["errors"],
+          ["errors"],
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors).toEqual([
+          {
+            message: "Unable to find ADTS syncword",
+            frameLength: 400,
+            frameNumber: 5,
+            inputBytes: 1956,
+            outputSamples: 4096,
+          },
+        ]);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode raw aac frames using an audioSpecificConfig", async () => {
+        const { paths, result } = await test_decodeFrames(
+          new AACDecoder({
+            audioSpecificConfig: aacRawAudioSpecificConfig,
+          }),
+          "should decode raw aac frames using an audioSpecificConfig",
+          aacStereoTestFile,
+          null,
+          aacRawFrames,
+          aacRawFramesLength,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode mono aac into stereo", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoder(),
+          "decodeFile",
+          "should decode mono aac into stereo",
+          aacMonoTestFile,
+          aacMonoTestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.channelsDecoded).toEqual(2);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode HE-AAC v1 aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoder(),
+          "decodeFile",
+          "should decode HE-AAC v1 aac",
+          aacHeV1TestFile,
+          aacHeV1TestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3502080);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode HE-AAC v2 aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoder(),
+          "decodeFile",
+          "should decode HE-AAC v2 aac",
+          aacHeV2TestFile,
+          aacHeV2TestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.channelsDecoded).toEqual(2);
+        expect(result.samplesDecoded).toEqual(3504128);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 5.1 surround aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoder(),
+          "decodeFile",
+          "should decode 5.1 surround aac",
+          aacSurround51TestFile,
+          aacSurround51TestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.channelsDecoded).toEqual(6);
+        expect(result.samplesDecoded).toEqual(1324032);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 7.1 surround aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoder(),
+          "decodeFile",
+          "should decode 7.1 surround aac",
+          aacSurround71TestFile,
+          aacSurround71TestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.channelsDecoded).toEqual(8);
+        expect(result.samplesDecoded).toEqual(1324032);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode adif aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoder(),
+          "decodeFile",
+          "should decode adif aac",
+          aacAdifTestFile,
+          aacAdifTestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(1324032);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode adif aac while reading small chunks", async () => {
+        // decoding a frame that is truncated at a chunk boundary perturbs the
+        // faad2 decoder state deterministically, so chunked ADIF output is
+        // byte exact only for a matching chunk size
+        const { paths, result } = await test_decodeChunks(
+          new AACDecoder(),
+          "decode",
+          "should decode adif aac while reading small chunks",
+          aacAdifTestFile,
+          aacAdifTestFile,
+          ["chunked"],
+          ["chunked"],
+          123,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(1324032);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+    });
+
+    describe("web worker", () => {
+      it("should decode aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoderWebWorker(),
+          "decodeFile",
+          "should decode aac",
+          aacStereoTestFile,
+          aacStereoTestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode aac while reading small chunks", async () => {
+        const { paths, result } = await test_decodeChunks(
+          new AACDecoderWebWorker(),
+          "decode",
+          "should decode aac while reading small chunks",
+          aacStereoTestFile,
+          aacStereoTestFile,
+          [],
+          [],
+          123,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode aac frames", async () => {
+        const { paths, result } = await test_decodeFrames(
+          new AACDecoderWebWorker(),
+          "should decode aac frames",
+          aacStereoTestFile,
+          null,
+          aacStereoFrames,
+          aacStereoFramesLength,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode aac frames with errors", async () => {
+        const frameWithErrors = Uint8Array.from({ length: 400 }, () => 1);
+        const aacStereoFramesWithErrors = [
+          ...aacStereoFrames.slice(0, 5),
+          frameWithErrors,
+          ...aacStereoFrames.slice(5),
+        ];
+        const aacStereoFramesLengthWithErrors = aacStereoFramesLength + 400;
+
+        // a corrupt frame perturbs the faad2 decoder state deterministically,
+        // so the frames decoded after the error differ from the clean decode
+        const { paths, result } = await test_decodeFrames(
+          new AACDecoderWebWorker(),
+          "should decode aac frames",
+          aacStereoTestFile,
+          null,
+          aacStereoFramesWithErrors,
+          aacStereoFramesLengthWithErrors,
+          ["errors"],
+          ["errors"],
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors).toEqual([
+          {
+            message: "Unable to find ADTS syncword",
+            frameLength: 400,
+            frameNumber: 5,
+            inputBytes: 1956,
+            outputSamples: 4096,
+          },
+        ]);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode raw aac frames using an audioSpecificConfig", async () => {
+        const { paths, result } = await test_decodeFrames(
+          new AACDecoderWebWorker({
+            audioSpecificConfig: aacRawAudioSpecificConfig,
+          }),
+          "should decode raw aac frames using an audioSpecificConfig",
+          aacStereoTestFile,
+          null,
+          aacRawFrames,
+          aacRawFramesLength,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3499008);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode 5.1 surround aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoderWebWorker(),
+          "decodeFile",
+          "should decode 5.1 surround aac",
+          aacSurround51TestFile,
+          aacSurround51TestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.channelsDecoded).toEqual(6);
+        expect(result.samplesDecoded).toEqual(1324032);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode HE-AAC v1 aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoderWebWorker(),
+          "decodeFile",
+          "should decode HE-AAC v1 aac",
+          aacHeV1TestFile,
+          aacHeV1TestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(3502080);
+        expect(result.sampleRate).toEqual(44100);
+        expect(Buffer.compare(actual, expected)).toEqual(0);
+      });
+
+      it("should decode adif aac", async () => {
+        const { paths, result } = await test_decode(
+          new AACDecoderWebWorker(),
+          "decodeFile",
+          "should decode adif aac",
+          aacAdifTestFile,
+          aacAdifTestFile,
+        );
+
+        const [actual, expected] = await Promise.all([
+          fs.readFile(paths.actualPath),
+          fs.readFile(paths.expectedPath),
+        ]);
+
+        expect(result.errors.length).toEqual(0);
+        expect(result.samplesDecoded).toEqual(1324032);
+        expect(result.sampleRate).toEqual(44100);
         expect(Buffer.compare(actual, expected)).toEqual(0);
       });
     });

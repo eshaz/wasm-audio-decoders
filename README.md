@@ -72,6 +72,16 @@ Decodes Ogg Vorbis data into PCM
   * Based on [`libvorbis`](https://github.com/xiph/vorbis) and [`codec-parser`](https://github.com/eshaz/codec-parser)
   * Install using [NPM](https://www.npmjs.com/@wasm-audio-decoders/ogg-vorbis)
 
+### [`@wasm-audio-decoders/aac`](src/aac)
+Decodes AAC data into PCM
+  * 226.8 KiB minified bundle size
+  * Browser and NodeJS support
+  * Built in Web Worker support
+  * Multichannel decoding (up to 8 channels)
+  * Supports raw AAC frames using an AudioSpecificConfig, i.e. from an ISOBMFF (mp4) `esds` box
+  * Based on [`faad2`](https://github.com/knik0/faad2) and [`codec-parser`](https://github.com/eshaz/codec-parser)
+  * Install using [NPM](https://www.npmjs.com/@wasm-audio-decoders/aac)
+
 ## Developing
 
 ### Prerequisites

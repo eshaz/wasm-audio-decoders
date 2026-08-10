@@ -34,6 +34,12 @@ import {
   OggVorbisDecoder,
   OggVorbisDecoderWebWorker,
 } from "@wasm-audio-decoders/ogg-vorbis";
+import {
+  DecodeError as AACDecodeError,
+  AACDecodedAudio,
+  AACDecoder,
+  AACDecoderWebWorker,
+} from "@wasm-audio-decoders/aac";
 
 const fakeData: Uint8Array = new Uint8Array(0);
 
@@ -83,6 +89,17 @@ const flacDecoderWebWorker: FLACDecoderWebWorker = new FLACDecoderWebWorker();
 const oggVorbisDecoder: OggVorbisDecoder = new OggVorbisDecoder();
 const oggVorbisDecoderWebWorker: OggVorbisDecoderWebWorker =
   new OggVorbisDecoderWebWorker();
+
+const aacDecoder: AACDecoder = new AACDecoder();
+const aacDecoderWebWorker: AACDecoderWebWorker = new AACDecoderWebWorker();
+
+// test aac decoder options
+const aacDecoderRaw = new AACDecoder({
+  audioSpecificConfig: fakeData,
+});
+const aacDecoderWebWorkerRaw = new AACDecoderWebWorker({
+  audioSpecificConfig: fakeData,
+});
 
 // test decoded audio types
 const mpegDecoderDecode: MPEGDecodedAudio = mpegDecoder.decode(fakeData);
@@ -139,3 +156,15 @@ const oggVorbisDecoderDecodeSampleRate: number =
   oggVorbisDecoderDecode.sampleRate;
 const oggVorbisDecoderDecodeErrors: OggVorbisDecodeError[] =
   oggVorbisDecoderDecode.errors;
+
+const aacDecoderDecode: AACDecodedAudio = await aacDecoder.decode(fakeData);
+const aacDecoderDecodeChannelData: Float32Array[] =
+  aacDecoderDecode.channelData;
+const aacDecoderDecodeSamplesDecoded: number = aacDecoderDecode.samplesDecoded;
+const aacDecoderDecodeSampleRate: number = aacDecoderDecode.sampleRate;
+const aacDecoderDecodeErrors: AACDecodeError[] = aacDecoderDecode.errors;
+
+const aacDecoderDecodeFrames: AACDecodedAudio =
+  await aacDecoderRaw.decodeFrames([fakeData]);
+const aacDecoderWebWorkerDecode: AACDecodedAudio =
+  await aacDecoderWebWorker.decode(fakeData);
