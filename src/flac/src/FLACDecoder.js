@@ -8,7 +8,7 @@ import CodecParser, {
 
 import EmscriptenWASM from "./EmscriptenWasm.js";
 
-export function Decoder() {
+export function _FLACDecoder() {
   // injects dependencies when running as a web worker
   // async
   this._init = () => {
@@ -164,11 +164,11 @@ export function Decoder() {
   };
 
   // injects dependencies when running as a web worker
-  this._isWebWorker = Decoder.isWebWorker;
+  this._isWebWorker = _FLACDecoder.isWebWorker;
   this._WASMAudioDecoderCommon =
-    Decoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
-  this._EmscriptenWASM = Decoder.EmscriptenWASM || EmscriptenWASM;
-  this._module = Decoder.module;
+    _FLACDecoder.WASMAudioDecoderCommon || WASMAudioDecoderCommon;
+  this._EmscriptenWASM = _FLACDecoder.EmscriptenWASM || EmscriptenWASM;
+  this._module = _FLACDecoder.module;
 
   this._MAX_INPUT_SIZE = 65535 * 8;
 
@@ -200,7 +200,7 @@ export default class FLACDecoder {
     new WASMAudioDecoderCommon();
 
     this[init]();
-    this[setDecoderClass](Decoder);
+    this[setDecoderClass](_FLACDecoder);
   }
 
   [init]() {
