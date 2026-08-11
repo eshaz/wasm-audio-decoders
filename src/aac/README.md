@@ -1,7 +1,7 @@
 # `@wasm-audio-decoders/aac`
 
 `@wasm-audio-decoders/aac` is a Web Assembly AAC audio decoder.
-  * 227.5 KiB minified bundle size
+  * 226.4 KiB minified bundle size
   * Supports ADTS and ADIF streams, and raw AAC frames using an AudioSpecificConfig
   * Browser and NodeJS support
   * Built in Web Worker support
