@@ -2,11 +2,7 @@ import { DecodeError } from "@wasm-audio-decoders/common";
 
 export type OpusMLDecoderDefaultSampleRate = 48000;
 export type OpusMLDecoderSampleRate =
-  | 8000
-  | 12000
-  | 16000
-  | 24000
-  | OpusMLDecoderDefaultSampleRate;
+  8000 | 12000 | 16000 | 24000 | OpusMLDecoderDefaultSampleRate;
 export type OpusMLSpeechQualityEnhancementOption = "none" | "lace" | "nolace";
 
 export interface OpusMLDecodedAudio<

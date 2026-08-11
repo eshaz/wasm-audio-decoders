@@ -5,7 +5,7 @@ import fs from "fs";
 const packageJson = JSON.parse(fs.readFileSync("./package.json"));
 
 const license =
-  "/* Copyright 2021-2025 Ethan Halsall. This file is part of wasm-audio-decoders. https://github.com/eshaz/wasm-audio-decoders */";
+  "/* Copyright 2021-2026 Ethan Halsall. This file is part of wasm-audio-decoders. https://github.com/eshaz/wasm-audio-decoders */";
 
 export default {
   mode: "production",

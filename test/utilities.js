@@ -112,7 +112,7 @@ export const testDecoder_decodeFrame = async (
 
     for (let i = 0; i < channelsDecoded; i++) {
       const channel = [];
-      for (let j = 0; j < decodeResults.length; )
+      for (let j = 0; j < decodeResults.length;)
         channel.push(decodeResults[j++][i]);
       channelData.push(concatFloat32(channel, samplesDecoded));
     }
