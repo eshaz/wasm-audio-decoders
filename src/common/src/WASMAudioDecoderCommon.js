@@ -78,7 +78,7 @@ export default function WASMAudioDecoderCommon() {
 
           for (i = 0; i < channelsDecoded; i++) {
             const channel = [];
-            for (j = 0; j < input.length; ) channel.push(input[j++][i] || []);
+            for (j = 0; j < input.length;) channel.push(input[j++][i] || []);
             channelData.push(
               WASMAudioDecoderCommon.concatFloat32(channel, samplesDecoded),
             );

@@ -7,7 +7,7 @@
     "install-decoders": "./decoder-npm-install.sh",
     "minify": "UV_THREADPOOL_SIZE=1024 node build.js $SOURCE_PATH $OUTPUT_NAME $COMPRESSION_ITERATIONS $MODULE $MODULE_MIN",
     "deploy": "gh-pages -d demo",
-    "format": "prettier --cache --write '**/*.js' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.*ts'",
+    "format": "prettier --cache --write '**/*.js' --write '**/*.*json*' --write '**/*.*html*' --write '**/*.ts'",
     "test": "npm run test-ts && node --experimental-vm-modules node_modules/.bin/jest --maxWorkers=100%",
     "test-ts": "tsc test/wasm-audio-decoders.ts --noEmit --module nodenext --target esnext",
     "generate-data": "find test/expected -iname \"*.wav\" -exec gzip -fnk {} ';'"
@@ -16,22 +16,23 @@
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@types/jest": "^30.0.0",
+    "@wasm-audio-decoders/aac": "file:src/aac",
     "@wasm-audio-decoders/flac": "file:src/flac",
     "@wasm-audio-decoders/ogg-vorbis": "file:src/ogg-vorbis",
     "@wasm-audio-decoders/opus-ml": "file:src/opus-ml",
     "@wpdas/wave-header": "^1.0.1",
     "codec-parser": "2.5.0",
     "gh-pages": "^6.3.0",
-    "jest": "^30.2.0",
+    "jest": "^30.4.2",
     "mpg123-decoder": "file:src/mpg123-decoder",
     "node-zopfli": "^2.1.4",
     "ogg-opus-decoder": "file:src/ogg-opus-decoder",
     "opus-decoder": "file:src/opus-decoder",
-    "prettier": "^3.5.3",
-    "rollup": "^4.40.0",
+    "prettier": "^3.9.6",
+    "rollup": "^4.62.4",
     "simple-yenc": "1.0.4",
-    "terser": "^5.39.0",
-    "typescript": "^5.8.3",
+    "terser": "^5.49.2",
+    "typescript": "^7.0.2",
     "web-worker": "^1.5.0"
   }
 }

@@ -17,3 +17,6 @@
 [submodule "modules/ogg"]
 	path = modules/ogg
 	url = https://github.com/xiph/ogg.git
+[submodule "modules/faad2"]
+	path = modules/faad2
+	url = https://github.com/knik0/faad2.git

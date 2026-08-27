@@ -32,7 +32,7 @@ Decodes FLAC and Ogg FLAC data into PCM
 
 ### [`ogg-opus-decoder`](src/ogg-opus-decoder)
 Decodes Ogg Opus data into PCM
-  * 114.3 KiB minified bundle size
+  * 114.9 KiB minified bundle size
   * Uses the latest Opus 1.5 machine learning enhancements for high quality speech decoding
     * Note: Bundle size increases to 4.0 MiB when machine learning enhancements are enabled
   * Browser and NodeJS support
@@ -64,13 +64,23 @@ Decodes raw Opus audio frames into PCM with [Machine Learning enhancements](http
 
 ### [`@wasm-audio-decoders/ogg-vorbis`](src/ogg-vorbis)
 Decodes Ogg Vorbis data into PCM
-  * 99.3 KiB minified bundle size
+  * 99.4 KiB minified bundle size
   * Browser and NodeJS support
   * Built in Web Worker support
   * Multichannel decoding (up to 255 channels)
   * Supports full Vorbis sample rate.
   * Based on [`libvorbis`](https://github.com/xiph/vorbis) and [`codec-parser`](https://github.com/eshaz/codec-parser)
   * Install using [NPM](https://www.npmjs.com/@wasm-audio-decoders/ogg-vorbis)
+
+### [`@wasm-audio-decoders/aac`](src/aac)
+Decodes AAC data into PCM
+  * 226.4 KiB minified bundle size
+  * Browser and NodeJS support
+  * Built in Web Worker support
+  * Multichannel decoding (up to 8 channels)
+  * Supports raw AAC frames using an AudioSpecificConfig, i.e. from an ISOBMFF (mp4) `esds` box
+  * Based on [`faad2`](https://github.com/knik0/faad2) and [`codec-parser`](https://github.com/eshaz/codec-parser)
+  * Install using [NPM](https://www.npmjs.com/@wasm-audio-decoders/aac)
 
 ## Developing
 

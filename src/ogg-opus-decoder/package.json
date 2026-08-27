@@ -1,6 +1,6 @@
 {
   "name": "ogg-opus-decoder",
-  "version": "1.7.3",
+  "version": "1.7.5",
   "description": "Web Assembly streaming Ogg Opus decoder",
   "type": "module",
   "main": "./index.js",
@@ -60,15 +60,15 @@
   },
   "devDependencies": {
     "babel-plugin-syntax-dynamic-import": "^6.18.0",
-    "terser-webpack-plugin": "^5.3.14",
-    "webpack": "^5.99.7",
-    "webpack-bundle-analyzer": "^4.10.2",
-    "webpack-cli": "^6.0.1"
+    "terser-webpack-plugin": "^5.6.1",
+    "webpack": "^5.110.1",
+    "webpack-bundle-analyzer": "^5.3.2",
+    "webpack-cli": "^7.2.2"
   },
   "dependencies": {
     "@wasm-audio-decoders/common": "9.0.7",
-    "@wasm-audio-decoders/opus-ml": "0.0.2",
-    "opus-decoder": "0.7.11",
-    "codec-parser": "2.5.0"
+    "@wasm-audio-decoders/opus-ml": "0.0.3",
+    "codec-parser": "2.5.0",
+    "opus-decoder": "0.7.12"
   }
 }

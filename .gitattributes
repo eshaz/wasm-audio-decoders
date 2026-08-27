@@ -1,10 +1,12 @@
 # submodules
+modules/faad2/* linguist-vendored
 modules/mpg123/* linguist-vendored
 modules/ogg/* linguist-vendored
 modules/opus/* linguist-vendored
 modules/opusfile/* linguist-vendored
 
 # builds
+src/aac/dist/* linguist-generated
 src/mpg123-decoder/dist/* linguist-generated
 src/ogg-opus-decoder/dist/* linguist-generated
 src/opus-decoder/dist/* linguist-generated

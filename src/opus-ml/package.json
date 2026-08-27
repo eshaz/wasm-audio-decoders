@@ -1,6 +1,6 @@
 {
   "name": "@wasm-audio-decoders/opus-ml",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Web Assembly streaming Opus decoder with Machine Learning enhancements",
   "type": "module",
   "main": "./index.js",
