@@ -34,7 +34,15 @@
         "frameLength",
         "frameNumber",
         "inputBytes",
-        "outputSamples"
+        "outputSamples",
+        "sampleRate",
+        "channels",
+        "streamCount",
+        "coupledStreamCount",
+        "channelMappingTable",
+        "preSkip",
+        "forceStereo",
+        "errors"
       ]
     }
   },
