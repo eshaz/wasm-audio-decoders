@@ -407,8 +407,14 @@
   // end include: memoryprofiler.js
   function updateMemoryViews() {
     var b = wasmMemory.buffer;
+    new Int8Array(b);
+    new Int16Array(b);
     HEAPU8 = new Uint8Array(b);
+    new Uint16Array(b);
+    new Int32Array(b);
     HEAPU32 = new Uint32Array(b);
+    new Float32Array(b);
+    new Float64Array(b);
     new BigInt64Array(b);
     new BigUint64Array(b);
   }

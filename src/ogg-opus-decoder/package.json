@@ -63,7 +63,7 @@
     "terser-webpack-plugin": "^5.6.1",
     "webpack": "^5.110.1",
     "webpack-bundle-analyzer": "^5.3.2",
-    "webpack-cli": "^7.2.2"
+    "webpack-cli": "^7.3.1"
   },
   "dependencies": {
     "@wasm-audio-decoders/common": "9.0.7",
