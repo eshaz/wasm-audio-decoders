@@ -2752,6 +2752,41 @@ describe("wasm-audio-decoders", () => {
         ]);
       });
 
+      it("should decode flac frames with missing frames", async () => {
+        // https://github.com/eshaz/wasm-audio-decoders/issues/131
+        // libFLAC pads missing frames with silence, which previously leaked
+        // memory until the decoder crashed with "memory access out of bounds"
+        const decoder = new FLACDecoder();
+        await decoder.ready;
+
+        const consoleError = console.error;
+        console.error = () => {};
+
+        let samplesDecoded = 0,
+          missingFrameErrors = 0;
+
+        try {
+          for (let pass = 0; pass < 3; pass++)
+            // decode one frame, then skip seven frames
+            for (let i = 0; i < flacStereoFrames.length; i += 8) {
+              const result = await decoder.decodeFrames([flacStereoFrames[i]]);
+
+              samplesDecoded += result.samplesDecoded;
+              missingFrameErrors += result.errors.filter((e) =>
+                e.message.includes("MISSING_FRAME"),
+              ).length;
+            }
+        } finally {
+          console.error = consoleError;
+          decoder.free();
+        }
+
+        // only the decoded frames are returned, not the silence padding
+        expect(samplesDecoded).toEqual(1314816);
+        // every gap is reported, except when each pass restarts at the first frame
+        expect(missingFrameErrors).toEqual(318);
+      });
+
       it("should decode multichannel flac", async () => {
         // ffmpeg -i flac.short.wav -filter_complex "[0:a][0:a][0:a][0:a][0:a][0:a][0:a][0:a]join=inputs=8:channel_layout=7.1[a]" -map "[a]" flac.8.flac
         const { paths, result } = await test_decode(

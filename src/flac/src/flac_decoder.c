@@ -70,15 +70,31 @@ FLAC__StreamDecoderWriteStatus write_cb(
 ) {
     FLACDecoder *decoder = (FLACDecoder*) decoder_ptr;
 
+    // libFLAC calls this more than once per decode when frames are missing
+    // (silence padding, then the decoded frame). Only the last frame is
+    // returned, so reuse the existing output buffer instead of leaking it.
+    float *out = realloc(
+        *decoder->out_ptr,
+        frame->header.channels * frame->header.blocksize * sizeof(float)
+    );
+
+    if (!out) {
+        free(*decoder->out_ptr);
+        *decoder->out_ptr = NULL;
+        *decoder->out_len = 0;
+        *decoder->samples_decoded = 0;
+        *decoder->error_string_ptr = "Failed to allocate output buffer";
+        return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
+    }
+
+    *decoder->out_ptr = out;
+
     *decoder->channels = frame->header.channels;
     *decoder->sample_rate = frame->header.sample_rate;
     *decoder->samples_decoded = frame->header.blocksize;
     *decoder->bits_per_sample = frame->header.bits_per_sample;
 
     *decoder->out_len = *decoder->channels * *decoder->samples_decoded;
-    float *out = malloc(*decoder->out_len*sizeof(float));
-
-    *decoder->out_ptr = out;
 
     int divisor;
 
@@ -139,6 +155,7 @@ FLACDecoder *create_decoder(
 
     decoder.out_ptr = out_ptr;
     decoder.out_len = out_len;
+    *decoder.out_ptr = NULL;
     *decoder.out_len = 0;
 
     decoder.error_string_ptr = error_string_ptr;
@@ -182,6 +199,10 @@ void decode_frame(
     *decoder->error_string_ptr = 0;
     *decoder->state_string_ptr = 0;
 
+    *decoder->out_ptr = NULL;
+    *decoder->out_len = 0;
+    *decoder->samples_decoded = 0;
+
     if (decoder->input_buffers_len == 1024) {
         *decoder->error_string_ptr = "Too many input buffers";
     } else {
@@ -193,6 +214,11 @@ void decode_frame(
     
         FLAC__stream_decoder_process_single(decoder->fl);
     }
-    
-    if (*decoder->error_string_ptr) FLAC__stream_decoder_reset(decoder->fl);
+
+    // frames after missing frames still decode successfully, so don't reset.
+    // resetting would clear the last decoded frame and the next gap would go undetected
+    if (
+        *decoder->error_string_ptr &&
+        *decoder->error_string_ptr != FLAC__StreamDecoderErrorStatusString[FLAC__STREAM_DECODER_ERROR_STATUS_MISSING_FRAME]
+    ) FLAC__stream_decoder_reset(decoder->fl);
 }
